@@ -37,7 +37,8 @@ func TestDecodeValid(t *testing.T) {
 		"payload": {}
 	}`)
 
-	op, err := Decode(valid)
+	var op Operation
+	err := op.Decode(valid)
 
 	if err != nil {
 		t.Error("Decoding Failed")
@@ -81,7 +82,8 @@ func TestDecodeMalformedOperation(t *testing.T) {
 		}
 	}`)
 
-	_, err := Decode(malformed)
+	var op Operation
+	err := op.Decode(malformed)
 
 	if err == nil {
 		t.Error("Decoding should fail if type doesn't match")
@@ -93,7 +95,8 @@ func TestDecodeMissingAttributes(t *testing.T) {
 		"version": 0.1
 	}`)
 
-	_, err := Decode(valid)
+	var op Operation
+	err := op.Decode(valid)
 
 	if err != nil {
 		t.Error("Decoding should not fail with missing parameters")
@@ -132,9 +135,11 @@ func TestDecodeEncodeCycle(t *testing.T) {
 		"payload": {}
 	}`)
 
-	op, _ := Decode(valid)
+	var op Operation
+	var op2 Operation
+	op.Decode(valid)
 	encoded, _ := op.Encode()
-	op2, _ := Decode(encoded)
+	op2.Decode(encoded)
 
 	if !reflect.DeepEqual(op, op2) {
 		t.Error(op)

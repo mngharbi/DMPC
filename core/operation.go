@@ -74,14 +74,13 @@ type Operation struct {
 }
 
 
-func Decode (stream []byte) (*Operation, error) {
+func (op *Operation) Decode (stream []byte) error {
 	// Try to decode json into raw operation
-	rawOp := RawOperation{}
-	if err := json.Unmarshal(stream, &rawOp); err != nil {
-		return nil, err
+	if err := json.Unmarshal(stream, &op.Raw); err != nil {
+		return err
 	}
 
-	return &Operation{Raw:&rawOp}, nil
+	return nil
 }
 
 func (op *Operation) Encode () ([]byte, error) {
