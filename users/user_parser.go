@@ -2,6 +2,9 @@ package users
 
 import (
 	"encoding/json"
+	"encoding/pem"
+	"crypto/rsa"
+	"crypto/x509"
 	"errors"
 	"time"
 )
@@ -26,14 +29,16 @@ type PermissionsObject struct {
 
 }
 type UserObject struct {
-	Id 			string 				`json:"id"`
-	EncKey		string 				`json:"encKey"`
-	SignKey 	string 				`json:"signKey"`
-	Permissions PermissionsObject 	`json:"permissions"`
-	Active 		bool 				`json:"active"`
-	CreatedAt 	time.Time 			`json:"createdAt"`
-	DisabledAt 	time.Time 			`json:"disabledAt"`
-	UpdatedAt 	time.Time 			`json:"updatedAt"`
+	Id 			 string 				`json:"id"`
+	EncKey		 string 				`json:"encKey"`
+	encKeyObject *rsa.PublicKey
+	SignKey 	 string 				`json:"signKey"`
+	signKeyObject *rsa.PublicKey
+	Permissions  PermissionsObject 	`json:"permissions"`
+	Active 		 bool 				`json:"active"`
+	CreatedAt 	 time.Time 			`json:"createdAt"`
+	DisabledAt 	 time.Time 			`json:"disabledAt"`
+	UpdatedAt 	 time.Time 			`json:"updatedAt"`
 }
 
 /*
@@ -83,12 +88,20 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 	}
 
 	switch rq.Type {
-		case CreateRequest:
+		case CreateRequest, DeleteRequest:
 			rq.FieldsUpdated = []string{}
-		case DeleteRequest:
-			rq.FieldsUpdated = []string{}
+			parseKey(rq.Data.encKeyObject, rq.Data.EncKey, res)
+			parseKey(rq.Data.signKeyObject, rq.Data.SignKey, res)
+
 		case UpdateRequest:
 			rq.sanitizeFieldsUpdated()
+
+			if contains(rq.FieldsUpdated, "encKey") {
+				parseKey(rq.Data.encKeyObject, rq.Data.EncKey, res)
+			}
+			if contains(rq.FieldsUpdated, "signKey") {
+				parseKey(rq.Data.signKeyObject, rq.Data.SignKey, res)
+			}
 
 			if len(rq.FieldsUpdated) == 0 {
 				res = append(res, errors.New("No fields updated"))
@@ -96,6 +109,22 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 	}
 
 	return res
+}
+
+func contains(s []string, e string) bool {
+    for _, a := range s {
+        if a == e {
+            return true
+        }
+    }
+    return false
+}
+
+func parseKey(key *rsa.PublicKey, str string, errs []error) {
+	key, err := convertRsaStringToKey(str)
+	if err != nil {
+		errs = append(errs, err)
+	}
 }
 
 var sanitizeFieldsUpdatedAllowed map[string]bool = map[string]bool{
@@ -118,4 +147,23 @@ func (rq *UserRequest) sanitizeFieldsUpdated() {
 		}
 	}
 	rq.FieldsUpdated = newSlice
+}
+
+func convertRsaStringToKey(rsaString string) (*rsa.PublicKey, error) {
+	block, _ := pem.Decode([]byte(rsaString))
+	if block == nil {
+		return nil, errors.New("failed to parse PEM block containing the public key")
+	}
+
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, errors.New("failed to parse DER encoded public key: " + err.Error())
+	}
+
+	switch pub := pub.(type) {
+		case *rsa.PublicKey:
+			return pub, nil
+		default:
+			return nil, errors.New("unknown type of public key" + err.Error())
+	}
 }
