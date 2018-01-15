@@ -90,17 +90,26 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 	switch rq.Type {
 		case CreateRequest, DeleteRequest:
 			rq.FieldsUpdated = []string{}
-			parseKey(rq.Data.encKeyObject, rq.Data.EncKey, res)
-			parseKey(rq.Data.signKeyObject, rq.Data.SignKey, res)
+
+			if err := parseKey(rq.Data.encKeyObject, rq.Data.EncKey); err != nil {
+				res = append(res, err)
+			}
+			if err := parseKey(rq.Data.signKeyObject, rq.Data.SignKey); err != nil {
+				res = append(res, err)
+			}
 
 		case UpdateRequest:
 			rq.sanitizeFieldsUpdated()
 
 			if contains(rq.FieldsUpdated, "encKey") {
-				parseKey(rq.Data.encKeyObject, rq.Data.EncKey, res)
+				if err := parseKey(rq.Data.encKeyObject, rq.Data.EncKey); err != nil {
+					res = append(res, err)
+				}
 			}
 			if contains(rq.FieldsUpdated, "signKey") {
-				parseKey(rq.Data.signKeyObject, rq.Data.SignKey, res)
+				if err := parseKey(rq.Data.signKeyObject, rq.Data.SignKey); err != nil {
+					res = append(res, err)
+				}
 			}
 
 			if len(rq.FieldsUpdated) == 0 {
@@ -120,10 +129,27 @@ func contains(s []string, e string) bool {
     return false
 }
 
-func parseKey(key *rsa.PublicKey, str string, errs []error) {
+func parseKey(key *rsa.PublicKey, str string) error {
 	key, err := convertRsaStringToKey(str)
+	return err
+}
+
+func convertRsaStringToKey(rsaString string) (*rsa.PublicKey, error) {
+	block, _ := pem.Decode([]byte(rsaString))
+	if block == nil {
+		return nil, errors.New("failed to parse PEM block containing the public key")
+	}
+
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
-		errs = append(errs, err)
+		return nil, errors.New("failed to parse DER encoded public key: " + err.Error())
+	}
+
+	switch pub := pub.(type) {
+		case *rsa.PublicKey:
+			return pub, nil
+		default:
+			return nil, errors.New("unknown type of public key" + err.Error())
 	}
 }
 
@@ -147,23 +173,4 @@ func (rq *UserRequest) sanitizeFieldsUpdated() {
 		}
 	}
 	rq.FieldsUpdated = newSlice
-}
-
-func convertRsaStringToKey(rsaString string) (*rsa.PublicKey, error) {
-	block, _ := pem.Decode([]byte(rsaString))
-	if block == nil {
-		return nil, errors.New("failed to parse PEM block containing the public key")
-	}
-
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, errors.New("failed to parse DER encoded public key: " + err.Error())
-	}
-
-	switch pub := pub.(type) {
-		case *rsa.PublicKey:
-			return pub, nil
-		default:
-			return nil, errors.New("unknown type of public key" + err.Error())
-	}
 }
