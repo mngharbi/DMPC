@@ -88,26 +88,39 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 	}
 
 	switch rq.Type {
-		case CreateRequest, DeleteRequest:
+		case CreateRequest:
 			rq.FieldsUpdated = []string{}
 
-			if err := parseKey(rq.Data.encKeyObject, rq.Data.EncKey); err != nil {
+			// Parse enc key and sign key since they have to be there
+			if parsedKey,err := convertRsaStringToKey(rq.Data.EncKey); err == nil {
+				rq.Data.encKeyObject = parsedKey
+			} else {
 				res = append(res, err)
 			}
-			if err := parseKey(rq.Data.signKeyObject, rq.Data.SignKey); err != nil {
+			if parsedKey,err := convertRsaStringToKey(rq.Data.SignKey); err == nil {
+				rq.Data.signKeyObject = parsedKey
+			} else {
 				res = append(res, err)
 			}
+
+		case DeleteRequest:
+			rq.FieldsUpdated = []string{}
 
 		case UpdateRequest:
 			rq.sanitizeFieldsUpdated()
 
+			// Parse enc key and sign key if they are updated
 			if contains(rq.FieldsUpdated, "encKey") {
-				if err := parseKey(rq.Data.encKeyObject, rq.Data.EncKey); err != nil {
+				if parsedKey,err := convertRsaStringToKey(rq.Data.EncKey); err == nil {
+					rq.Data.encKeyObject = parsedKey
+				} else {
 					res = append(res, err)
 				}
 			}
 			if contains(rq.FieldsUpdated, "signKey") {
-				if err := parseKey(rq.Data.signKeyObject, rq.Data.SignKey); err != nil {
+				if parsedKey,err := convertRsaStringToKey(rq.Data.SignKey); err == nil {
+					rq.Data.signKeyObject = parsedKey
+				} else {
 					res = append(res, err)
 				}
 			}
@@ -127,11 +140,6 @@ func contains(s []string, e string) bool {
         }
     }
     return false
-}
-
-func parseKey(key *rsa.PublicKey, str string) error {
-	key, err := convertRsaStringToKey(str)
-	return err
 }
 
 func convertRsaStringToKey(rsaString string) (*rsa.PublicKey, error) {
