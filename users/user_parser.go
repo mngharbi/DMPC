@@ -72,26 +72,27 @@ func (rq *UserRequest) Decode(stream []byte) []error {
 	return rq.sanitizeAndCheckParams()
 }
 
+// Used to correct request and return errors if irreparable
 func (rq *UserRequest) sanitizeAndCheckParams() []error {
 	res := []error{}
 
+	// Verifies type, issuer and certifier
 	if !(CreateRequest <= rq.Type && rq.Type <= DeleteRequest) {
 		res = append(res, errors.New("Unknown request type"))
 	}
-
 	if len(rq.IssuerId) == 0 {
 		res = append(res, errors.New("Issuer id missing"))
 	}
-
 	if len(rq.CertifierId) == 0 {
 		res = append(res, errors.New("Certifier id missing"))
 	}
 
 	switch rq.Type {
+
+		// For create requests, clear fields updated, and parse public keys
 		case CreateRequest:
 			rq.FieldsUpdated = []string{}
 
-			// Parse enc key and sign key since they have to be there
 			if parsedKey,err := convertRsaStringToKey(rq.Data.EncKey); err == nil {
 				rq.Data.encKeyObject = parsedKey
 			} else {
@@ -103,13 +104,20 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 				res = append(res, err)
 			}
 
+
+		// For delete requests, clear fields updated
 		case DeleteRequest:
 			rq.FieldsUpdated = []string{}
 
+		/*
+		For update requests:
+			* Only leave valid fields updated
+			* Check there are updates
+			* Parse public keys if any
+		*/
 		case UpdateRequest:
 			rq.sanitizeFieldsUpdated()
 
-			// Parse enc key and sign key if they are updated
 			if contains(rq.FieldsUpdated, "encKey") {
 				if parsedKey,err := convertRsaStringToKey(rq.Data.EncKey); err == nil {
 					rq.Data.encKeyObject = parsedKey
