@@ -323,3 +323,80 @@ func TestDecodeMissingCertifierUpdateRequest(t *testing.T) {
 		t.Errorf("Decoding update with missing certifier should fail with one error, errors: %v", errs)
 	}
 }
+
+func TestDecodeEncode(t *testing.T) {
+	encKey := generatePublicKey()
+	encKeyStringEncoded := jsonPemEncodeKey(encKey)
+	var encKeyStringDecoded string
+	json.Unmarshal([]byte(encKeyStringEncoded), &encKeyStringDecoded)
+	signKey := generatePublicKey()
+	signKeyStringEncoded := jsonPemEncodeKey(signKey)
+	var signKeyStringDecoded string
+	json.Unmarshal([]byte(signKeyStringEncoded), &signKeyStringDecoded)
+
+	requestBaseStr := `
+		"type": 0,
+		"issuerId": "USER",
+		"certifierId": "ADMIN",
+		"fieldsUpdated": [],
+		"timestamp": "2018-01-13T23:53:00Z",
+	`
+
+	valid := []byte(`{
+		` + requestBaseStr + `
+		"data": {
+			"id": "NEW_USER",
+			"encKey": ` +encKeyStringEncoded+ `,
+			"signKey": ` +signKeyStringEncoded+ `,
+			"permissions": {
+				"channel": {
+					"add": true
+				},
+				"user": {
+					"add": true,
+					"remove": false,
+					"encKeyUpdate": false,
+					"signKeyUpdate": false,
+					"permissionsUpdate": false
+				}
+			},
+			"active": true
+		}
+	}`)
+
+	var rq UserRequest
+	errs := rq.Decode(valid)
+
+
+	if len(errs) != 0 {
+		t.Errorf("Decoding Failed, errors: %v", errs)
+		return
+	}
+
+	userDataBytes, err := rq.Data.Encode()
+	userDataJson := string(userDataBytes)
+
+	if err != nil {
+		t.Errorf("Object encoding failed, error: %v", err)
+		return
+	}
+
+	reEncodedString := []byte(`{
+		` + requestBaseStr + `
+		"data": ` +userDataJson+ `
+	}`)
+
+	var secondRq UserRequest
+	secondDecodeErrs := secondRq.Decode(reEncodedString)
+
+	if len(secondDecodeErrs) != 0 {
+		t.Errorf("Re-encoded json failed while decoding, errors: %v", secondDecodeErrs)
+		return
+	}
+
+	if !reflect.DeepEqual(rq, secondRq) {
+		t.Errorf("%v\n", userDataJson)
+		t.Errorf("Re-encoding produced different results:\n result: %v\n expected: %v\n", rq, secondRq)
+	}
+
+}

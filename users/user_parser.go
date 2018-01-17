@@ -190,3 +190,16 @@ func (rq *UserRequest) sanitizeFieldsUpdated() {
 	}
 	rq.FieldsUpdated = newSlice
 }
+
+/*
+	User object encoding
+*/
+func (usr *UserObject) Encode() ([]byte, error) {
+	jsonStream, err := json.Marshal(usr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonStream, nil
+}
