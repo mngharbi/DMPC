@@ -47,7 +47,6 @@ type UserObject struct {
 const (
     CreateRequest = iota
     UpdateRequest
-    DeleteRequest
 )
 type UserRequest struct {
 	Type 			int  		`json:"type"`
@@ -77,7 +76,7 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 	res := []error{}
 
 	// Verifies type, issuer and certifier
-	if !(CreateRequest <= rq.Type && rq.Type <= DeleteRequest) {
+	if !(CreateRequest <= rq.Type && rq.Type <= UpdateRequest) {
 		res = append(res, errors.New("Unknown request type"))
 	}
 	if len(rq.IssuerId) == 0 {
@@ -103,11 +102,6 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 			} else {
 				res = append(res, err)
 			}
-
-
-		// For delete requests, clear fields updated
-		case DeleteRequest:
-			rq.FieldsUpdated = []string{}
 
 		/*
 		For update requests:

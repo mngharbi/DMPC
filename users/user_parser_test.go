@@ -186,51 +186,6 @@ func TestDecodeUpdateRequest(t *testing.T) {
 
 }
 
-func TestDecodeDeleteRequest(t *testing.T) {
-	encKey := generatePublicKey()
-	encKeyStringEncoded := jsonPemEncodeKey(encKey)
-	var encKeyStringDecoded string
-	json.Unmarshal([]byte(encKeyStringEncoded), &encKeyStringDecoded)
-	signKey := generatePublicKey()
-	signKeyStringEncoded := jsonPemEncodeKey(signKey)
-	var signKeyStringDecoded string
-	json.Unmarshal([]byte(signKeyStringEncoded), &signKeyStringDecoded)
-
-	valid := []byte(`{
-		"type": 2,
-		"issuerId": "USER",
-		"certifierId": "ADMIN",
-		"fieldsUpdated": [],
-		"data": {
-			"id": "NEW_USER"
-		},
-		"timestamp": "2018-01-13T23:53:00Z"
-	}`)
-
-	var rq UserRequest
-	errs := rq.Decode(valid)
-
-	if len(errs) != 0 {
-		t.Errorf("Decoding Failed, errors: %v", errs)
-		return
-	}
-	expectedTimestamp, _ := time.Parse(time.RFC3339, "2018-01-13T23:53:00Z")
-	expected := UserRequest{
-		Type: DeleteRequest,
-		IssuerId: "USER",
-		CertifierId: "ADMIN",
-		FieldsUpdated: []string{},
-		Data: UserObject{
-			Id: "NEW_USER",
-		},
-		Timestamp: expectedTimestamp,
-	}
-
-	if !reflect.DeepEqual(rq, expected) {
-		t.Errorf("Decoding produced different results:\n result: %v\n expected: %v\n", rq, expected)
-	}
-}
-
 func TestDecodeOneFieldUpdateRequest(t *testing.T) {
 	valid := []byte(`{
 		"type": 1,
