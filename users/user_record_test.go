@@ -417,8 +417,8 @@ func TestUpdateRequestInvalidUpdate(t *testing.T) {
 	}
 }
 
-func TestCreateRequestNil(t *testing.T) {
-	var obj userRecord
+func TestCreateRequest(t *testing.T) {
+	obj := userRecord{}
 
 	expected := testRecord()
 
@@ -440,6 +440,6 @@ func TestCreateRequestNil(t *testing.T) {
 	obj.create(&req)
 
 	if !reflect.DeepEqual(obj, expected) {
-		t.Errorf("Creation using nil record failed.\n result: %v\n expected: %v\n", obj, expected)
+		t.Errorf("Creation using empty record failed.\n result: %v\n expected: %v\n", obj, expected)
 	}
 }

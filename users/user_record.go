@@ -123,11 +123,6 @@ func (keyRec *keyRecord) update(val rsa.PublicKey, time time.Time) bool {
 	Create user record from creation request
 */
 func (record *userRecord) create(req *UserRequest) {
-	// Initialize record
-	if(record == nil) {
-		record = &userRecord{}
-	}
-
 	// Id
 	record.Id = req.Data.Id
 
