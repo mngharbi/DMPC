@@ -118,3 +118,61 @@ func (keyRec *keyRecord) update(val rsa.PublicKey, time time.Time) bool {
 	}
 	return false
 }
+
+/*
+	Create user record from creation request
+*/
+func (record *userRecord) create(req *UserRequest) {
+	// Initialize record
+	if(record == nil) {
+		record = &userRecord{}
+	}
+
+	// Id
+	record.Id = req.Data.Id
+
+	// Active
+	record.Active.update(req.Data.Active, req.Timestamp)
+
+	/*
+		Keys
+	*/
+
+	// Encryption key
+	record.EncKey.update(*req.Data.encKeyObject, req.Timestamp)
+
+	// Signature key
+	record.SignKey.update(*req.Data.signKeyObject, req.Timestamp)
+
+	/*
+		Permissions
+	*/
+
+	// Permissions: Channel add
+	record.Permissions.Channel.Add.update(req.Data.Permissions.Channel.Add, req.Timestamp)
+
+	// Permissions: User add
+	record.Permissions.User.Add.update(req.Data.Permissions.User.Add, req.Timestamp)
+
+	// Permissions: User remove
+	record.Permissions.User.Remove.update(req.Data.Permissions.User.Remove, req.Timestamp)
+
+	// Permissions: User Encryption Key Update
+	record.Permissions.User.EncKeyUpdate.update(req.Data.Permissions.User.EncKeyUpdate, req.Timestamp)
+
+	// Permissions: User Signature Key Update
+	record.Permissions.User.SignKeyUpdate.update(req.Data.Permissions.User.SignKeyUpdate, req.Timestamp)
+
+	// Permissions: User Permissions Update
+	record.Permissions.User.PermissionsUpdate.update(req.Data.Permissions.User.PermissionsUpdate, req.Timestamp)
+
+
+	/*
+		Timestamps
+	*/
+	record.Permissions.UpdatedAt = req.Timestamp
+	record.Permissions.Channel.UpdatedAt = req.Timestamp
+	record.Permissions.User.UpdatedAt = req.Timestamp
+	record.UpdatedAt = req.Timestamp
+	record.CreatedAt = req.Timestamp
+}

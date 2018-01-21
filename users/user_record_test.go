@@ -50,6 +50,7 @@ func testRecord() userRecord {
 				PermissionsUpdate: generateBoolRecord(),
 				UpdatedAt: testRecordTime(),
 			},
+			UpdatedAt: testRecordTime(),
 		},
 		Active: generateBoolRecord(),
 		CreatedAt: testRecordTime(),
@@ -413,5 +414,32 @@ func TestUpdateRequestInvalidUpdate(t *testing.T) {
 
 	if !reflect.DeepEqual(obj, expected) {
 		t.Errorf("Update succeeded despite fields updated being invalid.\n result: %v\n expected: %v\n", obj, expected)
+	}
+}
+
+func TestCreateRequestNil(t *testing.T) {
+	var obj userRecord
+
+	expected := testRecord()
+
+	req := testRequest(CreateRequest, false)
+	req.Data.Id = "id"
+	encKeyCopy := expected.EncKey.Key
+	req.Data.encKeyObject = &encKeyCopy
+	signKeyCopy := expected.SignKey.Key
+	req.Data.signKeyObject = &signKeyCopy
+	req.Data.Permissions.Channel.Add = true
+	req.Data.Permissions.User.Add = true
+	req.Data.Permissions.User.Remove = true
+	req.Data.Permissions.User.EncKeyUpdate = true
+	req.Data.Permissions.User.SignKeyUpdate = true
+	req.Data.Permissions.User.PermissionsUpdate = true
+	req.Data.Active = true
+	req.Timestamp = testRecordTime()
+
+	obj.create(&req)
+
+	if !reflect.DeepEqual(obj, expected) {
+		t.Errorf("Creation using nil record failed.\n result: %v\n expected: %v\n", obj, expected)
 	}
 }
