@@ -25,34 +25,34 @@ func generateKeyRecord() keyRecord {
 	}
 }
 
-func generateBoolRecord() booleanRecord {
+func generateBoolRecord(permissionDefault bool) booleanRecord {
 	return booleanRecord{
-		Ok: true,
+		Ok: permissionDefault,
 		UpdatedAt: testRecordTime(),
 	}
 }
 
-func testRecord() userRecord {
+func testRecord(permissionDefault bool) userRecord {
 	return userRecord{
 		Id: "id",
 		EncKey: generateKeyRecord(),
 		SignKey: generateKeyRecord(),
 		Permissions: permissionsRecord{
 			Channel: channelPermissionsRecord{
-				Add: generateBoolRecord(),
+				Add: generateBoolRecord(permissionDefault),
 				UpdatedAt: testRecordTime(),
 			},
 			User: userPermissionsRecord{
-				Add: generateBoolRecord(),
-				Remove: generateBoolRecord(),
-				EncKeyUpdate: generateBoolRecord(),
-				SignKeyUpdate: generateBoolRecord(),
-				PermissionsUpdate: generateBoolRecord(),
+				Add: generateBoolRecord(permissionDefault),
+				Remove: generateBoolRecord(permissionDefault),
+				EncKeyUpdate: generateBoolRecord(permissionDefault),
+				SignKeyUpdate: generateBoolRecord(permissionDefault),
+				PermissionsUpdate: generateBoolRecord(permissionDefault),
 				UpdatedAt: testRecordTime(),
 			},
 			UpdatedAt: testRecordTime(),
 		},
-		Active: generateBoolRecord(),
+		Active: generateBoolRecord(true),
 		CreatedAt: testRecordTime(),
 		UpdatedAt: testRecordTime(),
 	}
@@ -75,7 +75,7 @@ func testRequest(reqType int, late bool) UserRequest {
 }
 
 func TestUpdateRequestActive(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 	expected.Active.Ok = false
@@ -94,7 +94,7 @@ func TestUpdateRequestActive(t *testing.T) {
 }
 
 func TestUpdateRequestActiveSkipped(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 
@@ -110,7 +110,7 @@ func TestUpdateRequestActiveSkipped(t *testing.T) {
 }
 
 func TestUpdateRequestEncKey(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 	expected.EncKey.Key = *generatePublicKey()
@@ -129,7 +129,7 @@ func TestUpdateRequestEncKey(t *testing.T) {
 }
 
 func TestUpdateRequestEncKeySkipped(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 
@@ -145,7 +145,7 @@ func TestUpdateRequestEncKeySkipped(t *testing.T) {
 }
 
 func TestUpdateRequestSignKey(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 	expected.SignKey.Key = *generatePublicKey()
@@ -164,7 +164,7 @@ func TestUpdateRequestSignKey(t *testing.T) {
 }
 
 func TestUpdateRequestSignKeySkipped(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 
@@ -180,7 +180,7 @@ func TestUpdateRequestSignKeySkipped(t *testing.T) {
 }
 
 func TestUpdateRequestPermissionsChannelAdd(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 	expected.Permissions.Channel.Add.Ok = false
@@ -201,7 +201,7 @@ func TestUpdateRequestPermissionsChannelAdd(t *testing.T) {
 }
 
 func TestUpdateRequestPermissionsChannelAddSkipped(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 
@@ -217,7 +217,7 @@ func TestUpdateRequestPermissionsChannelAddSkipped(t *testing.T) {
 }
 
 func TestUpdateRequestPermissionsUserAdd(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 	expected.Permissions.User.Add.Ok = false
@@ -238,7 +238,7 @@ func TestUpdateRequestPermissionsUserAdd(t *testing.T) {
 }
 
 func TestUpdateRequestPermissionsUserAddSkipped(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 
@@ -254,7 +254,7 @@ func TestUpdateRequestPermissionsUserAddSkipped(t *testing.T) {
 }
 
 func TestUpdateRequestPermissionsUserRemove(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 	expected.Permissions.User.Remove.Ok = false
@@ -275,7 +275,7 @@ func TestUpdateRequestPermissionsUserRemove(t *testing.T) {
 }
 
 func TestUpdateRequestPermissionsUserRemoveSkipped(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 
@@ -291,7 +291,7 @@ func TestUpdateRequestPermissionsUserRemoveSkipped(t *testing.T) {
 }
 
 func TestUpdateRequestPermissionsUserEncKeyUpdate(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 	expected.Permissions.User.EncKeyUpdate.Ok = false
@@ -312,7 +312,7 @@ func TestUpdateRequestPermissionsUserEncKeyUpdate(t *testing.T) {
 }
 
 func TestUpdateRequestPermissionsUserEncKeyUpdateSkipped(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 
@@ -328,7 +328,7 @@ func TestUpdateRequestPermissionsUserEncKeyUpdateSkipped(t *testing.T) {
 }
 
 func TestUpdateRequestPermissionsUserSignKeyUpdate(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 	expected.Permissions.User.SignKeyUpdate.Ok = false
@@ -349,7 +349,7 @@ func TestUpdateRequestPermissionsUserSignKeyUpdate(t *testing.T) {
 }
 
 func TestUpdateRequestPermissionsUserSignKeyUpdateSkipped(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 
@@ -365,7 +365,7 @@ func TestUpdateRequestPermissionsUserSignKeyUpdateSkipped(t *testing.T) {
 }
 
 func TestUpdateRequestPermissionsUserPermissionsUpdate(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 	expected.Permissions.User.PermissionsUpdate.Ok = false
@@ -386,7 +386,7 @@ func TestUpdateRequestPermissionsUserPermissionsUpdate(t *testing.T) {
 }
 
 func TestUpdateRequestPermissionsUserPermissionsUpdateSkipped(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 
@@ -402,7 +402,7 @@ func TestUpdateRequestPermissionsUserPermissionsUpdateSkipped(t *testing.T) {
 }
 
 func TestUpdateRequestInvalidUpdate(t *testing.T) {
-	obj := testRecord()
+	obj := testRecord(true)
 
 	expected := obj
 
@@ -420,7 +420,7 @@ func TestUpdateRequestInvalidUpdate(t *testing.T) {
 func TestCreateRequest(t *testing.T) {
 	obj := userRecord{}
 
-	expected := testRecord()
+	expected := testRecord(true)
 
 	req := testRequest(CreateRequest, false)
 	req.Data.Id = "id"
@@ -441,5 +441,131 @@ func TestCreateRequest(t *testing.T) {
 
 	if !reflect.DeepEqual(obj, expected) {
 		t.Errorf("Creation using empty record failed.\n result: %v\n expected: %v\n", obj, expected)
+	}
+}
+
+func TestAuthorizationCreate(t *testing.T) {
+	obj := testRecord(true)
+	obj.Permissions.User.Add.Ok = false
+
+	req := testRequest(CreateRequest, false)
+	req.Data.Id = "notId"
+	encKeyCopy := obj.EncKey.Key
+	req.Data.encKeyObject = &encKeyCopy
+	signKeyCopy := obj.SignKey.Key
+	req.Data.signKeyObject = &signKeyCopy
+	req.Data.Permissions.Channel.Add = true
+	req.Data.Permissions.User.Add = true
+	req.Data.Permissions.User.Remove = true
+	req.Data.Permissions.User.EncKeyUpdate = true
+	req.Data.Permissions.User.SignKeyUpdate = true
+	req.Data.Permissions.User.PermissionsUpdate = true
+	req.Data.Active = true
+	req.Timestamp = testRecordTime()
+
+	if obj.isAuthorized(&req) {
+		t.Errorf("Creation should require user add permissions.\n")
+	}
+
+	obj.Permissions.User.Add.Ok = true
+
+	if !obj.isAuthorized(&req) {
+		t.Errorf("Creation should only require user add permissions.\n")
+	}
+}
+
+func TestAuthorizationUpdate(t *testing.T) {
+	obj := testRecord(false)
+
+	req := testRequest(UpdateRequest, false)
+	req.Data.Id = "notId"
+	encKeyCopy := obj.EncKey.Key
+	req.Data.encKeyObject = &encKeyCopy
+	signKeyCopy := obj.SignKey.Key
+	req.Data.signKeyObject = &signKeyCopy
+	req.Data.Permissions.Channel.Add = true
+	req.Data.Permissions.User.Add = true
+	req.Data.Permissions.User.Remove = true
+	req.Data.Permissions.User.EncKeyUpdate = true
+	req.Data.Permissions.User.SignKeyUpdate = true
+	req.Data.Permissions.User.PermissionsUpdate = true
+	req.Data.Active = true
+	req.Timestamp = testRecordTime()
+	req.FieldsUpdated = []string{}
+
+	if !obj.isAuthorized(&req) {
+		t.Errorf("No update is authorized.\n")
+	}
+
+	req.FieldsUpdated = []string{"active"}
+
+	if obj.isAuthorized(&req) {
+		t.Errorf("Update to active needs user delete permission.\n")
+	}
+
+	obj.Permissions.User.Remove.Ok = true
+
+	if !obj.isAuthorized(&req) {
+		t.Errorf("Update to active only needs user delete permission.\n")
+	}
+
+	req.FieldsUpdated = []string{"active", "encKey"}
+
+	if obj.isAuthorized(&req) {
+		t.Errorf("Update to encryption key needs same user or encryption key permission.\n")
+	}
+
+	obj.Permissions.User.EncKeyUpdate.Ok = true
+
+	if !obj.isAuthorized(&req) {
+		t.Errorf("Update to encryption key needs same user or encryption key permission.\n")
+	}
+
+	obj.Permissions.User.EncKeyUpdate.Ok = false
+	req.Data.Id = "id"
+
+	if !obj.isAuthorized(&req) {
+		t.Errorf("Update to encryption key needs same user or encryption key permission.\n")
+	}
+
+	req.FieldsUpdated = []string{"active", "signKey"}
+	req.Data.Id = "notId"
+
+	if obj.isAuthorized(&req) {
+		t.Errorf("Update to signature key needs same user or signature key permission.\n")
+	}
+
+	obj.Permissions.User.SignKeyUpdate.Ok = true
+
+	if !obj.isAuthorized(&req) {
+		t.Errorf("Update to signature key needs same user or signature key permission.\n")
+	}
+
+	obj.Permissions.User.SignKeyUpdate.Ok = false
+	req.Data.Id = "id"
+
+	if !obj.isAuthorized(&req) {
+		t.Errorf("Update to signature key needs same user or signature key permission.\n")
+	}
+
+	req.Data.Id = "notId"
+
+	permissionsFields := []string{"permissions.channel.add", "permissions.user.add",
+		"permissions.user.remove", "permissions.user.encKeyUpdate",
+		"permissions.user.signKeyUpdate", "permissions.user.permissionsUpdate"}
+
+	for _,field := range permissionsFields {
+		req.FieldsUpdated = []string{field}
+		obj.Permissions.User.PermissionsUpdate.Ok = false
+
+		if obj.isAuthorized(&req) {
+			t.Errorf("Update to %s needs permission update permission.\n", field)
+		}
+
+		obj.Permissions.User.PermissionsUpdate.Ok = true
+
+		if !obj.isAuthorized(&req) {
+			t.Errorf("Update to %s needs permission update permission.\n", field)
+		}
 	}
 }

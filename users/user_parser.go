@@ -5,6 +5,7 @@ import (
 	"encoding/pem"
 	"crypto/rsa"
 	"crypto/x509"
+	"bytes"
 	"errors"
 	"time"
 )
@@ -55,6 +56,22 @@ type UserRequest struct {
 	FieldsUpdated 	[]string 	`json:"fieldsUpdated"`
 	Data 			UserObject 	`json:"data"`
 	Timestamp 		time.Time 	`json:"timestamp"`
+}
+
+/*
+	External structure of a user related response
+*/
+const (
+    Success = iota
+    DecodeError
+    IssuerUnknownError
+    CertifierUnknownError
+    SubjectUnknownError
+    CertifierPermissionsError
+)
+type UserResponse struct {
+	Result			int
+	Data 			[]UserObject
 }
 
 /*
@@ -196,4 +213,45 @@ func (usr *UserObject) Encode() ([]byte, error) {
 	}
 
 	return jsonStream, nil
+}
+
+
+/*
+	Utilities
+*/
+
+func (usr *UserObject) createFromRecord(rec *userRecord) {
+	usr.Id = rec.Id
+	usr.EncKey = convertKeyToString(&rec.EncKey.Key)
+	usr.SignKey = convertKeyToString(&rec.SignKey.Key)
+	usr.Permissions.Channel.Add = rec.Permissions.Channel.Add.Ok
+	usr.Permissions.User.Add = rec.Permissions.User.Add.Ok
+	usr.Permissions.User.Remove = rec.Permissions.User.Remove.Ok
+	usr.Permissions.User.EncKeyUpdate = rec.Permissions.User.EncKeyUpdate.Ok
+	usr.Permissions.User.SignKeyUpdate = rec.Permissions.User.SignKeyUpdate.Ok
+	usr.Permissions.User.PermissionsUpdate = rec.Permissions.User.PermissionsUpdate.Ok
+}
+
+func makeSearchByIdRecord(usr *UserObject) *userRecord {
+	return &userRecord {
+		Id: usr.Id,
+	}
+}
+
+func convertKeyToString(key *rsa.PublicKey) string {
+	// Break into bytes
+	keyBytes,_ := x509.MarshalPKIXPublicKey(key)
+
+	// Build pem block containing public key
+	block := &pem.Block{
+		Type: "RSA PUBLIC KEY",
+		Bytes: keyBytes,
+	}
+
+	// PEM encode block
+	buf := new(bytes.Buffer)
+	pem.Encode(buf, block)
+
+	// Return string representing bytes
+	return string(pem.EncodeToMemory(block))
 }

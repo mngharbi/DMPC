@@ -3,6 +3,7 @@ package users
 import (
 	"crypto/rsa"
 	"time"
+	"sync"
 )
 
 /*
@@ -46,9 +47,20 @@ type userRecord struct {
 	Active 		booleanRecord
 	CreatedAt 	time.Time
 	UpdatedAt 	time.Time
+	Lock 		*sync.RWMutex
 }
 
+func (rec userRecord) Less(index string, than interface{}) bool {
+	switch index {
+		case "Id":
+			return rec.Id < than.(userRecord).Id
+	}
+	return false
+}
 
+/*
+	Record update (run in a mutex context)
+*/
 func (record *userRecord) applyUpdateRequest(req *UserRequest) {
 	for _,field := range req.FieldsUpdated {
 		switch field {
@@ -170,4 +182,41 @@ func (record *userRecord) create(req *UserRequest) {
 	record.Permissions.User.UpdatedAt = req.Timestamp
 	record.UpdatedAt = req.Timestamp
 	record.CreatedAt = req.Timestamp
+}
+
+
+/*
+	Check permissions on request
+*/
+func (record *userRecord) isAuthorized(req *UserRequest) bool {
+	result := true
+
+	switch req.Type {
+		case CreateRequest:
+			// For creation we need to check user add permission
+			result = record.Permissions.User.Add.Ok
+
+		case UpdateRequest:
+			isSameUser := req.Data.Id == record.Id
+
+			for _,field := range req.FieldsUpdated {
+				if !result {
+					break
+				}
+				switch field {
+					case "active":
+						result = record.Permissions.User.Remove.Ok
+					case "encKey":
+						result = record.Permissions.User.EncKeyUpdate.Ok || isSameUser
+					case "signKey":
+						result = record.Permissions.User.SignKeyUpdate.Ok || isSameUser
+					case "permissions.channel.add", "permissions.user.add",
+					"permissions.user.remove", "permissions.user.encKeyUpdate",
+					"permissions.user.signKeyUpdate", "permissions.user.permissionsUpdate":
+						result = record.Permissions.User.PermissionsUpdate.Ok
+				}
+			}
+	}
+
+	return result
 }
