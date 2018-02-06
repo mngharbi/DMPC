@@ -46,9 +46,10 @@ func MakeRequest(request []byte) (chan UserResponse) {
 */
 
 type server struct {
-	workerPool 		[]*worker
-	freeWorkers 	[]*worker
-	jobPool 		[]*job
+	isInitialized	bool
+	workerPool		[]*worker
+	freeWorkers		[]*worker
+	jobPool			[]*job
 	jobPipe			chan *job
 	workerPipe		chan *worker
 	shutdownPipe	chan bool
@@ -63,7 +64,7 @@ var indexesMap map[string]bool = map[string]bool{
 
 func getIndexes() (res []string) {
 	for k := range indexesMap {
-	    res = append(res, k)
+		res = append(res, k)
 	}
 	return res
 }
@@ -94,11 +95,16 @@ func (sv *server) init (conf *Config) {
 		go worker.run()
 	}
 
-	// Initialize store
-	sv.store = memstore.New(getIndexes())
+	// Initialize store (only if starting for the first time)
+	if !sv.isInitialized {
+		sv.store = memstore.New(getIndexes())
+	}
 
 	// Start running server
 	go sv.run()
+
+	// Set flag for restarts
+	sv.isInitialized = true
 }
 
 func (sv *server) run () {
@@ -168,13 +174,13 @@ func (sv *server) shutdown () {
 */
 
 type worker struct {
-	jobs 			chan *job
+	jobs			chan *job
 	shutdownPipe	chan bool
 }
 
 type job struct {
-	response 	chan *UserResponse
-	request 	[]byte
+	response	chan *UserResponse
+	request		[]byte
 }
 
 func (wk *worker) run () {

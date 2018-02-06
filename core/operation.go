@@ -8,53 +8,36 @@ import (
 	Structure of an operation as it comes in
 */
 type RawOperation struct {
-	Version float64 `json:"version"`
-
+	Version		float64	`json:"version"`
 	Encryption struct {
-
 		// Temporary encryption
 		Temp struct {
-
-			Encrypted bool `json:"encrypted"`
-
-			Keys map[string]string `json:"keys"`
-
-			Nonce string `json:"nonce"`
-
-		} `json:"temp"`
+			Encrypted	bool				`json:"encrypted"`
+			Keys		map[string]string	`json:"keys"`
+			Nonce		string				`json:"nonce"`
+		}	`json:"temp"`
 
 		// Permanent encryption
 		Perm struct {
+			Encrypted	bool	`json:"encrypted"`
+			KeyId		string	`json:"keyId"`
+			Nonce		string	`json:"nonce"`
+		}	`json:"perm"`
 
-			Encrypted bool `json:"encrypted"`
-
-			KeyId string `json:"keyId"`
-
-			Nonce string `json:"nonce"`
-
-		}  `json:"perm"`
-
-	}  `json:"encryption"`
+	}	`json:"encryption"`
 
 	Issue struct {
-
-		Id string `json:"id"`
-
-		Signature string `json:"signature"`
-
-	} `json:"issue"`
+		Id			string	`json:"id"`
+		Signature	string	`json:"signature"`
+	}	`json:"issue"`
 
 	Certification struct {
+		Id			string	`json:"id"`
+		Signature	string	`json:"signature"`
+	}	`json:"certification"`
 
-		Id string `json:"id"`
-
-		Signature string `json:"signature"`
-
-	} `json:"certification"`
-
-	Transmission json.RawMessage `json:"transmission"`
-
-	Payload json.RawMessage `json:"payload"`
+	Transmission	json.RawMessage	`json:"transmission"`
+	Payload			json.RawMessage	`json:"payload"`
 }
 
 /*
@@ -63,13 +46,9 @@ type RawOperation struct {
 */
 type Operation struct {
 	Raw *RawOperation
-
 	TempDecrypted bool
-
 	PermDecrypted bool
-
 	IssueVerified bool
-
 	CertificationVerified bool
 }
 

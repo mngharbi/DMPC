@@ -10,7 +10,7 @@ import (
 )
 type lockNeed struct {
 	writeLock	bool
-	userId 		string
+	userId		string
 }
 
 type lockNeedCollection []lockNeed

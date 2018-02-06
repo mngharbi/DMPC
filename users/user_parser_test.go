@@ -353,5 +353,4 @@ func TestDecodeEncode(t *testing.T) {
 		t.Errorf("%v\n", userDataJson)
 		t.Errorf("Re-encoding produced different results:\n result: %v\n expected: %v\n", rq, secondRq)
 	}
-
 }

@@ -11,43 +11,43 @@ import (
 	Keeps track of granual timestamps for changes
 */
 type keyRecord struct {
-	Key 		rsa.PublicKey
-	UpdatedAt 	time.Time
+	Key			rsa.PublicKey
+	UpdatedAt	time.Time
 }
 type booleanRecord struct {
-	Ok 			bool
-	UpdatedAt 	time.Time
+	Ok			bool
+	UpdatedAt	time.Time
 }
 
 type permissionsRecord struct {
-	Channel 	channelPermissionsRecord
-	User 		userPermissionsRecord
-	UpdatedAt 	time.Time
+	Channel		channelPermissionsRecord
+	User		userPermissionsRecord
+	UpdatedAt	time.Time
 }
 
 type channelPermissionsRecord struct {
-	Add 		booleanRecord
-	UpdatedAt 	time.Time
+	Add			booleanRecord
+	UpdatedAt	time.Time
 }
 
 type userPermissionsRecord struct {
-	Add 				booleanRecord
-	Remove 				booleanRecord
-	EncKeyUpdate 		booleanRecord
-	SignKeyUpdate 		booleanRecord
-	PermissionsUpdate 	booleanRecord
-	UpdatedAt 			time.Time
+	Add					booleanRecord
+	Remove				booleanRecord
+	EncKeyUpdate		booleanRecord
+	SignKeyUpdate		booleanRecord
+	PermissionsUpdate	booleanRecord
+	UpdatedAt			time.Time
 }
 
 type userRecord struct {
-	Id 			string
-	EncKey 		keyRecord
-	SignKey 	keyRecord
-	Permissions permissionsRecord
-	Active 		booleanRecord
-	CreatedAt 	time.Time
-	UpdatedAt 	time.Time
-	Lock 		*sync.RWMutex
+	Id			string
+	EncKey		keyRecord
+	SignKey		keyRecord
+	Permissions	permissionsRecord
+	Active		booleanRecord
+	CreatedAt	time.Time
+	UpdatedAt	time.Time
+	Lock		*sync.RWMutex
 }
 
 func (rec userRecord) Less(index string, than interface{}) bool {

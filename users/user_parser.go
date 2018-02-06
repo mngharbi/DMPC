@@ -14,60 +14,59 @@ import (
 	External structure of a user
 */
 type ChannelPermissionsObject struct {
-	Add bool `json:"add"`
+	Add		bool	`json:"add"`
 }
 
 type UserPermissionsObject struct {
-	Add 				bool `json:"add"`
-	Remove 				bool `json:"remove"`
-	EncKeyUpdate 		bool `json:"encKeyUpdate"`
-	SignKeyUpdate 		bool `json:"signKeyUpdate"`
-	PermissionsUpdate 	bool `json:"permissionsUpdate"`
+	Add					bool	`json:"add"`
+	Remove				bool	`json:"remove"`
+	EncKeyUpdate		bool	`json:"encKeyUpdate"`
+	SignKeyUpdate		bool	`json:"signKeyUpdate"`
+	PermissionsUpdate	bool	`json:"permissionsUpdate"`
 }
 type PermissionsObject struct {
-	Channel ChannelPermissionsObject 	`json:"channel"`
-	User UserPermissionsObject 			`json:"user"`
-
+	Channel	ChannelPermissionsObject	`json:"channel"`
+	User	UserPermissionsObject		`json:"user"`
 }
 type UserObject struct {
-	Id 			 string 				`json:"id"`
-	EncKey		 string 				`json:"encKey"`
-	encKeyObject *rsa.PublicKey
-	SignKey 	 string 				`json:"signKey"`
-	signKeyObject *rsa.PublicKey
-	Permissions  PermissionsObject 	`json:"permissions"`
-	Active 		 bool 				`json:"active"`
-	CreatedAt 	 time.Time 			`json:"createdAt"`
-	DisabledAt 	 time.Time 			`json:"disabledAt"`
-	UpdatedAt 	 time.Time 			`json:"updatedAt"`
+	Id				string				`json:"id"`
+	EncKey			string				`json:"encKey"`
+	encKeyObject	*rsa.PublicKey
+	SignKey			string				`json:"signKey"`
+	signKeyObject	*rsa.PublicKey
+	Permissions		PermissionsObject	`json:"permissions"`
+	Active			bool				`json:"active"`
+	CreatedAt		time.Time			`json:"createdAt"`
+	DisabledAt		time.Time			`json:"disabledAt"`
+	UpdatedAt		time.Time			`json:"updatedAt"`
 }
 
 /*
 	External structure of a user related request
 */
 const (
-    CreateRequest = iota
-    UpdateRequest
+	CreateRequest = iota
+	UpdateRequest
 )
 type UserRequest struct {
-	Type 			int  		`json:"type"`
-	IssuerId 		string 		`json:"issuerId"`
-	CertifierId 	string 		`json:"certifierId"`
-	FieldsUpdated 	[]string 	`json:"fieldsUpdated"`
-	Data 			UserObject 	`json:"data"`
-	Timestamp 		time.Time 	`json:"timestamp"`
+	Type			int			`json:"type"`
+	IssuerId		string		`json:"issuerId"`
+	CertifierId		string		`json:"certifierId"`
+	FieldsUpdated	[]string	`json:"fieldsUpdated"`
+	Data			UserObject	`json:"data"`
+	Timestamp		time.Time	`json:"timestamp"`
 }
 
 /*
 	External structure of a user related response
 */
 const (
-    Success = iota
-    DecodeError
-    IssuerUnknownError
-    CertifierUnknownError
-    SubjectUnknownError
-    CertifierPermissionsError
+	Success = iota
+	DecodeError
+	IssuerUnknownError
+	CertifierUnknownError
+	SubjectUnknownError
+	CertifierPermissionsError
 )
 type UserResponse struct {
 	Result			int
@@ -153,12 +152,12 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 }
 
 func contains(s []string, e string) bool {
-    for _, a := range s {
-        if a == e {
-            return true
-        }
-    }
-    return false
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
 
 func convertRsaStringToKey(rsaString string) (*rsa.PublicKey, error) {
