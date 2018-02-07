@@ -84,7 +84,7 @@ func TestUpdateRequestActive(t *testing.T) {
 
 	req := testRequest(UpdateRequest, false)
 	req.Data.Active = false
-	req.FieldsUpdated = []string{"active"}
+	req.Fields = []string{"active"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -100,7 +100,7 @@ func TestUpdateRequestActiveSkipped(t *testing.T) {
 
 	req := testRequest(UpdateRequest, true)
 	req.Data.Active = false
-	req.FieldsUpdated = []string{"active"}
+	req.Fields = []string{"active"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -119,7 +119,7 @@ func TestUpdateRequestEncKey(t *testing.T) {
 
 	req := testRequest(UpdateRequest, false)
 	req.Data.encKeyObject = &expected.EncKey.Key
-	req.FieldsUpdated = []string{"encKey"}
+	req.Fields = []string{"encKey"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -135,7 +135,7 @@ func TestUpdateRequestEncKeySkipped(t *testing.T) {
 
 	req := testRequest(UpdateRequest, true)
 	req.Data.encKeyObject = generatePublicKey()
-	req.FieldsUpdated = []string{"encKey"}
+	req.Fields = []string{"encKey"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -154,7 +154,7 @@ func TestUpdateRequestSignKey(t *testing.T) {
 
 	req := testRequest(UpdateRequest, false)
 	req.Data.signKeyObject = &expected.SignKey.Key
-	req.FieldsUpdated = []string{"signKey"}
+	req.Fields = []string{"signKey"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -170,7 +170,7 @@ func TestUpdateRequestSignKeySkipped(t *testing.T) {
 
 	req := testRequest(UpdateRequest, true)
 	req.Data.signKeyObject = generatePublicKey()
-	req.FieldsUpdated = []string{"signKey"}
+	req.Fields = []string{"signKey"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -191,7 +191,7 @@ func TestUpdateRequestPermissionsChannelAdd(t *testing.T) {
 
 	req := testRequest(UpdateRequest, false)
 	req.Data.Permissions.Channel.Add = false
-	req.FieldsUpdated = []string{"permissions.channel.add"}
+	req.Fields = []string{"permissions.channel.add"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -207,7 +207,7 @@ func TestUpdateRequestPermissionsChannelAddSkipped(t *testing.T) {
 
 	req := testRequest(UpdateRequest, true)
 	req.Data.Permissions.Channel.Add = false
-	req.FieldsUpdated = []string{"permissions.channel.add"}
+	req.Fields = []string{"permissions.channel.add"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -228,7 +228,7 @@ func TestUpdateRequestPermissionsUserAdd(t *testing.T) {
 
 	req := testRequest(UpdateRequest, false)
 	req.Data.Permissions.User.Add = false
-	req.FieldsUpdated = []string{"permissions.user.add"}
+	req.Fields = []string{"permissions.user.add"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -244,7 +244,7 @@ func TestUpdateRequestPermissionsUserAddSkipped(t *testing.T) {
 
 	req := testRequest(UpdateRequest, true)
 	req.Data.Permissions.User.Add = false
-	req.FieldsUpdated = []string{"permissions.user.add"}
+	req.Fields = []string{"permissions.user.add"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -265,7 +265,7 @@ func TestUpdateRequestPermissionsUserRemove(t *testing.T) {
 
 	req := testRequest(UpdateRequest, false)
 	req.Data.Permissions.User.Remove = false
-	req.FieldsUpdated = []string{"permissions.user.remove"}
+	req.Fields = []string{"permissions.user.remove"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -281,7 +281,7 @@ func TestUpdateRequestPermissionsUserRemoveSkipped(t *testing.T) {
 
 	req := testRequest(UpdateRequest, true)
 	req.Data.Permissions.User.Remove = false
-	req.FieldsUpdated = []string{"permissions.user.remove"}
+	req.Fields = []string{"permissions.user.remove"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -302,7 +302,7 @@ func TestUpdateRequestPermissionsUserEncKeyUpdate(t *testing.T) {
 
 	req := testRequest(UpdateRequest, false)
 	req.Data.Permissions.User.EncKeyUpdate = false
-	req.FieldsUpdated = []string{"permissions.user.encKeyUpdate"}
+	req.Fields = []string{"permissions.user.encKeyUpdate"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -318,7 +318,7 @@ func TestUpdateRequestPermissionsUserEncKeyUpdateSkipped(t *testing.T) {
 
 	req := testRequest(UpdateRequest, true)
 	req.Data.Permissions.User.EncKeyUpdate = false
-	req.FieldsUpdated = []string{"permissions.user.encKeyUpdate"}
+	req.Fields = []string{"permissions.user.encKeyUpdate"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -339,7 +339,7 @@ func TestUpdateRequestPermissionsUserSignKeyUpdate(t *testing.T) {
 
 	req := testRequest(UpdateRequest, false)
 	req.Data.Permissions.User.SignKeyUpdate = false
-	req.FieldsUpdated = []string{"permissions.user.signKeyUpdate"}
+	req.Fields = []string{"permissions.user.signKeyUpdate"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -355,7 +355,7 @@ func TestUpdateRequestPermissionsUserSignKeyUpdateSkipped(t *testing.T) {
 
 	req := testRequest(UpdateRequest, true)
 	req.Data.Permissions.User.SignKeyUpdate = false
-	req.FieldsUpdated = []string{"permissions.user.signKeyUpdate"}
+	req.Fields = []string{"permissions.user.signKeyUpdate"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -376,7 +376,7 @@ func TestUpdateRequestPermissionsUserPermissionsUpdate(t *testing.T) {
 
 	req := testRequest(UpdateRequest, false)
 	req.Data.Permissions.User.PermissionsUpdate = false
-	req.FieldsUpdated = []string{"permissions.user.permissionsUpdate"}
+	req.Fields = []string{"permissions.user.permissionsUpdate"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -392,7 +392,7 @@ func TestUpdateRequestPermissionsUserPermissionsUpdateSkipped(t *testing.T) {
 
 	req := testRequest(UpdateRequest, true)
 	req.Data.Permissions.User.PermissionsUpdate = false
-	req.FieldsUpdated = []string{"permissions.user.permissionsUpdate"}
+	req.Fields = []string{"permissions.user.permissionsUpdate"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -408,7 +408,7 @@ func TestUpdateRequestInvalidUpdate(t *testing.T) {
 
 	req := testRequest(UpdateRequest, false)
 	req.Data.Permissions.User.PermissionsUpdate = false
-	req.FieldsUpdated = []string{"random"}
+	req.Fields = []string{"random"}
 
 	obj.applyUpdateRequest(&req)
 
@@ -491,13 +491,13 @@ func TestAuthorizationUpdate(t *testing.T) {
 	req.Data.Permissions.User.PermissionsUpdate = true
 	req.Data.Active = true
 	req.Timestamp = testRecordTime()
-	req.FieldsUpdated = []string{}
+	req.Fields = []string{}
 
 	if !obj.isAuthorized(&req) {
 		t.Errorf("No update is authorized.\n")
 	}
 
-	req.FieldsUpdated = []string{"active"}
+	req.Fields = []string{"active"}
 
 	if obj.isAuthorized(&req) {
 		t.Errorf("Update to active needs user delete permission.\n")
@@ -509,7 +509,7 @@ func TestAuthorizationUpdate(t *testing.T) {
 		t.Errorf("Update to active only needs user delete permission.\n")
 	}
 
-	req.FieldsUpdated = []string{"active", "encKey"}
+	req.Fields = []string{"active", "encKey"}
 
 	if obj.isAuthorized(&req) {
 		t.Errorf("Update to encryption key needs same user or encryption key permission.\n")
@@ -528,7 +528,7 @@ func TestAuthorizationUpdate(t *testing.T) {
 		t.Errorf("Update to encryption key needs same user or encryption key permission.\n")
 	}
 
-	req.FieldsUpdated = []string{"active", "signKey"}
+	req.Fields = []string{"active", "signKey"}
 	req.Data.Id = "notId"
 
 	if obj.isAuthorized(&req) {
@@ -555,7 +555,7 @@ func TestAuthorizationUpdate(t *testing.T) {
 		"permissions.user.signKeyUpdate", "permissions.user.permissionsUpdate"}
 
 	for _,field := range permissionsFields {
-		req.FieldsUpdated = []string{field}
+		req.Fields = []string{field}
 		obj.Permissions.User.PermissionsUpdate.Ok = false
 
 		if obj.isAuthorized(&req) {

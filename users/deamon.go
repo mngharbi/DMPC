@@ -288,7 +288,7 @@ func (wk *worker) doJob (job *job) {
 	case UpdateRequest:
 		// Determine memstore update mode
 		isIndexUpdated := false
-		for _, updatedFieldName := range rq.FieldsUpdated {
+		for _, updatedFieldName := range rq.Fields {
 			if indexesMap[updatedFieldName] {
 				isIndexUpdated = true
 				break

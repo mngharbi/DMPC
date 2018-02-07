@@ -52,7 +52,7 @@ type UserRequest struct {
 	Type			int			`json:"type"`
 	IssuerId		string		`json:"issuerId"`
 	CertifierId		string		`json:"certifierId"`
-	FieldsUpdated	[]string	`json:"fieldsUpdated"`
+	Fields			[]string	`json:"fields"`
 	Data			UserObject	`json:"data"`
 	Timestamp		time.Time	`json:"timestamp"`
 }
@@ -106,7 +106,7 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 
 		// For create requests, clear fields updated, and parse public keys
 		case CreateRequest:
-			rq.FieldsUpdated = []string{}
+			rq.Fields = []string{}
 
 			if parsedKey,err := convertRsaStringToKey(rq.Data.EncKey); err == nil {
 				rq.Data.encKeyObject = parsedKey
@@ -128,14 +128,14 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 		case UpdateRequest:
 			rq.sanitizeFieldsUpdated()
 
-			if contains(rq.FieldsUpdated, "encKey") {
+			if contains(rq.Fields, "encKey") {
 				if parsedKey,err := convertRsaStringToKey(rq.Data.EncKey); err == nil {
 					rq.Data.encKeyObject = parsedKey
 				} else {
 					res = append(res, err)
 				}
 			}
-			if contains(rq.FieldsUpdated, "signKey") {
+			if contains(rq.Fields, "signKey") {
 				if parsedKey,err := convertRsaStringToKey(rq.Data.SignKey); err == nil {
 					rq.Data.signKeyObject = parsedKey
 				} else {
@@ -143,7 +143,7 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 				}
 			}
 
-			if len(rq.FieldsUpdated) == 0 {
+			if len(rq.Fields) == 0 {
 				res = append(res, errors.New("No fields updated"))
 			}
 	}
@@ -193,12 +193,12 @@ var sanitizeFieldsUpdatedAllowed map[string]bool = map[string]bool{
 
 func (rq *UserRequest) sanitizeFieldsUpdated() {
 	newSlice := make([]string, 0)
-	for _,field := range rq.FieldsUpdated {
+	for _,field := range rq.Fields {
 		if sanitizeFieldsUpdatedAllowed[field] {
 			newSlice = append(newSlice, field)
 		}
 	}
-	rq.FieldsUpdated = newSlice
+	rq.Fields = newSlice
 }
 
 /*

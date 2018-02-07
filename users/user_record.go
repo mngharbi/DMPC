@@ -62,7 +62,7 @@ func (rec userRecord) Less(index string, than interface{}) bool {
 	Record update (run in a mutex context)
 */
 func (record *userRecord) applyUpdateRequest(req *UserRequest) {
-	for _,field := range req.FieldsUpdated {
+	for _,field := range req.Fields {
 		switch field {
 			case "active":
 				if(record.Active.update(req.Data.Active, req.Timestamp)) {
@@ -199,7 +199,7 @@ func (record *userRecord) isAuthorized(req *UserRequest) bool {
 		case UpdateRequest:
 			isSameUser := req.Data.Id == record.Id
 
-			for _,field := range req.FieldsUpdated {
+			for _,field := range req.Fields {
 				if !result {
 					break
 				}

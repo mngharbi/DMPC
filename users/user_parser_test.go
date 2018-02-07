@@ -44,7 +44,7 @@ func TestDecodeCreateRequest(t *testing.T) {
 		"type": 0,
 		"issuerId": "USER",
 		"certifierId": "ADMIN",
-		"fieldsUpdated": [],
+		"fields": [],
 		"data": {
 			"id": "NEW_USER",
 			"encKey": ` +encKeyStringEncoded+ `,
@@ -78,7 +78,7 @@ func TestDecodeCreateRequest(t *testing.T) {
 		Type: CreateRequest,
 		IssuerId: "USER",
 		CertifierId: "ADMIN",
-		FieldsUpdated: []string{},
+		Fields: []string{},
 		Data: UserObject{
 			Id: "NEW_USER",
 			EncKey: encKeyStringDecoded,
@@ -122,7 +122,7 @@ func TestDecodeUpdateRequest(t *testing.T) {
 		"type": 1,
 		"issuerId": "USER",
 		"certifierId": "ADMIN",
-		"fieldsUpdated": ["encKey","signKey"],
+		"fields": ["encKey","signKey"],
 		"data": {
 			"id": "NEW_USER",
 			"encKey": ` +encKeyStringEncoded+ `,
@@ -156,7 +156,7 @@ func TestDecodeUpdateRequest(t *testing.T) {
 		Type: UpdateRequest,
 		IssuerId: "USER",
 		CertifierId: "ADMIN",
-		FieldsUpdated: []string{"encKey","signKey"},
+		Fields: []string{"encKey","signKey"},
 		Data: UserObject{
 			Id: "NEW_USER",
 			EncKey: encKeyStringDecoded,
@@ -191,7 +191,7 @@ func TestDecodeOneFieldUpdateRequest(t *testing.T) {
 		"type": 1,
 		"issuerId": "USER",
 		"certifierId": "ADMIN",
-		"fieldsUpdated": ["active"],
+		"fields": ["active"],
 		"data": {
 			"active": false
 		}
@@ -210,7 +210,7 @@ func TestDecodeEmptyUpdateRequest(t *testing.T) {
 		"type": 1,
 		"issuerId": "USER",
 		"certifierId": "ADMIN",
-		"fieldsUpdated": []
+		"fields": []
 	}`)
 
 	var rq UserRequest
@@ -226,7 +226,7 @@ func TestDecodeInvalidFieldsUpdateRequest(t *testing.T) {
 		"type": 1,
 		"issuerId": "USER",
 		"certifierId": "ADMIN",
-		"fieldsUpdated": ["active","randomParam"]
+		"fields": ["active","randomParam"]
 	}`)
 
 	var rq UserRequest
@@ -241,7 +241,7 @@ func TestDecodeInvalidFieldsUpdateRequest(t *testing.T) {
 		Type: UpdateRequest,
 		IssuerId: "USER",
 		CertifierId: "ADMIN",
-		FieldsUpdated: []string{"active"},
+		Fields: []string{"active"},
 	}
 
 	if !reflect.DeepEqual(rq, expected) {
@@ -253,7 +253,7 @@ func TestDecodeMissingIssuerUpdateRequest(t *testing.T) {
 	valid := []byte(`{
 		"type": 1,
 		"certifierId": "ADMIN",
-		"fieldsUpdated": ["active"]
+		"fields": ["active"]
 	}`)
 
 	var rq UserRequest
@@ -268,7 +268,7 @@ func TestDecodeMissingCertifierUpdateRequest(t *testing.T) {
 	valid := []byte(`{
 		"type": 1,
 		"issuerId": "USER",
-		"fieldsUpdated": ["active"]
+		"fields": ["active"]
 	}`)
 
 	var rq UserRequest
@@ -293,7 +293,7 @@ func TestDecodeEncode(t *testing.T) {
 		"type": 0,
 		"issuerId": "USER",
 		"certifierId": "ADMIN",
-		"fieldsUpdated": [],
+		"fields": [],
 		"timestamp": "2018-01-13T23:53:00Z",
 	`
 
