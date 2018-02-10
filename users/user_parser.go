@@ -47,6 +47,7 @@ type UserObject struct {
 const (
 	CreateRequest = iota
 	UpdateRequest
+	ReadRequest
 )
 type UserRequest struct {
 	Type			int			`json:"type"`
@@ -145,6 +146,15 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 
 			if len(rq.Fields) == 0 {
 				res = append(res, errors.New("No fields updated"))
+			}
+
+		/*
+		For read requests:
+			* Check there are user ids requested
+		*/
+		case ReadRequest:
+			if len(rq.Fields) == 0 {
+				res = append(res, errors.New("No users requested"))
 			}
 	}
 

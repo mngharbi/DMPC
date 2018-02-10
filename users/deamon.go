@@ -229,9 +229,16 @@ func (wk *worker) doJob (job *job) {
 		lockNeed{false, rq.CertifierId},
 	}
 
-	// Determine whether we need write lock for user object
+	// Add write lock for user record if updating
 	if rq.Type == UpdateRequest {
 		lockNeeds = append(lockNeeds, lockNeed{true, rq.Data.Id})
+	}
+
+	// Add read locks for user records if reading
+	if rq.Type == ReadRequest {
+		for _,userId := range rq.Fields {
+			lockNeeds = append(lockNeeds, lockNeed{false, userId})
+		}
 	}
 
 	// Get locks needed
@@ -264,7 +271,7 @@ func (wk *worker) doJob (job *job) {
 			wk.failJob(job, CertifierUnknownError)
 			return
 		}
-		if subjectIndex == -1 {
+		if subjectIndex == -1 && rq.Type == ReadRequest {
 			wk.failJob(job, SubjectUnknownError)
 			return
 		}
@@ -278,7 +285,6 @@ func (wk *worker) doJob (job *job) {
 		wk.failJob(job, CertifierPermissionsError)
 		return
 	}
-
 
 	/*
 		Run request
@@ -329,6 +335,25 @@ func (wk *worker) doJob (job *job) {
 		createdObject := &UserObject{}
 		createdObject.createFromRecord(newUser)
 		responseData = append(responseData, createdObject)
+
+	case ReadRequest:
+		// Extract indexes for users requested
+		usersRequestedIds := []int{}
+		for _,userId := range rq.Fields {
+			for userRecordIndex, userRecord := range userRecords {
+				if userRecord.Id == userId {
+					usersRequestedIds = append(usersRequestedIds, userRecordIndex)
+					break
+				}
+			}
+		}
+
+		// Transform records requested into objects and add to response
+		for _, userRecordIndex := range usersRequestedIds {
+			createdObject := &UserObject{}
+			createdObject.createFromRecord(userRecords[userRecordIndex])
+			responseData = append(responseData, createdObject)
+		}
 	}
 
 	/*
