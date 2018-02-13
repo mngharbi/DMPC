@@ -2,7 +2,7 @@ package users
 
 import (
 	"github.com/mngharbi/memstore"
-	"sync"
+	"github.com/mngharbi/gofarm"
 )
 
 
@@ -15,30 +15,38 @@ type Config struct {
 }
 
 func StartServer(conf Config) {
-	sv.init(&conf)
+	if !serverSingleton.isInitialized {
+		serverSingleton.isInitialized = true
+		gofarm.InitServer(&serverSingleton)
+	}
+	gofarm.StartServer(gofarm.Config{ NumWorkers: conf.NumWorkers })
 }
 
 func ShutdownServer() {
-	sv.shutdown()
+	gofarm.ShutdownServer()
 }
 
-func MakeRequest(request []byte) (chan UserResponse) {
-	// Build corresponding job and push it into server's incoming job pipe
-	var reqJob job
-	reqJob.response = make(chan *UserResponse)
-	reqJob.request = make([]byte, len(request))
-	copy(reqJob.request, request)
-	sv.jobPipe <- &reqJob
+func MakeRequest(rawRequest []byte) (chan *UserResponse, []error) {
+	// Build request object
+	rqPtr := &UserRequest{}
+	decodingErrors := rqPtr.Decode(rawRequest)
+	if len(decodingErrors) > 0 {
+		return nil, decodingErrors
+	}
 
-	// Pass response through
-	var publicResponse chan UserResponse
+	// Make request to server and pass through result
+	nativeResponseChannel, _ := gofarm.MakeRequest(rqPtr)
+	var responseChannel chan *UserResponse
 	go func() {
-		var response *UserResponse
-		response = <- reqJob.response
-		publicResponse <- *response
+		nativeResponse, ok := <- nativeResponseChannel
+		if ok {
+			responseChannel <- (*nativeResponse).(*UserResponse)
+		} else {
+			close(responseChannel)
+		}
 	}()
 
-	return publicResponse
+	return responseChannel, []error{}
 }
 
 /*
@@ -47,13 +55,6 @@ func MakeRequest(request []byte) (chan UserResponse) {
 
 type server struct {
 	isInitialized	bool
-	workerPool		[]*worker
-	freeWorkers		[]*worker
-	jobPool			[]*job
-	jobPipe			chan *job
-	workerPipe		chan *worker
-	shutdownPipe	chan bool
-	workerWaitGroup	sync.WaitGroup
 	store			*memstore.Memstore
 }
 
@@ -69,155 +70,20 @@ func getIndexes() (res []string) {
 	return res
 }
 
-var sv server
+var serverSingleton server
 
-func (sv *server) init (conf *Config) {
-	// Setup channels
-	sv.jobPipe = make(chan *job)
-	sv.workerPipe = make(chan *worker)
-	sv.shutdownPipe = make(chan bool)
-
-	// Build workers
-	sv.workerPool = make([]*worker, conf.NumWorkers)
-	sv.freeWorkers = make([]*worker, conf.NumWorkers)
-	for workerIndex := 0; workerIndex < conf.NumWorkers ; workerIndex++ {
-		newWorker := worker{
-			jobs: make(chan *job),
-			shutdownPipe: make(chan bool),
-		}
-		sv.workerPool[workerIndex] = &newWorker
-		sv.freeWorkers[workerIndex] = &newWorker
-	}
-
-	// Startup workers
-	sv.workerWaitGroup.Add(conf.NumWorkers)
-	for _,worker := range sv.workerPool {
-		go worker.run()
-	}
-
+func (sv *server) Start (_ gofarm.Config, isFirstStart bool) error {
 	// Initialize store (only if starting for the first time)
-	if !sv.isInitialized {
+	if !isFirstStart {
 		sv.store = memstore.New(getIndexes())
 	}
-
-	// Start running server
-	go sv.run()
-
-	// Set flag for restarts
-	sv.isInitialized = true
+	return nil
 }
 
-func (sv *server) run () {
-	running := true
-	for running {
-		select {
-		// Accept incoming jobs
-		case newJob := <- sv.jobPipe:
-			sv.jobPool = append(sv.jobPool, newJob)
+func (sv *server) Shutdown() error { return nil }
 
-		// Accept status update from worker
-		case freeWorker := <- sv.workerPipe:
-			sv.freeWorkers = append(sv.freeWorkers, freeWorker)
-
-		// Shutdown
-		case <- sv.shutdownPipe:
-			// Signal workers to shutdown and wait for them
-			for _,worker := range sv.workerPool {
-				go worker.shutdown()
-			}
-			sv.workerWaitGroup.Wait()
-
-			// Reset defaults
-			sv.workerPool = []*worker{}
-			sv.freeWorkers = []*worker{}
-			sv.jobPool = []*job{}
-
-			running = false
-			break
-		}
-
-		// Distribute available jobs to avaiable workers in order
-		sv.distributeJobs()
-	}
-}
-
-func (sv *server) distributeJobs () {
-	// Count maximum amount of assignments possible
-	jobPoolLen := len(sv.jobPool)
-	freeWorkersLen := len(sv.freeWorkers)
-	assignmentsCount := jobPoolLen
-	if freeWorkersLen < jobPoolLen {
-		assignmentsCount = freeWorkersLen
-	}
-	if assignmentsCount == 0 {
-		return
-	}
-
-	// Remove jobs/workers to be assigned
-	jobsToAssign := sv.jobPool[:assignmentsCount]
-	workersToAssign := sv.freeWorkers[:assignmentsCount]
-	sv.jobPool = sv.jobPool[assignmentsCount:]
-	sv.freeWorkers = sv.freeWorkers[assignmentsCount:]
-
-	// Put jobs into their worker's incoming channel
-	for i := 0; i < assignmentsCount; i++ {
-		workersToAssign[i].jobs <- jobsToAssign[i]
-	}
-}
-
-func (sv *server) shutdown () {
-	sv.shutdownPipe <- true
-}
-
-/*
-	Worker implementation
-*/
-
-type worker struct {
-	jobs			chan *job
-	shutdownPipe	chan bool
-}
-
-type job struct {
-	response	chan *UserResponse
-	request		[]byte
-}
-
-func (wk *worker) run () {
-	running := true
-	for running {
-		select {
-		// Accept incoming jobs
-		case newJob := <- wk.jobs:
-			// Do job
-			wk.doJob(newJob)
-
-			// Report to server that we're free
-			sv.workerPipe <- wk
-
-		// Shutdown
-		case <- wk.shutdownPipe:
-			running = false
-			break
-		}
-	}
-
-	sv.workerWaitGroup.Done()
-}
-
-
-
-func (wk *worker) doJob (job *job) {
-	/*
-		Decoding, request sanitization
-	*/
-	rq := &UserRequest{}
-	decodingErrors := rq.Decode(job.request)
-
-	if len(decodingErrors) > 0 {
-		wk.failJob(job, DecodeError)
-		return
-	}
+func (sv *server) Work (request *gofarm.Request) *gofarm.Response {
+	rq := (*request).(*UserRequest)
 
 	/*
 		Handle record level locking
@@ -264,16 +130,13 @@ func (wk *worker) doJob (job *job) {
 	// If any failed (not found), end job with corresponding failure
 	if !isLocked {
 		if issuerIndex == -1 {
-			wk.failJob(job, IssuerUnknownError)
-			return
+			return failRequest(IssuerUnknownError)
 		}
 		if certifierIndex == -1 {
-			wk.failJob(job, CertifierUnknownError)
-			return
+			return failRequest(CertifierUnknownError)
 		}
 		if subjectIndex == -1 && rq.Type == ReadRequest {
-			wk.failJob(job, SubjectUnknownError)
-			return
+			return failRequest(SubjectUnknownError)
 		}
 	}
 
@@ -282,8 +145,7 @@ func (wk *worker) doJob (job *job) {
 	*/
 	certifier := userRecords[certifierIndex]
 	if !certifier.isAuthorized(rq) {
-		wk.failJob(job, CertifierPermissionsError)
-		return
+		return failRequest(CertifierPermissionsError)
 	}
 
 	/*
@@ -362,28 +224,28 @@ func (wk *worker) doJob (job *job) {
 	unlockUsers(sv, lockNeeds)
 
 	// Request is done, return response generated
-	wk.successJob(job, responseData)
+	return successRequest(responseData)
 }
 
-func (wr *worker) failJob(job *job, responseCode int) {
-	job.response <- &UserResponse{
+func failRequest(responseCode int) *gofarm.Response {
+	userRespPtr := &UserResponse{
 		Result: responseCode,
 		Data: []UserObject{},
 	}
+	var nativeResp gofarm.Response = userRespPtr
+	return &nativeResp
 }
 
-func (wr *worker) successJob(job *job, responseData []*UserObject) {
+func successRequest(responseData []*UserObject) *gofarm.Response {
 	var objectDataCopy []UserObject
 	for _,objectPtr := range responseData {
 		objectDataCopy = append(objectDataCopy, *objectPtr)
 	}
 
-	job.response <- &UserResponse{
+	userRespPtr := &UserResponse{
 		Result: Success,
 		Data: objectDataCopy,
 	}
-}
-
-func (wk *worker) shutdown () {
-	wk.shutdownPipe <- true
+	var nativeResp gofarm.Response = userRespPtr
+	return &nativeResp
 }

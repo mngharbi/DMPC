@@ -63,7 +63,6 @@ type UserRequest struct {
 */
 const (
 	Success = iota
-	DecodeError
 	IssuerUnknownError
 	CertifierUnknownError
 	SubjectUnknownError
