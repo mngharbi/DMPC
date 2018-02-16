@@ -102,7 +102,7 @@ func unlockFunctor(isWriteLockMap map[string]bool) (func(memstore.Item) (memstor
 	return lockOperationFunctor(isWriteLockMap, false)
 }
 
-func lockUsers(sv server, lockNeeds []lockNeed) ([]*userRecord, bool) {
+func lockUsers(sv *server, lockNeeds []lockNeed) ([]*userRecord, bool) {
 	// Sanitize lock needs to avoid deadlocks
 	sanitizedLockNeeds := sanitizeLockNeeds(lockNeeds)
 
@@ -150,7 +150,7 @@ func lockUsers(sv server, lockNeeds []lockNeed) ([]*userRecord, bool) {
 	return lockResultsFiltered, false
 }
 
-func unlockUsers(sv server, unlockNeeds []lockNeed) {
+func unlockUsers(sv *server, unlockNeeds []lockNeed) {
 	// Sanitize unlock needs to avoid deadlocks
 	sanitizedUnlockNeeds := sanitizeUnlockNeeds(unlockNeeds)
 
