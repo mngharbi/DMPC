@@ -67,6 +67,7 @@ const (
 	CertifierUnknownError
 	SubjectUnknownError
 	CertifierPermissionsError
+	UnlockingFailedError
 )
 type UserResponse struct {
 	Result			int

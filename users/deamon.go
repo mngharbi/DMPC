@@ -3,6 +3,7 @@ package users
 import (
 	"github.com/mngharbi/memstore"
 	"github.com/mngharbi/gofarm"
+	"github.com/mngharbi/DMPC/core"
 )
 
 
@@ -90,20 +91,20 @@ func (sv *server) Work (request *gofarm.Request) *gofarm.Response {
 	*/
 
 	// Add need for read locks for issuer and certifier
-	lockNeeds := []lockNeed{
-		lockNeed{false, rq.IssuerId},
-		lockNeed{false, rq.CertifierId},
+	lockNeeds := []core.LockNeed{
+		core.LockNeed{false, rq.IssuerId},
+		core.LockNeed{false, rq.CertifierId},
 	}
 
 	// Add write lock for user record if updating
 	if rq.Type == UpdateRequest {
-		lockNeeds = append(lockNeeds, lockNeed{true, rq.Data.Id})
+		lockNeeds = append(lockNeeds, core.LockNeed{true, rq.Data.Id})
 	}
 
 	// Add read locks for user records if reading
 	if rq.Type == ReadRequest {
 		for _,userId := range rq.Fields {
-			lockNeeds = append(lockNeeds, lockNeed{false, userId})
+			lockNeeds = append(lockNeeds, core.LockNeed{false, userId})
 		}
 	}
 
@@ -221,7 +222,10 @@ func (sv *server) Work (request *gofarm.Request) *gofarm.Response {
 	/*
 		Handle unlocking
 	*/
-	unlockUsers(sv, lockNeeds)
+	_, isUnlocked := unlockUsers(sv, lockNeeds)
+	if !isUnlocked {
+		return failRequest(UnlockingFailedError)
+	}
 
 	// Request is done, return response generated
 	return successRequest(responseData)
