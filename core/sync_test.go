@@ -16,8 +16,8 @@ func TestNoLock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{}
 
-	initialMap := map[string]bool{}
-	expectedMap := map[string]bool{}
+	initialMap := map[string]LockType{}
+	expectedMap := map[string]LockType{}
 
 	var lockDuplication, unlockDuplication bool
 	doLockSuccess := lockingFunctor(initialMap, true, true, &locked, &lockDuplication)
@@ -53,8 +53,8 @@ func TestAllWriteLock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{}
 
-	initialMap := map[string]bool{}
-	expectedMap := map[string]bool{
+	initialMap := map[string]LockType{}
+	expectedMap := map[string]LockType{
 		"1": true,
 		"2": true,
 		"3": true,
@@ -98,8 +98,8 @@ func TestAllReadLock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{}
 
-	initialMap := map[string]bool{}
-	expectedMap := map[string]bool{
+	initialMap := map[string]LockType{}
+	expectedMap := map[string]LockType{
 		"1": false,
 		"2": false,
 		"3": false,
@@ -138,8 +138,8 @@ func TestDuplicateWriteLock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{}
 
-	initialMap := map[string]bool{}
-	expectedMap := map[string]bool{
+	initialMap := map[string]LockType{}
+	expectedMap := map[string]LockType{
 		"1": true,
 		"2": true,
 	}
@@ -177,8 +177,8 @@ func TestDuplicateReadLock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{}
 
-	initialMap := map[string]bool{}
-	expectedMap := map[string]bool{
+	initialMap := map[string]LockType{}
+	expectedMap := map[string]LockType{
 		"1": false,
 		"2": false,
 	}
@@ -216,8 +216,8 @@ func TestOverwritingReadLock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{}
 
-	initialMap := map[string]bool{}
-	expectedMap := map[string]bool{
+	initialMap := map[string]LockType{}
+	expectedMap := map[string]LockType{
 		"1": true,
 		"2": false,
 	}
@@ -255,8 +255,8 @@ func TestOverwritingReadAfterWriteLock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{}
 
-	initialMap := map[string]bool{}
-	expectedMap := map[string]bool{
+	initialMap := map[string]LockType{}
+	expectedMap := map[string]LockType{
 		"1": true,
 		"2": false,
 	}
@@ -301,8 +301,8 @@ func RollbackFailedWriteLock(t *testing.T) {
 		LockNeed{false, "2"},
 	}
 
-	initialMap := map[string]bool{}
-	expectedMap := map[string]bool{}
+	initialMap := map[string]LockType{}
+	expectedMap := map[string]LockType{}
 
 	var lockDuplication, unlockDuplication bool
 	doLockSuccess := lockingFunctor(initialMap, false, true, &locked, &lockDuplication)
@@ -339,8 +339,8 @@ func RollbackDuplicateFailedWriteLock(t *testing.T) {
 		LockNeed{false, "2"},
 	}
 
-	initialMap := map[string]bool{}
-	expectedMap := map[string]bool{}
+	initialMap := map[string]LockType{}
+	expectedMap := map[string]LockType{}
 
 	var lockDuplication, unlockDuplication bool
 	doLockSuccess := lockingFunctor(initialMap, false, true, &locked, &lockDuplication)
@@ -373,8 +373,8 @@ func TestNoUnlock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{}
 
-	initialMap := map[string]bool{}
-	expectedMap := map[string]bool{}
+	initialMap := map[string]LockType{}
+	expectedMap := map[string]LockType{}
 
 	var unlockDuplication bool
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
@@ -398,12 +398,12 @@ func TestAllWriteUnlock(t *testing.T) {
 		LockNeed{true, "1"},
 	}
 
-	initialMap := map[string]bool{
+	initialMap := map[string]LockType{
 		"1": true,
 		"2": true,
 		"3": true,
 	}
-	expectedMap := map[string]bool{}
+	expectedMap := map[string]LockType{}
 
 	var unlockDuplication bool
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
@@ -431,12 +431,12 @@ func TestAllReadUnlock(t *testing.T) {
 		LockNeed{false, "1"},
 	}
 
-	initialMap := map[string]bool{
+	initialMap := map[string]LockType{
 		"1": false,
 		"2": false,
 		"3": false,
 	}
-	expectedMap := map[string]bool{}
+	expectedMap := map[string]LockType{}
 
 	var unlockDuplication bool
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
@@ -463,11 +463,11 @@ func TestDuplicateWriteUnlock(t *testing.T) {
 		LockNeed{true, "1"},
 	}
 
-	initialMap := map[string]bool{
+	initialMap := map[string]LockType{
 		"1": true,
 		"2": true,
 	}
-	expectedMap := map[string]bool{}
+	expectedMap := map[string]LockType{}
 
 	var unlockDuplication bool
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
@@ -494,11 +494,11 @@ func TestDuplicateReadUnlock(t *testing.T) {
 		LockNeed{false, "1"},
 	}
 
-	initialMap := map[string]bool{
+	initialMap := map[string]LockType{
 		"1": false,
 		"2": false,
 	}
-	expectedMap := map[string]bool{}
+	expectedMap := map[string]LockType{}
 
 	var unlockDuplication bool
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
@@ -525,11 +525,11 @@ func TestOverwritingReadUnlock(t *testing.T) {
 		LockNeed{false, "2"},
 	}
 
-	initialMap := map[string]bool{
+	initialMap := map[string]LockType{
 		"1": true,
 		"2": false,
 	}
-	expectedMap := map[string]bool{}
+	expectedMap := map[string]LockType{}
 
 	var unlockDuplication bool
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
@@ -556,11 +556,11 @@ func TestOverwritingReadAfterWriteUnlock(t *testing.T) {
 		LockNeed{false, "2"},
 	}
 
-	initialMap := map[string]bool{
+	initialMap := map[string]LockType{
 		"1": true,
 		"2": false,
 	}
-	expectedMap := map[string]bool{}
+	expectedMap := map[string]LockType{}
 
 	var unlockDuplication bool
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
@@ -584,8 +584,8 @@ func TestOverwritingReadAfterWriteUnlock(t *testing.T) {
 	Helpers
 */
 
-func lockingFunctor (dst map[string]bool, success bool, lock bool, called *[]LockNeed, duplication *bool) (func(string, bool) bool) {
-	return func(fId string, fType bool) bool {
+func lockingFunctor (dst map[string]LockType, success bool, lock bool, called *[]LockNeed, duplication *bool) (func(string, LockType) bool) {
+	return func(fId string, fType LockType) bool {
 		*called = append(*called, LockNeed{fType, fId})
 
 		if !success {

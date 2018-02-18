@@ -7,8 +7,13 @@ package core
 import (
 	"sort"
 )
+
+type LockType bool
+const WriteLockType LockType = true
+const ReadLockType LockType = false
+
 type LockNeed struct {
-	WriteLock bool
+	LockType LockType
 	Id string
 }
 
@@ -20,8 +25,8 @@ func (s lockNeedCollection) Less(i, j int) bool { return s[i].Less(s[j]) }
 
 // Order: read low id < read high id < write low id < write high id
 func (a LockNeed) Less (b LockNeed) bool {
-	if a.WriteLock != b.WriteLock {
-		return !a.WriteLock
+	if a.LockType != b.LockType {
+		return a.LockType == ReadLockType
 	}
 	return a.Id < b.Id
 }
@@ -33,27 +38,29 @@ func sanitizeLockNeeds(lockNeeds []LockNeed) []LockNeed {
 		1: read lock
 		2: write lock
 	*/
+	lockIntMapping := map[LockType]int{
+		ReadLockType: 1,
+		WriteLockType: 2,
+	}
+
 	lockMap := map[string]int{}
 	for _,lockNeed := range lockNeeds {
-		var lockIntMapping int = 1
-		if lockNeed.WriteLock {
-			lockIntMapping = 2
-		}
+		var lockNeedMapping int = lockIntMapping[lockNeed.LockType]
 
 		// Higher integer overwrites previous (no lock < read lock < write lock)
-		if lockIntMapping > lockMap[lockNeed.Id] {
-			lockMap[lockNeed.Id] = lockIntMapping
+		if lockNeedMapping > lockMap[lockNeed.Id] {
+			lockMap[lockNeed.Id] = lockNeedMapping
 		}
 	}
 
 	// Build sanitized lock needs array to prevent deadlocks
 	var orderedWriteLocks []LockNeed
 	for lockId, lockTypeInt := range lockMap {
-		isWriteLock := false
-		if lockTypeInt == 2 {
-			isWriteLock = true
+		lockType := ReadLockType
+		if lockTypeInt == lockIntMapping[WriteLockType] {
+			lockType = WriteLockType
 		}
-		orderedWriteLocks = append(orderedWriteLocks, LockNeed{isWriteLock, lockId})
+		orderedWriteLocks = append(orderedWriteLocks, LockNeed{lockType, lockId})
 	}
 	sort.Sort(lockNeedCollection(orderedWriteLocks))
 
@@ -72,21 +79,15 @@ func sanitizeUnlockNeeds(lockNeeds []LockNeed) []LockNeed {
 	return sanitizedLockNeeds
 }
 
-func Lock(doLock func(string, bool) bool, doUnlock func(string, bool) bool, lockNeeds []LockNeed) {
+func Lock(doLock func(string, LockType) bool, doUnlock func(string, LockType) bool, lockNeeds []LockNeed) bool {
 	// Sanitize lock needs to avoid deadlocks
 	sanitizedLockNeeds := sanitizeLockNeeds(lockNeeds)
-
-	// Build map of lock needs
-	isWriteLockMap := map[string]bool{}
-	for _, lockNeed := range sanitizedLockNeeds {
-		isWriteLockMap[lockNeed.Id] = lockNeed.WriteLock
-	}
 
 	// Perform locking
 	needToUnlock := false
 	var successfulLocks []LockNeed
 	for _, lockNeed := range sanitizedLockNeeds {
-		if !doLock(lockNeed.Id, lockNeed.WriteLock) {
+		if !doLock(lockNeed.Id, lockNeed.LockType) {
 			needToUnlock = true
 		} else {
 			successfulLocks = append(successfulLocks, lockNeed)
@@ -95,27 +96,28 @@ func Lock(doLock func(string, bool) bool, doUnlock func(string, bool) bool, lock
 
 	// If none failed we're done
 	if !needToUnlock {
-		return
+		return true
 	}
 
 	// Otherwise, unlock everything locked (in reverse)
 	for _, lockNeed := range successfulLocks {
-		doUnlock(lockNeed.Id, lockNeed.WriteLock)
+		doUnlock(lockNeed.Id, lockNeed.LockType)
 	}
+
+	return false
 }
 
-func Unlock(doUnlock func(string, bool) bool, unlockNeeds []LockNeed) {
+func Unlock(doUnlock func(string, LockType) bool, unlockNeeds []LockNeed) bool {
 	// Sanitize unlock needs to avoid deadlocks
 	sanitizedUnlockNeeds := sanitizeUnlockNeeds(unlockNeeds)
 
-	// Build map of lock needs
-	isWriteLockMap := map[string]bool{}
+	// Perform unlocking
+	unlockSuccess := true
 	for _, lockNeed := range sanitizedUnlockNeeds {
-		isWriteLockMap[lockNeed.Id] = lockNeed.WriteLock
+		if !doUnlock(lockNeed.Id, lockNeed.LockType) {
+			unlockSuccess = false
+		}
 	}
 
-	// Perform unlocking
-	for _, lockNeed := range sanitizedUnlockNeeds {
-		doUnlock(lockNeed.Id, lockNeed.WriteLock)
-	}
+	return unlockSuccess
 }
