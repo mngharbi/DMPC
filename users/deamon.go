@@ -15,12 +15,12 @@ type Config struct {
 	NumWorkers		int
 }
 
-func StartServer(conf Config) {
+func StartServer(conf Config) error {
 	if !serverSingleton.isInitialized {
 		serverSingleton.isInitialized = true
 		gofarm.InitServer(&serverSingleton)
 	}
-	gofarm.StartServer(gofarm.Config{ NumWorkers: conf.NumWorkers })
+	return gofarm.StartServer(gofarm.Config{ NumWorkers: conf.NumWorkers })
 }
 
 func ShutdownServer() {
@@ -35,9 +35,14 @@ func MakeRequest(rawRequest []byte) (chan *UserResponse, []error) {
 		return nil, decodingErrors
 	}
 
-	// Make request to server and pass through result
-	nativeResponseChannel, _ := gofarm.MakeRequest(rqPtr)
-	var responseChannel chan *UserResponse
+	// Make request to server
+	nativeResponseChannel, err := gofarm.MakeRequest(rqPtr)
+	if err != nil {
+		return nil, []error{err}
+	}
+
+	// Pass through result
+	responseChannel := make(chan *UserResponse)
 	go func() {
 		nativeResponse, ok := <- nativeResponseChannel
 		if ok {
@@ -75,7 +80,7 @@ var serverSingleton server
 
 func (sv *server) Start (_ gofarm.Config, isFirstStart bool) error {
 	// Initialize store (only if starting for the first time)
-	if !isFirstStart {
+	if isFirstStart {
 		sv.store = memstore.New(getIndexes())
 	}
 	return nil

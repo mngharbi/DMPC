@@ -93,7 +93,7 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 	res := []error{}
 
 	// Verifies type, issuer and certifier
-	if !(CreateRequest <= rq.Type && rq.Type <= UpdateRequest) {
+	if !(CreateRequest <= rq.Type && rq.Type <= ReadRequest) {
 		res = append(res, errors.New("Unknown request type"))
 	}
 	if len(rq.IssuerId) == 0 {

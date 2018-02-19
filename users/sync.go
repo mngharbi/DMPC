@@ -33,11 +33,11 @@ func memstoreLockingFunctor(lockType core.LockType, isLock bool) (func(memstore.
 
 func coreLockingFunctor(sv *server, collectionPtr *[]*userRecord, isLock bool) (func(string, core.LockType) bool) {
 	return func(id string, lockType core.LockType) bool {
-		userRecordPtr := sv.store.UpdateData(userRecord{Id: id}, "id", memstoreLockingFunctor(lockType, isLock)).(*userRecord)
-		if userRecordPtr == nil {
+		memstoreItem := sv.store.UpdateData(userRecord{Id: id}, "id", memstoreLockingFunctor(lockType, isLock))
+		if memstoreItem == nil {
 			return false
 		} else {
-			*collectionPtr = append(*collectionPtr, userRecordPtr)
+			*collectionPtr = append(*collectionPtr, memstoreItem.(*userRecord))
 			return true
 		}
 	}
