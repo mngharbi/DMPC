@@ -1,7 +1,6 @@
 package users
 
 import (
-	"github.com/mngharbi/gofarm"
 	"crypto/rsa"
 	"encoding/json"
 	"testing"
@@ -104,7 +103,7 @@ func TestMalformattedRequest(t *testing.T) {
 		t.Error("Malformatted request should fail")
 	}
 
-	gofarm.ShutdownServer()
+	ShutdownServer()
 }
 
 /*
@@ -130,7 +129,7 @@ func TestEmptyReadRequest(t *testing.T) {
 		t.Error("Read request with no users should fail")
 	}
 
-	gofarm.ShutdownServer()
+	ShutdownServer()
 }
 
 func TestUnknownIssuerReadRequest(t *testing.T) {
@@ -159,7 +158,7 @@ func TestUnknownIssuerReadRequest(t *testing.T) {
 		return
 	}
 
-	gofarm.ShutdownServer()
+	ShutdownServer()
 }
 
 /*
@@ -186,4 +185,6 @@ func TestUnknownIssuerCreateRequest(t *testing.T) {
 		t.Errorf("Create request with inexistent user shoud fail, result:%v", *serverResponsePtr)
 		return
 	}
+
+	ShutdownServer()
 }

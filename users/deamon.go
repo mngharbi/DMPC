@@ -18,6 +18,7 @@ type Config struct {
 func StartServer(conf Config) error {
 	if !serverSingleton.isInitialized {
 		serverSingleton.isInitialized = true
+		gofarm.ResetServer()
 		gofarm.InitServer(&serverSingleton)
 	}
 	return gofarm.StartServer(gofarm.Config{ NumWorkers: conf.NumWorkers })
