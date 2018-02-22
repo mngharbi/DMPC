@@ -1,9 +1,9 @@
 package users
 
 import (
-	"time"
-	"testing"
 	"reflect"
+	"testing"
+	"time"
 )
 
 func testReqPastTime() time.Time {
@@ -20,39 +20,39 @@ func testReqTime() time.Time {
 
 func generateKeyRecord() keyRecord {
 	return keyRecord{
-		Key: *generatePublicKey(),
+		Key:       *generatePublicKey(),
 		UpdatedAt: testRecordTime(),
 	}
 }
 
 func generateBoolRecord(permissionDefault bool) booleanRecord {
 	return booleanRecord{
-		Ok: permissionDefault,
+		Ok:        permissionDefault,
 		UpdatedAt: testRecordTime(),
 	}
 }
 
 func testRecord(permissionDefault bool) userRecord {
 	return userRecord{
-		Id: "id",
-		EncKey: generateKeyRecord(),
+		Id:      "id",
+		EncKey:  generateKeyRecord(),
 		SignKey: generateKeyRecord(),
 		Permissions: permissionsRecord{
 			Channel: channelPermissionsRecord{
-				Add: generateBoolRecord(permissionDefault),
+				Add:       generateBoolRecord(permissionDefault),
 				UpdatedAt: testRecordTime(),
 			},
 			User: userPermissionsRecord{
-				Add: generateBoolRecord(permissionDefault),
-				Remove: generateBoolRecord(permissionDefault),
-				EncKeyUpdate: generateBoolRecord(permissionDefault),
-				SignKeyUpdate: generateBoolRecord(permissionDefault),
+				Add:               generateBoolRecord(permissionDefault),
+				Remove:            generateBoolRecord(permissionDefault),
+				EncKeyUpdate:      generateBoolRecord(permissionDefault),
+				SignKeyUpdate:     generateBoolRecord(permissionDefault),
 				PermissionsUpdate: generateBoolRecord(permissionDefault),
-				UpdatedAt: testRecordTime(),
+				UpdatedAt:         testRecordTime(),
 			},
 			UpdatedAt: testRecordTime(),
 		},
-		Active: generateBoolRecord(true),
+		Active:    generateBoolRecord(true),
 		CreatedAt: testRecordTime(),
 		UpdatedAt: testRecordTime(),
 	}
@@ -67,10 +67,10 @@ func testRequest(reqType int, late bool) UserRequest {
 	}
 
 	return UserRequest{
-		Type: reqType,
-		IssuerId: "issuer",
+		Type:        reqType,
+		IssuerId:    "issuer",
 		CertifierId: "certifier",
-		Timestamp: reqTime,
+		Timestamp:   reqTime,
 	}
 }
 
@@ -554,7 +554,7 @@ func TestAuthorizationUpdate(t *testing.T) {
 		"permissions.user.remove", "permissions.user.encKeyUpdate",
 		"permissions.user.signKeyUpdate", "permissions.user.permissionsUpdate"}
 
-	for _,field := range permissionsFields {
+	for _, field := range permissionsFields {
 		req.Fields = []string{field}
 		obj.Permissions.User.PermissionsUpdate.Ok = false
 

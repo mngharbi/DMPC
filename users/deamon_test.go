@@ -34,13 +34,13 @@ func generateUserCreateRequest(issuerId string, certifierId string, userId strin
 
 	request = []byte(`{
 		"type": 0,
-		"issuerId": "` +issuerId+ `",
-		"certifierId": "` +certifierId+ `",
+		"issuerId": "` + issuerId + `",
+		"certifierId": "` + certifierId + `",
 		"fields": [],
 		"data": {
-			"id": "` +userId+ `",
-			"encKey": ` +encKeyStringEncoded+ `,
-			"signKey": ` +signKeyStringEncoded+ `,
+			"id": "` + userId + `",
+			"encKey": ` + encKeyStringEncoded + `,
+			"signKey": ` + signKeyStringEncoded + `,
 			"permissions": {
 				"channel": {
 					"add": true
@@ -65,7 +65,6 @@ func resetAndStartServer(conf Config) error {
 	serverSingleton = server{}
 	return StartServer(conf)
 }
-
 
 /*
 	General tests
@@ -152,7 +151,7 @@ func TestUnknownIssuerReadRequest(t *testing.T) {
 		return
 	}
 
-	serverResponsePtr, ok := <- channel
+	serverResponsePtr, ok := <-channel
 	if !ok || serverResponsePtr.Result != IssuerUnknownError {
 		t.Errorf("Read request with inexistent user shoud fail, result:%v", *serverResponsePtr)
 		return
@@ -172,7 +171,7 @@ func TestUnknownIssuerCreateRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes,_,_ := generateUserCreateRequest("ISSUER", "CERTIFIER", "USER")
+	requestBytes, _, _ := generateUserCreateRequest("ISSUER", "CERTIFIER", "USER")
 
 	channel, errs := MakeRequest(requestBytes)
 	if len(errs) > 0 {
@@ -180,7 +179,7 @@ func TestUnknownIssuerCreateRequest(t *testing.T) {
 		return
 	}
 
-	serverResponsePtr, ok := <- channel
+	serverResponsePtr, ok := <-channel
 	if !ok || serverResponsePtr.Result != IssuerUnknownError {
 		t.Errorf("Create request with inexistent user shoud fail, result:%v", *serverResponsePtr)
 		return

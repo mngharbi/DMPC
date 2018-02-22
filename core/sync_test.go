@@ -1,8 +1,8 @@
 package core
 
 import (
-	"testing"
 	"reflect"
+	"testing"
 )
 
 /*
@@ -584,7 +584,7 @@ func TestOverwritingReadAfterWriteUnlock(t *testing.T) {
 	Helpers
 */
 
-func lockingFunctor (dst map[string]LockType, success bool, lock bool, called *[]LockNeed, duplication *bool) (func(string, LockType) bool) {
+func lockingFunctor(dst map[string]LockType, success bool, lock bool, called *[]LockNeed, duplication *bool) func(string, LockType) bool {
 	return func(fId string, fType LockType) bool {
 		*called = append(*called, LockNeed{fType, fId})
 

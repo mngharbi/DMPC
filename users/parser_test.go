@@ -1,15 +1,15 @@
 package users
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/json"
+	"encoding/pem"
+	"reflect"
 	"testing"
 	"time"
-	"reflect"
-	"bytes"
-	"crypto/rsa"
-	"crypto/rand"
-	"crypto/x509"
-	"encoding/pem"
-	"encoding/json"
 )
 
 func generatePublicKey() *rsa.PublicKey {
@@ -17,16 +17,15 @@ func generatePublicKey() *rsa.PublicKey {
 	return &Priv.PublicKey
 }
 
-
 func jsonPemEncodeKey(key *rsa.PublicKey) string {
 	keyBytes, _ := x509.MarshalPKIXPublicKey(key)
 	block := &pem.Block{
-		Type: "RSA PUBLIC KEY",
+		Type:  "RSA PUBLIC KEY",
 		Bytes: keyBytes,
 	}
 	buf := new(bytes.Buffer)
 	_ = pem.Encode(buf, block)
-	res,_ := json.Marshal(string(pem.EncodeToMemory(block)))
+	res, _ := json.Marshal(string(pem.EncodeToMemory(block)))
 	return string(res)
 }
 
@@ -47,8 +46,8 @@ func TestDecodeCreateRequest(t *testing.T) {
 		"fields": [],
 		"data": {
 			"id": "NEW_USER",
-			"encKey": ` +encKeyStringEncoded+ `,
-			"signKey": ` +signKeyStringEncoded+ `,
+			"encKey": ` + encKeyStringEncoded + `,
+			"signKey": ` + signKeyStringEncoded + `,
 			"permissions": {
 				"channel": {
 					"add": true
@@ -75,25 +74,25 @@ func TestDecodeCreateRequest(t *testing.T) {
 	}
 	expectedTimestamp, _ := time.Parse(time.RFC3339, "2018-01-13T23:53:00Z")
 	expected := UserRequest{
-		Type: CreateRequest,
-		IssuerId: "USER",
+		Type:        CreateRequest,
+		IssuerId:    "USER",
 		CertifierId: "ADMIN",
-		Fields: []string{},
+		Fields:      []string{},
 		Data: UserObject{
-			Id: "NEW_USER",
-			EncKey: encKeyStringDecoded,
-			encKeyObject: encKey,
-			SignKey: signKeyStringDecoded,
+			Id:            "NEW_USER",
+			EncKey:        encKeyStringDecoded,
+			encKeyObject:  encKey,
+			SignKey:       signKeyStringDecoded,
 			signKeyObject: signKey,
 			Permissions: PermissionsObject{
 				Channel: ChannelPermissionsObject{
 					Add: true,
 				},
 				User: UserPermissionsObject{
-					Add: true,
-					Remove: false,
-					EncKeyUpdate: false,
-					SignKeyUpdate: false,
+					Add:               true,
+					Remove:            false,
+					EncKeyUpdate:      false,
+					SignKeyUpdate:     false,
 					PermissionsUpdate: false,
 				},
 			},
@@ -125,8 +124,8 @@ func TestDecodeUpdateRequest(t *testing.T) {
 		"fields": ["encKey","signKey"],
 		"data": {
 			"id": "NEW_USER",
-			"encKey": ` +encKeyStringEncoded+ `,
-			"signKey": ` +signKeyStringEncoded+ `,
+			"encKey": ` + encKeyStringEncoded + `,
+			"signKey": ` + signKeyStringEncoded + `,
 			"permissions": {
 				"channel": {
 					"add": true
@@ -153,25 +152,25 @@ func TestDecodeUpdateRequest(t *testing.T) {
 	}
 	expectedTimestamp, _ := time.Parse(time.RFC3339, "2018-01-13T23:53:00Z")
 	expected := UserRequest{
-		Type: UpdateRequest,
-		IssuerId: "USER",
+		Type:        UpdateRequest,
+		IssuerId:    "USER",
 		CertifierId: "ADMIN",
-		Fields: []string{"encKey","signKey"},
+		Fields:      []string{"encKey", "signKey"},
 		Data: UserObject{
-			Id: "NEW_USER",
-			EncKey: encKeyStringDecoded,
-			encKeyObject: encKey,
-			SignKey: signKeyStringDecoded,
+			Id:            "NEW_USER",
+			EncKey:        encKeyStringDecoded,
+			encKeyObject:  encKey,
+			SignKey:       signKeyStringDecoded,
 			signKeyObject: signKey,
 			Permissions: PermissionsObject{
 				Channel: ChannelPermissionsObject{
 					Add: true,
 				},
 				User: UserPermissionsObject{
-					Add: true,
-					Remove: false,
-					EncKeyUpdate: false,
-					SignKeyUpdate: false,
+					Add:               true,
+					Remove:            false,
+					EncKeyUpdate:      false,
+					SignKeyUpdate:     false,
 					PermissionsUpdate: false,
 				},
 			},
@@ -238,10 +237,10 @@ func TestDecodeInvalidFieldsUpdateRequest(t *testing.T) {
 	}
 
 	expected := UserRequest{
-		Type: UpdateRequest,
-		IssuerId: "USER",
+		Type:        UpdateRequest,
+		IssuerId:    "USER",
 		CertifierId: "ADMIN",
-		Fields: []string{"active"},
+		Fields:      []string{"active"},
 	}
 
 	if !reflect.DeepEqual(rq, expected) {
@@ -301,8 +300,8 @@ func TestDecodeEncode(t *testing.T) {
 		` + requestBaseStr + `
 		"data": {
 			"id": "NEW_USER",
-			"encKey": ` +encKeyStringEncoded+ `,
-			"signKey": ` +signKeyStringEncoded+ `,
+			"encKey": ` + encKeyStringEncoded + `,
+			"signKey": ` + signKeyStringEncoded + `,
 			"permissions": {
 				"channel": {
 					"add": true
@@ -322,7 +321,6 @@ func TestDecodeEncode(t *testing.T) {
 	var rq UserRequest
 	errs := rq.Decode(valid)
 
-
 	if len(errs) != 0 {
 		t.Errorf("Decoding Failed, errors: %v", errs)
 		return
@@ -338,7 +336,7 @@ func TestDecodeEncode(t *testing.T) {
 
 	reEncodedString := []byte(`{
 		` + requestBaseStr + `
-		"data": ` +userDataJson+ `
+		"data": ` + userDataJson + `
 	}`)
 
 	var secondRq UserRequest

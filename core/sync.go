@@ -9,22 +9,23 @@ import (
 )
 
 type LockType bool
+
 const WriteLockType LockType = true
 const ReadLockType LockType = false
 
 type LockNeed struct {
 	LockType LockType
-	Id string
+	Id       string
 }
 
 type lockNeedCollection []LockNeed
-func (s lockNeedCollection) Len() int { return len(s) }
-func (s lockNeedCollection) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+func (s lockNeedCollection) Len() int           { return len(s) }
+func (s lockNeedCollection) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s lockNeedCollection) Less(i, j int) bool { return s[i].Less(s[j]) }
 
-
 // Order: read low id < read high id < write low id < write high id
-func (a LockNeed) Less (b LockNeed) bool {
+func (a LockNeed) Less(b LockNeed) bool {
 	if a.LockType != b.LockType {
 		return a.LockType == ReadLockType
 	}
@@ -39,12 +40,12 @@ func sanitizeLockNeeds(lockNeeds []LockNeed) []LockNeed {
 		2: write lock
 	*/
 	lockIntMapping := map[LockType]int{
-		ReadLockType: 1,
+		ReadLockType:  1,
 		WriteLockType: 2,
 	}
 
 	lockMap := map[string]int{}
-	for _,lockNeed := range lockNeeds {
+	for _, lockNeed := range lockNeeds {
 		var lockNeedMapping int = lockIntMapping[lockNeed.LockType]
 
 		// Higher integer overwrites previous (no lock < read lock < write lock)
@@ -71,7 +72,7 @@ func sanitizeUnlockNeeds(lockNeeds []LockNeed) []LockNeed {
 	sanitizedLockNeeds := sanitizeLockNeeds(lockNeeds)
 
 	// Reverse for unlocking
-	for i := 0; i < len(sanitizedLockNeeds) / 2; i++ {
+	for i := 0; i < len(sanitizedLockNeeds)/2; i++ {
 		oppositeI := len(sanitizedLockNeeds) - i - 1
 		sanitizedLockNeeds[i], sanitizedLockNeeds[oppositeI] = sanitizedLockNeeds[oppositeI], sanitizedLockNeeds[i]
 	}

@@ -1,11 +1,11 @@
 package users
 
 import (
-	"encoding/json"
-	"encoding/pem"
+	"bytes"
 	"crypto/rsa"
 	"crypto/x509"
-	"bytes"
+	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"time"
 )
@@ -14,31 +14,31 @@ import (
 	External structure of a user
 */
 type ChannelPermissionsObject struct {
-	Add		bool	`json:"add"`
+	Add bool `json:"add"`
 }
 
 type UserPermissionsObject struct {
-	Add					bool	`json:"add"`
-	Remove				bool	`json:"remove"`
-	EncKeyUpdate		bool	`json:"encKeyUpdate"`
-	SignKeyUpdate		bool	`json:"signKeyUpdate"`
-	PermissionsUpdate	bool	`json:"permissionsUpdate"`
+	Add               bool `json:"add"`
+	Remove            bool `json:"remove"`
+	EncKeyUpdate      bool `json:"encKeyUpdate"`
+	SignKeyUpdate     bool `json:"signKeyUpdate"`
+	PermissionsUpdate bool `json:"permissionsUpdate"`
 }
 type PermissionsObject struct {
-	Channel	ChannelPermissionsObject	`json:"channel"`
-	User	UserPermissionsObject		`json:"user"`
+	Channel ChannelPermissionsObject `json:"channel"`
+	User    UserPermissionsObject    `json:"user"`
 }
 type UserObject struct {
-	Id				string				`json:"id"`
-	EncKey			string				`json:"encKey"`
-	encKeyObject	*rsa.PublicKey
-	SignKey			string				`json:"signKey"`
-	signKeyObject	*rsa.PublicKey
-	Permissions		PermissionsObject	`json:"permissions"`
-	Active			bool				`json:"active"`
-	CreatedAt		time.Time			`json:"createdAt"`
-	DisabledAt		time.Time			`json:"disabledAt"`
-	UpdatedAt		time.Time			`json:"updatedAt"`
+	Id            string `json:"id"`
+	EncKey        string `json:"encKey"`
+	encKeyObject  *rsa.PublicKey
+	SignKey       string `json:"signKey"`
+	signKeyObject *rsa.PublicKey
+	Permissions   PermissionsObject `json:"permissions"`
+	Active        bool              `json:"active"`
+	CreatedAt     time.Time         `json:"createdAt"`
+	DisabledAt    time.Time         `json:"disabledAt"`
+	UpdatedAt     time.Time         `json:"updatedAt"`
 }
 
 /*
@@ -49,13 +49,14 @@ const (
 	UpdateRequest
 	ReadRequest
 )
+
 type UserRequest struct {
-	Type			int			`json:"type"`
-	IssuerId		string		`json:"issuerId"`
-	CertifierId		string		`json:"certifierId"`
-	Fields			[]string	`json:"fields"`
-	Data			UserObject	`json:"data"`
-	Timestamp		time.Time	`json:"timestamp"`
+	Type        int        `json:"type"`
+	IssuerId    string     `json:"issuerId"`
+	CertifierId string     `json:"certifierId"`
+	Fields      []string   `json:"fields"`
+	Data        UserObject `json:"data"`
+	Timestamp   time.Time  `json:"timestamp"`
 }
 
 /*
@@ -69,9 +70,10 @@ const (
 	CertifierPermissionsError
 	UnlockingFailedError
 )
+
 type UserResponse struct {
-	Result			int
-	Data 			[]UserObject
+	Result int
+	Data   []UserObject
 }
 
 /*
@@ -105,57 +107,57 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 
 	switch rq.Type {
 
-		// For create requests, clear fields updated, and parse public keys
-		case CreateRequest:
-			rq.Fields = []string{}
+	// For create requests, clear fields updated, and parse public keys
+	case CreateRequest:
+		rq.Fields = []string{}
 
-			if parsedKey,err := convertRsaStringToKey(rq.Data.EncKey); err == nil {
-				rq.Data.encKeyObject = parsedKey
-			} else {
-				res = append(res, err)
-			}
-			if parsedKey,err := convertRsaStringToKey(rq.Data.SignKey); err == nil {
-				rq.Data.signKeyObject = parsedKey
-			} else {
-				res = append(res, err)
-			}
+		if parsedKey, err := convertRsaStringToKey(rq.Data.EncKey); err == nil {
+			rq.Data.encKeyObject = parsedKey
+		} else {
+			res = append(res, err)
+		}
+		if parsedKey, err := convertRsaStringToKey(rq.Data.SignKey); err == nil {
+			rq.Data.signKeyObject = parsedKey
+		} else {
+			res = append(res, err)
+		}
 
-		/*
+	/*
 		For update requests:
 			* Only leave valid fields updated
 			* Check there are updates
 			* Parse public keys if any
-		*/
-		case UpdateRequest:
-			rq.sanitizeFieldsUpdated()
+	*/
+	case UpdateRequest:
+		rq.sanitizeFieldsUpdated()
 
-			if contains(rq.Fields, "encKey") {
-				if parsedKey,err := convertRsaStringToKey(rq.Data.EncKey); err == nil {
-					rq.Data.encKeyObject = parsedKey
-				} else {
-					res = append(res, err)
-				}
+		if contains(rq.Fields, "encKey") {
+			if parsedKey, err := convertRsaStringToKey(rq.Data.EncKey); err == nil {
+				rq.Data.encKeyObject = parsedKey
+			} else {
+				res = append(res, err)
 			}
-			if contains(rq.Fields, "signKey") {
-				if parsedKey,err := convertRsaStringToKey(rq.Data.SignKey); err == nil {
-					rq.Data.signKeyObject = parsedKey
-				} else {
-					res = append(res, err)
-				}
+		}
+		if contains(rq.Fields, "signKey") {
+			if parsedKey, err := convertRsaStringToKey(rq.Data.SignKey); err == nil {
+				rq.Data.signKeyObject = parsedKey
+			} else {
+				res = append(res, err)
 			}
+		}
 
-			if len(rq.Fields) == 0 {
-				res = append(res, errors.New("No fields updated"))
-			}
+		if len(rq.Fields) == 0 {
+			res = append(res, errors.New("No fields updated"))
+		}
 
-		/*
+	/*
 		For read requests:
 			* Check there are user ids requested
-		*/
-		case ReadRequest:
-			if len(rq.Fields) == 0 {
-				res = append(res, errors.New("No users requested"))
-			}
+	*/
+	case ReadRequest:
+		if len(rq.Fields) == 0 {
+			res = append(res, errors.New("No users requested"))
+		}
 	}
 
 	return res
@@ -182,28 +184,28 @@ func convertRsaStringToKey(rsaString string) (*rsa.PublicKey, error) {
 	}
 
 	switch pub := pub.(type) {
-		case *rsa.PublicKey:
-			return pub, nil
-		default:
-			return nil, errors.New("unknown type of public key" + err.Error())
+	case *rsa.PublicKey:
+		return pub, nil
+	default:
+		return nil, errors.New("unknown type of public key" + err.Error())
 	}
 }
 
 var sanitizeFieldsUpdatedAllowed map[string]bool = map[string]bool{
-	"encKey": true,
-	"signKey": true,
-	"permissions.channel.add": true,
-	"permissions.user.add": true,
-	"permissions.user.remove": true,
-	"permissions.user.encKeyUpdate": true,
-	"permissions.user.signKeyUpdate": true,
+	"encKey":                             true,
+	"signKey":                            true,
+	"permissions.channel.add":            true,
+	"permissions.user.add":               true,
+	"permissions.user.remove":            true,
+	"permissions.user.encKeyUpdate":      true,
+	"permissions.user.signKeyUpdate":     true,
 	"permissions.user.permissionsUpdate": true,
 	"active": true,
 }
 
 func (rq *UserRequest) sanitizeFieldsUpdated() {
 	newSlice := make([]string, 0)
-	for _,field := range rq.Fields {
+	for _, field := range rq.Fields {
 		if sanitizeFieldsUpdatedAllowed[field] {
 			newSlice = append(newSlice, field)
 		}
@@ -224,7 +226,6 @@ func (usr *UserObject) Encode() ([]byte, error) {
 	return jsonStream, nil
 }
 
-
 /*
 	Utilities
 */
@@ -242,18 +243,18 @@ func (usr *UserObject) createFromRecord(rec *userRecord) {
 }
 
 func makeSearchByIdRecord(usr *UserObject) *userRecord {
-	return &userRecord {
+	return &userRecord{
 		Id: usr.Id,
 	}
 }
 
 func convertKeyToString(key *rsa.PublicKey) string {
 	// Break into bytes
-	keyBytes,_ := x509.MarshalPKIXPublicKey(key)
+	keyBytes, _ := x509.MarshalPKIXPublicKey(key)
 
 	// Build pem block containing public key
 	block := &pem.Block{
-		Type: "RSA PUBLIC KEY",
+		Type:  "RSA PUBLIC KEY",
 		Bytes: keyBytes,
 	}
 

@@ -1,8 +1,8 @@
 package core
 
 import (
-	"testing"
 	"reflect"
+	"testing"
 )
 
 func TestDecodeValid(t *testing.T) {

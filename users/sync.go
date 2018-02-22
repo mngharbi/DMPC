@@ -10,7 +10,7 @@ import (
 	"github.com/mngharbi/memstore"
 )
 
-func memstoreLockingFunctor(lockType core.LockType, isLock bool) (func(memstore.Item) (memstore.Item, bool)) {
+func memstoreLockingFunctor(lockType core.LockType, isLock bool) func(memstore.Item) (memstore.Item, bool) {
 	return func(obj memstore.Item) (memstore.Item, bool) {
 		objCopy := obj.(userRecord)
 
@@ -31,7 +31,7 @@ func memstoreLockingFunctor(lockType core.LockType, isLock bool) (func(memstore.
 	}
 }
 
-func coreLockingFunctor(sv *server, collectionPtr *[]*userRecord, isLock bool) (func(string, core.LockType) bool) {
+func coreLockingFunctor(sv *server, collectionPtr *[]*userRecord, isLock bool) func(string, core.LockType) bool {
 	return func(id string, lockType core.LockType) bool {
 		memstoreItem := sv.store.UpdateData(userRecord{Id: id}, "id", memstoreLockingFunctor(lockType, isLock))
 		if memstoreItem == nil {

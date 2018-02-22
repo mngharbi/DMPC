@@ -1,18 +1,17 @@
 package users
 
 import (
-	"github.com/mngharbi/memstore"
-	"github.com/mngharbi/gofarm"
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/gofarm"
+	"github.com/mngharbi/memstore"
 )
-
 
 /*
 	Server API
 */
 
 type Config struct {
-	NumWorkers		int
+	NumWorkers int
 }
 
 func StartServer(conf Config) error {
@@ -21,7 +20,7 @@ func StartServer(conf Config) error {
 		gofarm.ResetServer()
 		gofarm.InitServer(&serverSingleton)
 	}
-	return gofarm.StartServer(gofarm.Config{ NumWorkers: conf.NumWorkers })
+	return gofarm.StartServer(gofarm.Config{NumWorkers: conf.NumWorkers})
 }
 
 func ShutdownServer() {
@@ -45,7 +44,7 @@ func MakeRequest(rawRequest []byte) (chan *UserResponse, []error) {
 	// Pass through result
 	responseChannel := make(chan *UserResponse)
 	go func() {
-		nativeResponse, ok := <- nativeResponseChannel
+		nativeResponse, ok := <-nativeResponseChannel
 		if ok {
 			responseChannel <- (*nativeResponse).(*UserResponse)
 		} else {
@@ -61,8 +60,8 @@ func MakeRequest(rawRequest []byte) (chan *UserResponse, []error) {
 */
 
 type server struct {
-	isInitialized	bool
-	store			*memstore.Memstore
+	isInitialized bool
+	store         *memstore.Memstore
 }
 
 // Indexes used to store users
@@ -79,7 +78,7 @@ func getIndexes() (res []string) {
 
 var serverSingleton server
 
-func (sv *server) Start (_ gofarm.Config, isFirstStart bool) error {
+func (sv *server) Start(_ gofarm.Config, isFirstStart bool) error {
 	// Initialize store (only if starting for the first time)
 	if isFirstStart {
 		sv.store = memstore.New(getIndexes())
@@ -89,7 +88,7 @@ func (sv *server) Start (_ gofarm.Config, isFirstStart bool) error {
 
 func (sv *server) Shutdown() error { return nil }
 
-func (sv *server) Work (request *gofarm.Request) *gofarm.Response {
+func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 	rq := (*request).(*UserRequest)
 
 	/*
@@ -109,7 +108,7 @@ func (sv *server) Work (request *gofarm.Request) *gofarm.Response {
 
 	// Add read locks for user records if reading
 	if rq.Type == ReadRequest {
-		for _,userId := range rq.Fields {
+		for _, userId := range rq.Fields {
 			lockNeeds = append(lockNeeds, core.LockNeed{false, userId})
 		}
 	}
@@ -159,7 +158,7 @@ func (sv *server) Work (request *gofarm.Request) *gofarm.Response {
 		Run request
 	*/
 	responseData := []*UserObject{}
-	switch(rq.Type) {
+	switch rq.Type {
 	case UpdateRequest:
 		// Determine memstore update mode
 		isIndexUpdated := false
@@ -191,7 +190,6 @@ func (sv *server) Work (request *gofarm.Request) *gofarm.Response {
 		modifiedObject.createFromRecord(modifiedRecord)
 		responseData = append(responseData, modifiedObject)
 
-
 	case CreateRequest:
 		// Generate record
 		newUser := &userRecord{}
@@ -208,7 +206,7 @@ func (sv *server) Work (request *gofarm.Request) *gofarm.Response {
 	case ReadRequest:
 		// Extract indexes for users requested
 		usersRequestedIds := []int{}
-		for _,userId := range rq.Fields {
+		for _, userId := range rq.Fields {
 			for userRecordIndex, userRecord := range userRecords {
 				if userRecord.Id == userId {
 					usersRequestedIds = append(usersRequestedIds, userRecordIndex)
@@ -240,7 +238,7 @@ func (sv *server) Work (request *gofarm.Request) *gofarm.Response {
 func failRequest(responseCode int) *gofarm.Response {
 	userRespPtr := &UserResponse{
 		Result: responseCode,
-		Data: []UserObject{},
+		Data:   []UserObject{},
 	}
 	var nativeResp gofarm.Response = userRespPtr
 	return &nativeResp
@@ -248,13 +246,13 @@ func failRequest(responseCode int) *gofarm.Response {
 
 func successRequest(responseData []*UserObject) *gofarm.Response {
 	var objectDataCopy []UserObject
-	for _,objectPtr := range responseData {
+	for _, objectPtr := range responseData {
 		objectDataCopy = append(objectDataCopy, *objectPtr)
 	}
 
 	userRespPtr := &UserResponse{
 		Result: Success,
-		Data: objectDataCopy,
+		Data:   objectDataCopy,
 	}
 	var nativeResp gofarm.Response = userRespPtr
 	return &nativeResp
