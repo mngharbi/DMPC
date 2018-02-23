@@ -57,6 +57,9 @@ type UserRequest struct {
 	Fields      []string   `json:"fields"`
 	Data        UserObject `json:"data"`
 	Timestamp   time.Time  `json:"timestamp"`
+
+	// Private settings
+	skipPermissions bool
 }
 
 /*
@@ -94,14 +97,14 @@ func (rq *UserRequest) Decode(stream []byte) []error {
 func (rq *UserRequest) sanitizeAndCheckParams() []error {
 	res := []error{}
 
-	// Verifies type, issuer and certifier
+	// Verify type, issuer, and certifier
 	if !(CreateRequest <= rq.Type && rq.Type <= ReadRequest) {
 		res = append(res, errors.New("Unknown request type"))
 	}
-	if len(rq.IssuerId) == 0 {
+	if !rq.skipPermissions && len(rq.IssuerId) == 0 {
 		res = append(res, errors.New("Issuer id missing"))
 	}
-	if len(rq.CertifierId) == 0 {
+	if !rq.skipPermissions && len(rq.CertifierId) == 0 {
 		res = append(res, errors.New("Certifier id missing"))
 	}
 

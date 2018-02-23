@@ -27,9 +27,18 @@ func ShutdownServer() {
 	gofarm.ShutdownServer()
 }
 
+func MakeUnverifiedRequest(rawRequest []byte) (chan *UserResponse, []error) {
+	return makeRequest(rawRequest, true)
+}
+
 func MakeRequest(rawRequest []byte) (chan *UserResponse, []error) {
+	return makeRequest(rawRequest, false)
+}
+
+func makeRequest(rawRequest []byte, skipPermissions bool) (chan *UserResponse, []error) {
 	// Build request object
 	rqPtr := &UserRequest{}
+	rqPtr.skipPermissions = skipPermissions
 	decodingErrors := rqPtr.Decode(rawRequest)
 	if len(decodingErrors) > 0 {
 		return nil, decodingErrors
@@ -95,10 +104,14 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 		Handle record level locking
 	*/
 
+	lockNeeds := []core.LockNeed{}
+
 	// Add need for read locks for issuer and certifier
-	lockNeeds := []core.LockNeed{
-		core.LockNeed{false, rq.IssuerId},
-		core.LockNeed{false, rq.CertifierId},
+	if !rq.skipPermissions {
+		lockNeeds = []core.LockNeed{
+			core.LockNeed{false, rq.IssuerId},
+			core.LockNeed{false, rq.CertifierId},
+		}
 	}
 
 	// Add write lock for user record if updating
@@ -135,10 +148,10 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 
 	// If any failed (not found), end job with corresponding failure
 	if !isLocked {
-		if issuerIndex == -1 {
+		if !rq.skipPermissions && issuerIndex == -1 {
 			return failRequest(IssuerUnknownError)
 		}
-		if certifierIndex == -1 {
+		if !rq.skipPermissions && certifierIndex == -1 {
 			return failRequest(CertifierUnknownError)
 		}
 		if subjectIndex == -1 && rq.Type == ReadRequest {
@@ -149,9 +162,11 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 	/*
 		Verify certifier permisisons
 	*/
-	certifier := userRecords[certifierIndex]
-	if !certifier.isAuthorized(rq) {
-		return failRequest(CertifierPermissionsError)
+	if !rq.skipPermissions {
+		certifier := userRecords[certifierIndex]
+		if !certifier.isAuthorized(rq) {
+			return failRequest(CertifierPermissionsError)
+		}
 	}
 
 	/*

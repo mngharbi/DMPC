@@ -66,6 +66,7 @@ func TestDecodeCreateRequest(t *testing.T) {
 	}`)
 
 	var rq UserRequest
+	rq.skipPermissions = false
 	errs := rq.Decode(valid)
 
 	if len(errs) != 0 {
@@ -144,6 +145,7 @@ func TestDecodeUpdateRequest(t *testing.T) {
 	}`)
 
 	var rq UserRequest
+	rq.skipPermissions = false
 	errs := rq.Decode(valid)
 
 	if len(errs) != 0 {
@@ -197,6 +199,7 @@ func TestDecodeOneFieldUpdateRequest(t *testing.T) {
 	}`)
 
 	var rq UserRequest
+	rq.skipPermissions = false
 	errs := rq.Decode(valid)
 
 	if len(errs) != 0 {
@@ -213,6 +216,7 @@ func TestDecodeEmptyUpdateRequest(t *testing.T) {
 	}`)
 
 	var rq UserRequest
+	rq.skipPermissions = false
 	errs := rq.Decode(valid)
 
 	if !(len(errs) == 1 && errs[0].Error() == "No fields updated") {
@@ -229,6 +233,7 @@ func TestDecodeInvalidFieldsUpdateRequest(t *testing.T) {
 	}`)
 
 	var rq UserRequest
+	rq.skipPermissions = false
 	errs := rq.Decode(valid)
 
 	if len(errs) != 0 {
@@ -256,10 +261,19 @@ func TestDecodeMissingIssuerUpdateRequest(t *testing.T) {
 	}`)
 
 	var rq UserRequest
+	rq.skipPermissions = false
 	errs := rq.Decode(valid)
 
 	if !(len(errs) == 1 && errs[0].Error() == "Issuer id missing") {
 		t.Errorf("Decoding update with missing issuer should fail with one error, errors: %v", errs)
+	}
+
+	var rq2 UserRequest
+	rq2.skipPermissions = true
+	errs = rq2.Decode(valid)
+
+	if len(errs) != 0 {
+		t.Errorf("Decoding update with missing issuer should not fail if checkPermissions is false, errors: %v", errs)
 	}
 }
 
@@ -271,10 +285,19 @@ func TestDecodeMissingCertifierUpdateRequest(t *testing.T) {
 	}`)
 
 	var rq UserRequest
+	rq.skipPermissions = false
 	errs := rq.Decode(valid)
 
 	if !(len(errs) == 1 && errs[0].Error() == "Certifier id missing") {
 		t.Errorf("Decoding update with missing certifier should fail with one error, errors: %v", errs)
+	}
+
+	var rq2 UserRequest
+	rq2.skipPermissions = true
+	errs = rq2.Decode(valid)
+
+	if len(errs) != 0 {
+		t.Errorf("Decoding update with missing certifier should not fail if skipPermissions is false, errors: %v", errs)
 	}
 }
 
@@ -319,6 +342,7 @@ func TestDecodeEncode(t *testing.T) {
 	}`)
 
 	var rq UserRequest
+	rq.skipPermissions = false
 	errs := rq.Decode(valid)
 
 	if len(errs) != 0 {
