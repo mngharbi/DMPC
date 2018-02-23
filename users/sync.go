@@ -12,8 +12,7 @@ import (
 
 func memstoreLockingFunctor(lockType core.LockType, isLock bool) func(memstore.Item) (memstore.Item, bool) {
 	return func(obj memstore.Item) (memstore.Item, bool) {
-		objCopy := obj.(userRecord)
-
+		objCopy := obj.(*userRecord)
 		if lockType == core.WriteLockType {
 			if isLock {
 				objCopy.Lock.Lock()
@@ -33,7 +32,7 @@ func memstoreLockingFunctor(lockType core.LockType, isLock bool) func(memstore.I
 
 func coreLockingFunctor(sv *server, collectionPtr *[]*userRecord, isLock bool) func(string, core.LockType) bool {
 	return func(id string, lockType core.LockType) bool {
-		memstoreItem := sv.store.UpdateData(userRecord{Id: id}, "id", memstoreLockingFunctor(lockType, isLock))
+		memstoreItem := sv.store.UpdateData(&userRecord{Id: id}, "id", memstoreLockingFunctor(lockType, isLock))
 		if memstoreItem == nil {
 			return false
 		} else {
@@ -51,10 +50,6 @@ func lockUsers(sv *server, lockNeeds []core.LockNeed) (userRecords []*userRecord
 	// Do locking (rollback unlocking included)
 	lockingSuccess = core.Lock(doLocking, doUnlocking, lockNeeds)
 
-	// If locking failed, don't return any results
-	if !lockingSuccess {
-		userRecords = []*userRecord{}
-	}
 	return
 }
 

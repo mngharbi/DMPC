@@ -243,6 +243,12 @@ func (usr *UserObject) createFromRecord(rec *userRecord) {
 	usr.Permissions.User.EncKeyUpdate = rec.Permissions.User.EncKeyUpdate.Ok
 	usr.Permissions.User.SignKeyUpdate = rec.Permissions.User.SignKeyUpdate.Ok
 	usr.Permissions.User.PermissionsUpdate = rec.Permissions.User.PermissionsUpdate.Ok
+	usr.Active = rec.Active.Ok
+	if usr.Active {
+		usr.DisabledAt = rec.Active.UpdatedAt
+	}
+	usr.CreatedAt = rec.UpdatedAt
+	usr.UpdatedAt = rec.UpdatedAt
 }
 
 func makeSearchByIdRecord(usr *UserObject) *userRecord {

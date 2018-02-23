@@ -4,6 +4,7 @@ import (
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/gofarm"
 	"github.com/mngharbi/memstore"
+	"sync"
 )
 
 /*
@@ -136,12 +137,13 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 			continue
 		}
 
-		switch userRecord.Id {
-		case rq.IssuerId:
+		if userRecord.Id == rq.IssuerId {
 			issuerIndex = userRecordIndex
-		case rq.CertifierId:
+		}
+		if userRecord.Id == rq.CertifierId {
 			certifierIndex = userRecordIndex
-		case rq.Data.Id:
+		}
+		if userRecord.Id == rq.Data.Id {
 			subjectIndex = userRecordIndex
 		}
 	}
@@ -189,7 +191,7 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 
 		// Atomically apply request to record in memstore
 		updateFunc := func(obj memstore.Item) (memstore.Item, bool) {
-			objCopy := obj.(userRecord)
+			objCopy := obj.(*userRecord)
 			objCopy.applyUpdateRequest(rq)
 			return objCopy, true
 		}
@@ -207,7 +209,9 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 
 	case CreateRequest:
 		// Generate record
-		newUser := &userRecord{}
+		newUser := &userRecord{
+			Lock: &sync.RWMutex{},
+		}
 		newUser.create(rq)
 
 		// Add to memstore

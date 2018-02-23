@@ -52,8 +52,8 @@ type userRecord struct {
 
 func (rec userRecord) Less(index string, than interface{}) bool {
 	switch index {
-	case "Id":
-		return rec.Id < than.(userRecord).Id
+	case "id":
+		return rec.Id < than.(*userRecord).Id
 	}
 	return false
 }

@@ -12,23 +12,39 @@ import (
 	"time"
 )
 
-func generatePublicKey() *rsa.PublicKey {
-	Priv, _ := rsa.GenerateKey(rand.Reader, 2048)
-	return &Priv.PublicKey
+/*
+	Helpers
+*/
+
+func generatePrivateKey() *rsa.PrivateKey {
+	priv, _ := rsa.GenerateKey(rand.Reader, 2048)
+	return priv
 }
 
-func jsonPemEncodeKey(key *rsa.PublicKey) string {
+func generatePublicKey() *rsa.PublicKey {
+	priv := generatePrivateKey()
+	return &priv.PublicKey
+}
+
+func pemEncodeKey(key *rsa.PublicKey) string {
 	keyBytes, _ := x509.MarshalPKIXPublicKey(key)
 	block := &pem.Block{
 		Type:  "RSA PUBLIC KEY",
 		Bytes: keyBytes,
 	}
 	buf := new(bytes.Buffer)
-	_ = pem.Encode(buf, block)
-	res, _ := json.Marshal(string(pem.EncodeToMemory(block)))
+	pem.Encode(buf, block)
+	return string(pem.EncodeToMemory(block))
+}
+
+func jsonPemEncodeKey(key *rsa.PublicKey) string {
+	res, _ := json.Marshal(pemEncodeKey(key))
 	return string(res)
 }
 
+/*
+	Decoding
+*/
 func TestDecodeCreateRequest(t *testing.T) {
 	encKey := generatePublicKey()
 	encKeyStringEncoded := jsonPemEncodeKey(encKey)
