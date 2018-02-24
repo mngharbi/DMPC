@@ -1,46 +1,11 @@
 package users
 
 import (
-	"bytes"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"reflect"
 	"testing"
 	"time"
 )
-
-/*
-	Helpers
-*/
-
-func generatePrivateKey() *rsa.PrivateKey {
-	priv, _ := rsa.GenerateKey(rand.Reader, 2048)
-	return priv
-}
-
-func generatePublicKey() *rsa.PublicKey {
-	priv := generatePrivateKey()
-	return &priv.PublicKey
-}
-
-func pemEncodeKey(key *rsa.PublicKey) string {
-	keyBytes, _ := x509.MarshalPKIXPublicKey(key)
-	block := &pem.Block{
-		Type:  "RSA PUBLIC KEY",
-		Bytes: keyBytes,
-	}
-	buf := new(bytes.Buffer)
-	pem.Encode(buf, block)
-	return string(pem.EncodeToMemory(block))
-}
-
-func jsonPemEncodeKey(key *rsa.PublicKey) string {
-	res, _ := json.Marshal(pemEncodeKey(key))
-	return string(res)
-}
 
 /*
 	Decoding
