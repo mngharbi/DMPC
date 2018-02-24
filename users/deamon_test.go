@@ -24,7 +24,25 @@ func singleWorkerConfig() Config {
 	}
 }
 
-func generateUserCreateRequest(issuerId string, certifierId string, userId string, userAddPermission bool) (request []byte, object *UserObject, encKey *rsa.PublicKey, signKey *rsa.PublicKey) {
+func booleanToString(boolean bool) string {
+	if boolean {
+		return "true"
+	}
+	return "false"
+}
+
+func generateUserCreateRequest(
+	issuerId string,
+	certifierId string,
+	userId string,
+	channelAddPermission bool,
+	userAddPermission bool,
+	userRemovePermission bool,
+	userEncKeyUpdatePermission bool,
+	userSignKeyUpdatePermission bool,
+	userPermissionsUpdatePermission bool,
+) (request []byte, object *UserObject, encKey *rsa.PublicKey, signKey *rsa.PublicKey) {
+	// Encode keys
 	encKey = generatePublicKey()
 	encKeyStringEncoded := jsonPemEncodeKey(encKey)
 	var encKeyStringDecoded string
@@ -33,10 +51,14 @@ func generateUserCreateRequest(issuerId string, certifierId string, userId strin
 	signKeyStringEncoded := jsonPemEncodeKey(signKey)
 	var signKeyStringDecoded string
 	json.Unmarshal([]byte(signKeyStringEncoded), &signKeyStringDecoded)
-	userAddPermissionString := "false"
-	if userAddPermission {
-		userAddPermissionString = "true"
-	}
+
+	// Permissions strings
+	channelAddPermissionString := booleanToString(channelAddPermission)
+	userAddPermissionString := booleanToString(userAddPermission)
+	userRemovePermissionString := booleanToString(userRemovePermission)
+	userEncKeyUpdatePermissionString := booleanToString(userEncKeyUpdatePermission)
+	userSignKeyUpdatePermissionString := booleanToString(userSignKeyUpdatePermission)
+	userPermissionsUpdatePermissionString := booleanToString(userPermissionsUpdatePermission)
 
 	request = []byte(`{
 		"type": 0,
@@ -49,14 +71,14 @@ func generateUserCreateRequest(issuerId string, certifierId string, userId strin
 			"signKey": ` + signKeyStringEncoded + `,
 			"permissions": {
 				"channel": {
-					"add": true
+					"add": ` + channelAddPermissionString + `
 				},
 				"user": {
 					"add": ` + userAddPermissionString + `,
-					"remove": false,
-					"encKeyUpdate": false,
-					"signKeyUpdate": false,
-					"permissionsUpdate": false
+					"remove": ` + userRemovePermissionString + `,
+					"encKeyUpdate": ` + userEncKeyUpdatePermissionString + `,
+					"signKeyUpdate": ` + userSignKeyUpdatePermissionString + `,
+					"permissionsUpdate": ` + userPermissionsUpdatePermissionString + `
 				}
 			},
 			"active": true
@@ -70,14 +92,14 @@ func generateUserCreateRequest(issuerId string, certifierId string, userId strin
 		SignKey: signKeyStringDecoded,
 		Permissions: PermissionsObject{
 			Channel: ChannelPermissionsObject{
-				Add: true,
+				Add: channelAddPermission,
 			},
 			User: UserPermissionsObject{
 				Add:               userAddPermission,
-				Remove:            false,
-				EncKeyUpdate:      false,
-				SignKeyUpdate:     false,
-				PermissionsUpdate: false,
+				Remove:            userRemovePermission,
+				EncKeyUpdate:      userEncKeyUpdatePermission,
+				SignKeyUpdate:     userSignKeyUpdatePermission,
+				PermissionsUpdate: userPermissionsUpdatePermission,
 			},
 		},
 		Active:     true,
@@ -196,7 +218,9 @@ func TestUnknownCertifierReadRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, _, _, _ := generateUserCreateRequest("ISSUER", "ISSUER", "ISSUER", true)
+	requestBytes, _, _, _ := generateUserCreateRequest("ISSUER", "ISSUER", "ISSUER",
+		false, true, false, false, false, false,
+	)
 	channel, errs := MakeUnverifiedRequest(requestBytes)
 	if len(errs) != 0 {
 		t.Errorf("Unverified create request with inexistent issuer/certifier should go through, errs=%v", errs)
@@ -230,7 +254,9 @@ func TestUnknownSubjectReadRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, _, _, _ := generateUserCreateRequest("ISSUER", "ISSUER", "ISSUER", true)
+	requestBytes, _, _, _ := generateUserCreateRequest("ISSUER", "ISSUER", "ISSUER",
+		false, true, false, false, false, false,
+	)
 	channel, errs := MakeUnverifiedRequest(requestBytes)
 	if len(errs) != 0 {
 		t.Errorf("Unverified create request with inexistent issuer/certifier should go through, errs=%v", errs)
@@ -242,7 +268,9 @@ func TestUnknownSubjectReadRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, _, _, _ = generateUserCreateRequest("CERTIFIER", "CERTIFIER", "CERTIFIER", true)
+	requestBytes, _, _, _ = generateUserCreateRequest("CERTIFIER", "CERTIFIER", "CERTIFIER",
+		false, true, false, false, false, false,
+	)
 	channel, errs = MakeUnverifiedRequest(requestBytes)
 	if len(errs) != 0 {
 		t.Errorf("Unverified create request with inexistent issuer/certifier should go through, errs=%v", errs)
@@ -276,7 +304,9 @@ func TestExistentUserReadRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, _, _, _ := generateUserCreateRequest("ISSUER", "ISSUER", "ISSUER", false)
+	requestBytes, _, _, _ := generateUserCreateRequest("ISSUER", "ISSUER", "ISSUER",
+		false, false, false, false, false, false,
+	)
 	channel, errs := MakeUnverifiedRequest(requestBytes)
 	if len(errs) != 0 {
 		t.Errorf("Unverified create request with inexistent issuer/certifier should go through, errs=%v", errs)
@@ -288,7 +318,9 @@ func TestExistentUserReadRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, _, _, _ = generateUserCreateRequest("CERTIFIER", "CERTIFIER", "CERTIFIER", true)
+	requestBytes, _, _, _ = generateUserCreateRequest("CERTIFIER", "CERTIFIER", "CERTIFIER",
+		false, true, false, false, false, false,
+	)
 	channel, errs = MakeUnverifiedRequest(requestBytes)
 	if len(errs) != 0 {
 		t.Errorf("Unverified create request with inexistent issuer/certifier should go through, errs=%v", errs)
@@ -300,7 +332,9 @@ func TestExistentUserReadRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, userObjectPtr, _, _ := generateUserCreateRequest("ISSUER", "CERTIFIER", "USER", true)
+	requestBytes, userObjectPtr, _, _ := generateUserCreateRequest("ISSUER", "CERTIFIER", "USER",
+		false, true, false, false, false, false,
+	)
 	channel, errs = MakeRequest(requestBytes)
 	if len(errs) != 0 {
 		t.Errorf("Verified create valid request should go through, errs=%v", errs)
@@ -342,7 +376,9 @@ func TestUnknownIssuerCreateRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, _, _, _ := generateUserCreateRequest("ISSUER", "CERTIFIER", "USER", true)
+	requestBytes, _, _, _ := generateUserCreateRequest("ISSUER", "CERTIFIER", "USER",
+		false, true, false, false, false, false,
+	)
 
 	channel, errs := MakeRequest(requestBytes)
 	if len(errs) > 0 {
@@ -365,7 +401,9 @@ func TestUnknownCertifierCreateRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, _, _, _ := generateUserCreateRequest("ADMIN", "ADMIN", "ADMIN", true)
+	requestBytes, _, _, _ := generateUserCreateRequest("ADMIN", "ADMIN", "ADMIN",
+		false, true, false, false, false, false,
+	)
 	channel, errs := MakeUnverifiedRequest(requestBytes)
 	if len(errs) != 0 {
 		t.Errorf("Unverified create request with inexistent issuer/certifier should go through, errs=%v", errs)
@@ -377,7 +415,9 @@ func TestUnknownCertifierCreateRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, _, _, _ = generateUserCreateRequest("ADMIN", "CERTIFIER", "USER", true)
+	requestBytes, _, _, _ = generateUserCreateRequest("ADMIN", "CERTIFIER", "USER",
+		false, true, false, false, false, false,
+	)
 	channel, errs = MakeRequest(requestBytes)
 	if len(errs) > 0 {
 		t.Errorf("Create request with inexistent certifier should go through, errs=%v", errs)
@@ -399,7 +439,9 @@ func TestMissingPermissionVerifiedCreateRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, _, _, _ := generateUserCreateRequest("ISSUER", "ISSUER", "ISSUER", true)
+	requestBytes, _, _, _ := generateUserCreateRequest("ISSUER", "ISSUER", "ISSUER",
+		false, true, false, false, false, false,
+	)
 	channel, errs := MakeUnverifiedRequest(requestBytes)
 	if len(errs) != 0 {
 		t.Errorf("Unverified create request with inexistent issuer/certifier should go through, errs=%v", errs)
@@ -411,7 +453,9 @@ func TestMissingPermissionVerifiedCreateRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, _, _, _ = generateUserCreateRequest("CERTIFIER", "CERTIFIER", "CERTIFIER", false)
+	requestBytes, _, _, _ = generateUserCreateRequest("CERTIFIER", "CERTIFIER", "CERTIFIER",
+		false, false, false, false, false, false,
+	)
 	channel, errs = MakeUnverifiedRequest(requestBytes)
 	if len(errs) != 0 {
 		t.Errorf("Unverified create request with inexistent issuer/certifier should go through, errs=%v", errs)
@@ -423,7 +467,9 @@ func TestMissingPermissionVerifiedCreateRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, _, _, _ = generateUserCreateRequest("ISSUER", "CERTIFIER", "USER", true)
+	requestBytes, _, _, _ = generateUserCreateRequest("ISSUER", "CERTIFIER", "USER",
+		false, true, false, false, false, false,
+	)
 	channel, errs = MakeRequest(requestBytes)
 	if len(errs) > 0 {
 		t.Errorf("Create request with inexistent certifier should go through, errs=%v", errs)
@@ -445,7 +491,9 @@ func TestSuccessfulVerifiedCreateRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, _, _, _ := generateUserCreateRequest("ISSUER", "ISSUER", "ISSUER", true)
+	requestBytes, _, _, _ := generateUserCreateRequest("ISSUER", "ISSUER", "ISSUER",
+		false, true, false, false, false, false,
+	)
 	channel, errs := MakeUnverifiedRequest(requestBytes)
 	if len(errs) != 0 {
 		t.Errorf("Unverified create request with inexistent issuer/certifier should go through, errs=%v", errs)
@@ -457,7 +505,9 @@ func TestSuccessfulVerifiedCreateRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, _, _, _ = generateUserCreateRequest("CERTIFIER", "CERTIFIER", "CERTIFIER", true)
+	requestBytes, _, _, _ = generateUserCreateRequest("CERTIFIER", "CERTIFIER", "CERTIFIER",
+		false, true, false, false, false, false,
+	)
 	channel, errs = MakeUnverifiedRequest(requestBytes)
 	if len(errs) != 0 {
 		t.Errorf("Unverified create request with inexistent issuer/certifier should go through, errs=%v", errs)
@@ -469,7 +519,9 @@ func TestSuccessfulVerifiedCreateRequest(t *testing.T) {
 		return
 	}
 
-	requestBytes, userObjectPtr, _, _ := generateUserCreateRequest("ISSUER", "CERTIFIER", "USER", true)
+	requestBytes, userObjectPtr, _, _ := generateUserCreateRequest("ISSUER", "CERTIFIER", "USER",
+		false, true, false, false, false, false,
+	)
 	channel, errs = MakeRequest(requestBytes)
 	if len(errs) > 0 {
 		t.Errorf("Create request with inexistent certifier should go through, errs=%v", errs)
