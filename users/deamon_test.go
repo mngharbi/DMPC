@@ -395,3 +395,99 @@ func TestEncKeyUpdateRequest(t *testing.T) {
 
 	ShutdownServer()
 }
+
+func TestSignKeyUpdateRequest(t *testing.T) {
+	if !resetAndStartServer(t, multipleWorkersConfig()) {
+		return
+	}
+
+	// Create issuer and certifier with no sign key update permissions
+	if !createIssuerAndCertifier(t,
+		true, true, true, true, true, true,
+		true, true, true, true, false, true,
+	) {
+		return
+	}
+	// Create user
+	userid := "USER"
+	originalUserObjectPtr, success := createUser(
+		t, false, "ISSUER", "CERTIFIER", userid, false, false, false, false, false, false,
+	)
+	if !success {
+		return
+	}
+
+	// Try to update signKey
+	publicKey := generatePublicKey()
+	signKeyString := pemEncodeKey(publicKey)
+	signKeyStringJson := jsonPemEncodeKey(publicKey)
+	signKeyStringJson = strings.TrimSuffix(signKeyStringJson, `"`)
+	signKeyStringJson = strings.TrimPrefix(signKeyStringJson, `"`)
+	// Without subject id
+	serverResponsePtr, ok, success := makeAndGetUserUpdateRequest(
+		t, "ISSUER", "CERTIFIER", []string{"signKey"}, getJanuaryDate(1), nil, nil, &signKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+	)
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != SubjectUnknownError {
+		t.Errorf("Update request to signKey without subject id should fail, result:%v", *serverResponsePtr)
+		return
+	}
+	// With subject id
+	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
+		t, "ISSUER", "CERTIFIER", []string{"signKey"}, getJanuaryDate(1), &userid, nil, &signKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+	)
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != CertifierPermissionsError {
+		t.Errorf("Update request to signKey without subject id should fail, result:%v", *serverResponsePtr)
+		return
+	}
+
+	// Create certifier with only sign key update permissions and use it to update again
+	_, success = createUser(
+		t, false, "ISSUER", "CERTIFIER", "SIGNKEY_CERTIFIER", false, false, false, false, true, false,
+	)
+	if !success {
+		return
+	}
+
+	// Try with stale date
+	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
+		t, "ISSUER", "SIGNKEY_CERTIFIER", []string{"signKey"}, getJanuaryDate(1), &userid, nil, &signKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+	)
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != Success {
+		t.Errorf("Update request to signKey with permissions should succeed, result:%v", *serverResponsePtr)
+		return
+	}
+	// Expect no changes
+	if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(*originalUserObjectPtr, serverResponsePtr.Data[0]) {
+		t.Errorf("Stale signKey update should succeed but not affect anything.\n expected=%+v\n result=%+v", *originalUserObjectPtr, serverResponsePtr.Data[0])
+	}
+
+	// Try with recent date
+	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
+		t, "ISSUER", "SIGNKEY_CERTIFIER", []string{"signKey"}, getJanuaryDate(30), &userid, nil, &signKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+	)
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != Success {
+		t.Errorf("Update request to signKey with permissions should succeed, result:%v", *serverResponsePtr)
+		return
+	}
+	// Expect changes to sign key and updated at
+	expectedAfterUpdates := *originalUserObjectPtr
+	expectedAfterUpdates.SignKey = signKeyString
+	expectedAfterUpdates.UpdatedAt = getJanuaryDate(30)
+	if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(expectedAfterUpdates, serverResponsePtr.Data[0]) {
+		t.Errorf("Recent signKey update should succeed but and affect key and timestamps.\n expected=%+v\n result=%+v", expectedAfterUpdates, serverResponsePtr.Data[0])
+	}
+
+	ShutdownServer()
+}
