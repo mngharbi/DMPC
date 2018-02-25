@@ -197,9 +197,9 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 		}
 		var modifiedRecord *userRecord
 		if isIndexUpdated {
-			*modifiedRecord = sv.store.UpdateWithIndexes(*searchRecordPtr, "id", updateFunc).(userRecord)
+			modifiedRecord = sv.store.UpdateWithIndexes(*searchRecordPtr, "id", updateFunc).(*userRecord)
 		} else {
-			*modifiedRecord = sv.store.UpdateData(*searchRecordPtr, "id", updateFunc).(userRecord)
+			modifiedRecord = sv.store.UpdateData(*searchRecordPtr, "id", updateFunc).(*userRecord)
 		}
 
 		// Add user modified to response

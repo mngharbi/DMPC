@@ -5,12 +5,13 @@
 package users
 
 import (
-	"encoding/json"
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
-	"bytes"
+	"strings"
 	"testing"
 	"time"
 )
@@ -25,7 +26,6 @@ func booleanToString(boolean bool) string {
 	}
 	return "false"
 }
-
 
 /*
 	Crypto
@@ -337,6 +337,187 @@ func createIssuerAndCertifier(
 		return false
 	}
 	return true
+}
+
+/*
+	Create requests
+*/
+
+func generateJsonForStringPtr(id string, strPtr *string) (res string) {
+	res = ""
+	if strPtr != nil {
+		res = `"` + id + `": "` + *strPtr + `",`
+	}
+	return
+}
+
+func generateJsonForBoolPtr(id string, boolPtr *bool) (res string) {
+	res = ""
+	if boolPtr != nil {
+		res = `"` + id + `": ` + booleanToString(*boolPtr) + `,`
+	}
+	return
+}
+func generateJsonForTimePtr(id string, timePtr *time.Time) (res string) {
+	res = ""
+	if timePtr != nil {
+		res = `"` + id + `": "` + timePtr.Format(time.RFC3339) + `",`
+	}
+	return
+}
+
+func generateUserUpdateRequest(
+	issuerId string,
+	certifierId string,
+	fields []string,
+
+	idPtr *string,
+	encKeyPtr *string,
+	signKeyPtr *string,
+	channelAddPermissionPtr *bool,
+	userAddPermissionPtr *bool,
+	userRemovePermissionPtr *bool,
+	userEncKeyUpdatePermissionPtr *bool,
+	userSignKeyUpdatePermissionPtr *bool,
+	userPermissionsUpdatePtr *bool,
+	activePtr *bool,
+	createdAtPtr *time.Time,
+	disabledAtPtr *time.Time,
+	updatedAtPtr *time.Time,
+) (request []byte) {
+	fieldsJson, _ := json.Marshal(fields)
+	fieldsJsonString := string(fieldsJson)
+
+	// Make minimal json equivalent for base level fields
+	baseLevelJson := ""
+	baseLevelStringPtrs := map[string]*string{
+		"id":      idPtr,
+		"encKey":  encKeyPtr,
+		"signKey": signKeyPtr,
+	}
+	for id, stringPtr := range baseLevelStringPtrs {
+		baseLevelJson += generateJsonForStringPtr(id, stringPtr)
+	}
+	baseLevelJson += generateJsonForBoolPtr("active", activePtr)
+	baseLevelTimePtrs := map[string]*time.Time{
+		"createdAt":  createdAtPtr,
+		"disabledAt": disabledAtPtr,
+		"updatedAt":  updatedAtPtr,
+	}
+	for id, timePtr := range baseLevelTimePtrs {
+		baseLevelJson += generateJsonForTimePtr(id, timePtr)
+	}
+
+	// Make minimal json equivalent for user permissions
+	userPermissionsStr := ""
+	userPermissionsBoolPtrs := map[string]*bool{
+		"add":               userAddPermissionPtr,
+		"remove":            userRemovePermissionPtr,
+		"encKeyUpdate":      userEncKeyUpdatePermissionPtr,
+		"signKeyUpdate":     userSignKeyUpdatePermissionPtr,
+		"permissionsUpdate": userPermissionsUpdatePtr,
+	}
+	for id, boolPtr := range userPermissionsBoolPtrs {
+		userPermissionsStr += generateJsonForBoolPtr(id, boolPtr)
+	}
+	if len(userPermissionsStr) > 0 {
+		userPermissionsStr = strings.TrimSuffix(userPermissionsStr, ",")
+		userPermissionsStr = `"user": {` + userPermissionsStr + `},`
+	}
+
+	// Make minimal json equivalent for channel permissions
+	channelAddPermissionStr := generateJsonForBoolPtr("add", channelAddPermissionPtr)
+	if channelAddPermissionPtr != nil {
+		channelAddPermissionStr = strings.TrimSuffix(channelAddPermissionStr, ",")
+		channelAddPermissionStr = `"channel": {` + channelAddPermissionStr + `},`
+	}
+
+	// Combine permissions json
+	permissionsStr := userPermissionsStr + channelAddPermissionStr
+	if len(permissionsStr) > 0 {
+		permissionsStr = strings.TrimSuffix(permissionsStr, ",")
+		permissionsStr = `"permissions": {` + permissionsStr + `},`
+	}
+
+	// Combine everything together
+	dataStr := baseLevelJson + permissionsStr
+	if len(dataStr) > 0 {
+		dataStr = strings.TrimSuffix(dataStr, ",")
+		dataStr = `"data": {` + dataStr + `}`
+	}
+
+	return []byte(`{
+		"type": 1,
+		"issuerId": "` + issuerId + `",
+		"certifierId": "` + certifierId + `",
+		"fields": ` + fieldsJsonString + `,
+		` + dataStr + `
+	}`)
+}
+
+func makeUserUpdateRequest(
+	issuerId string,
+	certifierId string,
+	fields []string,
+
+	idPtr *string,
+	encKeyPtr *string,
+	signKeyPtr *string,
+	channelAddPermissionPtr *bool,
+	userAddPermissionPtr *bool,
+	userRemovePermissionPtr *bool,
+	userEncKeyUpdatePermissionPtr *bool,
+	userSignKeyUpdatePermissionPtr *bool,
+	userPermissionsUpdatePtr *bool,
+	activePtr *bool,
+	createdAtPtr *time.Time,
+	disabledAtPtr *time.Time,
+	updatedAtPtr *time.Time,
+) (chan *UserResponse, []error) {
+	requestBytes := generateUserUpdateRequest(
+		issuerId, certifierId, fields,
+		idPtr, encKeyPtr, signKeyPtr,
+		channelAddPermissionPtr, userAddPermissionPtr, userRemovePermissionPtr,
+		userEncKeyUpdatePermissionPtr, userSignKeyUpdatePermissionPtr, userPermissionsUpdatePtr,
+		activePtr, createdAtPtr, disabledAtPtr, updatedAtPtr,
+	)
+	return MakeRequest(requestBytes)
+}
+
+func makeAndGetUserUpdateRequest(
+	t *testing.T,
+
+	issuerId string,
+	certifierId string,
+	fields []string,
+
+	idPtr *string,
+	encKeyPtr *string,
+	signKeyPtr *string,
+	channelAddPermissionPtr *bool,
+	userAddPermissionPtr *bool,
+	userRemovePermissionPtr *bool,
+	userEncKeyUpdatePermissionPtr *bool,
+	userSignKeyUpdatePermissionPtr *bool,
+	userPermissionsUpdatePtr *bool,
+	activePtr *bool,
+	createdAtPtr *time.Time,
+	disabledAtPtr *time.Time,
+	updatedAtPtr *time.Time,
+) (*UserResponse, bool, bool) {
+	channel, errs := makeUserUpdateRequest(
+		issuerId, certifierId, fields,
+		idPtr, encKeyPtr, signKeyPtr,
+		channelAddPermissionPtr, userAddPermissionPtr, userRemovePermissionPtr,
+		userEncKeyUpdatePermissionPtr, userSignKeyUpdatePermissionPtr, userPermissionsUpdatePtr,
+		activePtr, createdAtPtr, disabledAtPtr, updatedAtPtr,
+	)
+	if len(errs) > 0 {
+		t.Errorf("Valid update request should go through\n. errs=%v", errs)
+		return nil, false, false
+	}
+	serverResponsePtr, ok := <-channel
+	return serverResponsePtr, ok, true
 }
 
 /*

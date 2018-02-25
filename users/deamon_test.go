@@ -262,3 +262,39 @@ func TestSuccessfulVerifiedCreateRequest(t *testing.T) {
 
 	ShutdownServer()
 }
+
+/*
+	Update requests
+*/
+func TestIdUpdateRequest(t *testing.T) {
+	if !resetAndStartServer(t, multipleWorkersConfig()) {
+		return
+	}
+
+	// Create issuer and certifier with all permissions
+	if !createIssuerAndCertifier(t,
+		true, true, true, true, true, true,
+		true, true, true, true, true, true,
+	) {
+		return
+	}
+	// Create user
+	_, success := createUser(
+		t, false, "ISSUER", "CERTIFIER", "USER", false, false, false, false, false, false,
+	)
+	if !success {
+		return
+	}
+
+	// Try to update id
+	idStr := "userId"
+	_, errs := makeUserUpdateRequest(
+		"ISSUER", "CERTIFIER", []string{"id"}, &idStr, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+	)
+	if len(errs) == 0 {
+		t.Errorf("Update request for id should be ignored.")
+		return
+	}
+
+	ShutdownServer()
+}
