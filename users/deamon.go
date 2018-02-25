@@ -156,7 +156,7 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 		if !rq.skipPermissions && certifierIndex == -1 {
 			return failRequest(CertifierUnknownError)
 		}
-		if subjectIndex == -1 && rq.Type == ReadRequest {
+		if subjectIndex == -1 && (rq.Type == ReadRequest || rq.Type == UpdateRequest) {
 			return failRequest(SubjectUnknownError)
 		}
 	}
@@ -167,6 +167,12 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 	if !rq.skipPermissions {
 		certifier := userRecords[certifierIndex]
 		if !certifier.isAuthorized(rq) {
+			// Unlock first
+			_, isUnlocked := unlockUsers(sv, lockNeeds)
+			if !isUnlocked {
+				return failRequest(UnlockingFailedError)
+			}
+			// Then fail with certifier permissions error
 			return failRequest(CertifierPermissionsError)
 		}
 	}
@@ -197,9 +203,9 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 		}
 		var modifiedRecord *userRecord
 		if isIndexUpdated {
-			modifiedRecord = sv.store.UpdateWithIndexes(*searchRecordPtr, "id", updateFunc).(*userRecord)
+			modifiedRecord = sv.store.UpdateWithIndexes(searchRecordPtr, "id", updateFunc).(*userRecord)
 		} else {
-			modifiedRecord = sv.store.UpdateData(*searchRecordPtr, "id", updateFunc).(*userRecord)
+			modifiedRecord = sv.store.UpdateData(searchRecordPtr, "id", updateFunc).(*userRecord)
 		}
 
 		// Add user modified to response

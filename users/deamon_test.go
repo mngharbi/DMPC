@@ -3,6 +3,7 @@ package users
 import (
 	"reflect"
 	"testing"
+	"strings"
 )
 
 /*
@@ -289,11 +290,107 @@ func TestIdUpdateRequest(t *testing.T) {
 	// Try to update id
 	idStr := "userId"
 	_, errs := makeUserUpdateRequest(
-		"ISSUER", "CERTIFIER", []string{"id"}, &idStr, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		"ISSUER", "CERTIFIER", []string{"id"}, getJanuaryDate(30), &idStr, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 	if len(errs) == 0 {
 		t.Errorf("Update request for id should be ignored.")
 		return
+	}
+
+	ShutdownServer()
+}
+
+func TestEncKeyUpdateRequest(t *testing.T) {
+	if !resetAndStartServer(t, multipleWorkersConfig()) {
+		return
+	}
+
+	// Create issuer and certifier with no enc key update permissions
+	if !createIssuerAndCertifier(t,
+		true, true, true, true, true, true,
+		true, true, true, false, true, true,
+	) {
+		return
+	}
+	// Create user
+	userid := "USER"
+	originalUserObjectPtr, success := createUser(
+		t, false, "ISSUER", "CERTIFIER", userid, false, false, false, false, false, false,
+	)
+	if !success {
+		return
+	}
+
+	// Try to update encKey
+	publicKey := generatePublicKey()
+	encKeyString := pemEncodeKey(publicKey)
+	encKeyStringJson := jsonPemEncodeKey(publicKey)
+	encKeyStringJson = strings.TrimSuffix(encKeyStringJson, `"`)
+	encKeyStringJson = strings.TrimPrefix(encKeyStringJson, `"`)
+	// Without subject id
+	serverResponsePtr, ok, success := makeAndGetUserUpdateRequest(
+		t, "ISSUER", "CERTIFIER", []string{"encKey"}, getJanuaryDate(1), nil, &encKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+	)
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != SubjectUnknownError {
+		t.Errorf("Update request to encKey without subject id should fail, result:%v", *serverResponsePtr)
+		return
+	}
+	// With subject id
+	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
+		t, "ISSUER", "CERTIFIER", []string{"encKey"}, getJanuaryDate(1), &userid, &encKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+	)
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != CertifierPermissionsError {
+		t.Errorf("Update request to encKey without subject id should fail, result:%v", *serverResponsePtr)
+		return
+	}
+
+	// Create certifier with only enc key update permissions and use it to update again
+	_, success = createUser(
+		t, false, "ISSUER", "CERTIFIER", "ENCKEY_CERTIFIER", false, false, false, true, false, false,
+	)
+	if !success {
+		return
+	}
+
+	// Try with stale date
+	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
+		t, "ISSUER", "ENCKEY_CERTIFIER", []string{"encKey"}, getJanuaryDate(1), &userid, &encKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+	)
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != Success {
+		t.Errorf("Update request to encKey with permissions should succeed, result:%v", *serverResponsePtr)
+		return
+	}
+	// Expect no changes
+	if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(*originalUserObjectPtr, serverResponsePtr.Data[0]) {
+		t.Errorf("Stale encKey update should succeed but not affect anything.\n expected=%+v\n result=%+v", *originalUserObjectPtr, serverResponsePtr.Data[0])
+	}
+
+	// Try with recent date
+	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
+		t, "ISSUER", "ENCKEY_CERTIFIER", []string{"encKey"}, getJanuaryDate(30), &userid, &encKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+	)
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != Success {
+		t.Errorf("Update request to encKey with permissions should succeed, result:%v", *serverResponsePtr)
+		return
+	}
+	// Expect changes to enc key and updated at
+	expectedAfterUpdates := *originalUserObjectPtr
+	expectedAfterUpdates.EncKey = encKeyString
+	expectedAfterUpdates.UpdatedAt = getJanuaryDate(30)
+	if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(expectedAfterUpdates, serverResponsePtr.Data[0]) {
+		t.Errorf("Recent encKey update should succeed but and affect key and timestamps.\n expected=%+v\n result=%+v", expectedAfterUpdates, serverResponsePtr.Data[0])
 	}
 
 	ShutdownServer()

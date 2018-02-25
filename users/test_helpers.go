@@ -20,6 +20,10 @@ import (
 	General
 */
 
+func getJanuaryDate(date int) time.Time {
+	return time.Date(2018, time.January, date, 0, 0, 0, 0, time.UTC)
+}
+
 func booleanToString(boolean bool) string {
 	if boolean {
 		return "true"
@@ -114,11 +118,15 @@ func generateUserCreateRequest(
 	userSignKeyUpdatePermissionString := booleanToString(userSignKeyUpdatePermission)
 	userPermissionsUpdatePermissionString := booleanToString(userPermissionsUpdatePermission)
 
+	// Default date
+	defaultDate := getJanuaryDate(15)
+
 	request = []byte(`{
 		"type": 0,
 		"issuerId": "` + issuerId + `",
 		"certifierId": "` + certifierId + `",
 		"fields": [],
+		` + generateJsonForTimePtr("timestamp", &defaultDate) + `
 		"data": {
 			"id": "` + userId + `",
 			"encKey": ` + encKeyStringEncoded + `,
@@ -136,8 +144,7 @@ func generateUserCreateRequest(
 				}
 			},
 			"active": true
-		},
-		"timestamp": "2018-01-01T00:00:00Z"
+		}
 	}`)
 
 	object = &UserObject{
@@ -157,9 +164,9 @@ func generateUserCreateRequest(
 			},
 		},
 		Active:     true,
-		CreatedAt:  time.Date(2018, time.January, 1, 0, 0, 0, 0, time.UTC),
-		DisabledAt: time.Date(2018, time.January, 1, 0, 0, 0, 0, time.UTC),
-		UpdatedAt:  time.Date(2018, time.January, 1, 0, 0, 0, 0, time.UTC),
+		CreatedAt:  defaultDate,
+		DisabledAt: defaultDate,
+		UpdatedAt:  defaultDate,
 	}
 
 	return
@@ -370,6 +377,7 @@ func generateUserUpdateRequest(
 	issuerId string,
 	certifierId string,
 	fields []string,
+	timestamp time.Time,
 
 	idPtr *string,
 	encKeyPtr *string,
@@ -448,6 +456,7 @@ func generateUserUpdateRequest(
 
 	return []byte(`{
 		"type": 1,
+		` + generateJsonForTimePtr("timestamp", &timestamp) + `
 		"issuerId": "` + issuerId + `",
 		"certifierId": "` + certifierId + `",
 		"fields": ` + fieldsJsonString + `,
@@ -459,6 +468,7 @@ func makeUserUpdateRequest(
 	issuerId string,
 	certifierId string,
 	fields []string,
+	timestamp time.Time,
 
 	idPtr *string,
 	encKeyPtr *string,
@@ -475,7 +485,7 @@ func makeUserUpdateRequest(
 	updatedAtPtr *time.Time,
 ) (chan *UserResponse, []error) {
 	requestBytes := generateUserUpdateRequest(
-		issuerId, certifierId, fields,
+		issuerId, certifierId, fields, timestamp,
 		idPtr, encKeyPtr, signKeyPtr,
 		channelAddPermissionPtr, userAddPermissionPtr, userRemovePermissionPtr,
 		userEncKeyUpdatePermissionPtr, userSignKeyUpdatePermissionPtr, userPermissionsUpdatePtr,
@@ -490,6 +500,7 @@ func makeAndGetUserUpdateRequest(
 	issuerId string,
 	certifierId string,
 	fields []string,
+	timestamp time.Time,
 
 	idPtr *string,
 	encKeyPtr *string,
@@ -506,7 +517,7 @@ func makeAndGetUserUpdateRequest(
 	updatedAtPtr *time.Time,
 ) (*UserResponse, bool, bool) {
 	channel, errs := makeUserUpdateRequest(
-		issuerId, certifierId, fields,
+		issuerId, certifierId, fields, timestamp,
 		idPtr, encKeyPtr, signKeyPtr,
 		channelAddPermissionPtr, userAddPermissionPtr, userRemovePermissionPtr,
 		userEncKeyUpdatePermissionPtr, userSignKeyUpdatePermissionPtr, userPermissionsUpdatePtr,

@@ -27,7 +27,7 @@ func (usr *UserObject) createFromRecord(rec *userRecord) {
 	if usr.Active {
 		usr.DisabledAt = rec.Active.UpdatedAt
 	}
-	usr.CreatedAt = rec.UpdatedAt
+	usr.CreatedAt = rec.CreatedAt
 	usr.UpdatedAt = rec.UpdatedAt
 }
 

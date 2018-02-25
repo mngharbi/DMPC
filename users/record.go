@@ -50,7 +50,7 @@ type userRecord struct {
 	Lock        *sync.RWMutex
 }
 
-func (rec userRecord) Less(index string, than interface{}) bool {
+func (rec *userRecord) Less(index string, than interface{}) bool {
 	switch index {
 	case "id":
 		return rec.Id < than.(*userRecord).Id
