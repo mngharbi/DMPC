@@ -2,8 +2,8 @@ package users
 
 import (
 	"reflect"
-	"testing"
 	"strings"
+	"testing"
 )
 
 /*
@@ -555,7 +555,7 @@ func TestPermissionsUpdateRequest(t *testing.T) {
 
 		// Create certifier with only update permissions permission and use it to update again
 		_, success = createUser(
-			t, false, "ISSUER", "CERTIFIER", permissionType + "_CERTIFIER", false, false, false, false, false, true,
+			t, false, "ISSUER", "CERTIFIER", permissionType+"_CERTIFIER", false, false, false, false, false, true,
 		)
 		if !success {
 			return
@@ -563,7 +563,7 @@ func TestPermissionsUpdateRequest(t *testing.T) {
 
 		// Try with stale date
 		serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-			t, "ISSUER", permissionType + "_CERTIFIER", []string{permissionType}, getJanuaryDate(1), &userid, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], nil, nil, nil, nil,
+			t, "ISSUER", permissionType+"_CERTIFIER", []string{permissionType}, getJanuaryDate(1), &userid, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], nil, nil, nil, nil,
 		)
 		if !success {
 			return
@@ -579,7 +579,7 @@ func TestPermissionsUpdateRequest(t *testing.T) {
 
 		// Try with recent date
 		serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-			t, "ISSUER", permissionType + "_CERTIFIER", []string{permissionType}, getJanuaryDate(30), &userid, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], nil, nil, nil, nil,
+			t, "ISSUER", permissionType+"_CERTIFIER", []string{permissionType}, getJanuaryDate(30), &userid, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], nil, nil, nil, nil,
 		)
 		if !success {
 			return

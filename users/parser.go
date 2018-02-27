@@ -74,7 +74,7 @@ const (
 type UserResponse struct {
 	Result int
 	// @TODO: Consider returning pointers after benchmarking
-	Data   []UserObject
+	Data []UserObject
 }
 
 /*
