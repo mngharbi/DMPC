@@ -86,6 +86,7 @@ func resetAndStartServer(t *testing.T, conf Config) bool {
 	return true
 }
 
+// @TODO: Change request helpers to use vararg syntax
 /*
 	Creation requests
 */

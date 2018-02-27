@@ -346,7 +346,7 @@ func TestEncKeyUpdateRequest(t *testing.T) {
 		return
 	}
 	if !ok || serverResponsePtr.Result != CertifierPermissionsError {
-		t.Errorf("Update request to encKey without subject id should fail, result:%v", *serverResponsePtr)
+		t.Errorf("Update request to encKey without permissions should fail, result:%v", *serverResponsePtr)
 		return
 	}
 
@@ -442,7 +442,7 @@ func TestSignKeyUpdateRequest(t *testing.T) {
 		return
 	}
 	if !ok || serverResponsePtr.Result != CertifierPermissionsError {
-		t.Errorf("Update request to signKey without subject id should fail, result:%v", *serverResponsePtr)
+		t.Errorf("Update request to signKey without permissions should fail, result:%v", *serverResponsePtr)
 		return
 	}
 
@@ -487,6 +487,222 @@ func TestSignKeyUpdateRequest(t *testing.T) {
 	expectedAfterUpdates.UpdatedAt = getJanuaryDate(30)
 	if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(expectedAfterUpdates, serverResponsePtr.Data[0]) {
 		t.Errorf("Recent signKey update should succeed but and affect key and timestamps.\n expected=%+v\n result=%+v", expectedAfterUpdates, serverResponsePtr.Data[0])
+	}
+
+	ShutdownServer()
+}
+
+func TestPermissionsUpdateRequest(t *testing.T) {
+	if !resetAndStartServer(t, multipleWorkersConfig()) {
+		return
+	}
+
+	// Create issuer and certifier with no permission update permissions
+	if !createIssuerAndCertifier(t,
+		true, true, true, true, true, true,
+		true, true, true, true, true, false,
+	) {
+		return
+	}
+
+	// All permission fields possible
+	// @TODO: No hardcoding
+	permissionFields := []string{
+		"permissions.channel.add",
+		"permissions.user.add",
+		"permissions.user.remove",
+		"permissions.user.encKeyUpdate",
+		"permissions.user.signKeyUpdate",
+		"permissions.user.permissionsUpdate",
+	}
+	for permissionIndex, permissionType := range permissionFields {
+		// Create user
+		userid := "USER"
+		originalUserObjectPtr, success := createUser(
+			t, false, "ISSUER", "CERTIFIER", userid, false, false, false, false, false, false,
+		)
+		if !success {
+			return
+		}
+
+		// Make an array of arguments to pass to change function
+		permissionsChanges := []*bool{nil, nil, nil, nil, nil, nil}
+		changedPermPtr := true
+		permissionsChanges[permissionIndex] = &changedPermPtr
+
+		// Without subject id
+		serverResponsePtr, ok, success := makeAndGetUserUpdateRequest(
+			t, "ISSUER", "CERTIFIER", []string{permissionType}, getJanuaryDate(1), nil, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], nil, nil, nil, nil,
+		)
+		if !success {
+			return
+		}
+		if !ok || serverResponsePtr.Result != SubjectUnknownError {
+			t.Errorf("Update request to permission %v without subject id should fail, result:%v", permissionType, *serverResponsePtr)
+			return
+		}
+		// With subject id
+		serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
+			t, "ISSUER", "CERTIFIER", []string{permissionType}, getJanuaryDate(1), &userid, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], nil, nil, nil, nil,
+		)
+		if !success {
+			return
+		}
+		if !ok || serverResponsePtr.Result != CertifierPermissionsError {
+			t.Errorf("Update request to permission %v without update permissions should fail, result:%v", permissionType, *serverResponsePtr)
+			return
+		}
+
+		// Create certifier with only update permissions permission and use it to update again
+		_, success = createUser(
+			t, false, "ISSUER", "CERTIFIER", permissionType + "_CERTIFIER", false, false, false, false, false, true,
+		)
+		if !success {
+			return
+		}
+
+		// Try with stale date
+		serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
+			t, "ISSUER", permissionType + "_CERTIFIER", []string{permissionType}, getJanuaryDate(1), &userid, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], nil, nil, nil, nil,
+		)
+		if !success {
+			return
+		}
+		if !ok || serverResponsePtr.Result != Success {
+			t.Errorf("Update request to permission %v with permissions should succeed, result:%v", permissionType, *serverResponsePtr)
+			return
+		}
+		// Expect no changes
+		if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(*originalUserObjectPtr, serverResponsePtr.Data[0]) {
+			t.Errorf("Stale encKey update should succeed but not affect anything.\n expected=%+v\n result=%+v", *originalUserObjectPtr, serverResponsePtr.Data[0])
+		}
+
+		// Try with recent date
+		serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
+			t, "ISSUER", permissionType + "_CERTIFIER", []string{permissionType}, getJanuaryDate(30), &userid, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], nil, nil, nil, nil,
+		)
+		if !success {
+			return
+		}
+		if !ok || serverResponsePtr.Result != Success {
+			t.Errorf("Update request to permission %v with permissions should succeed, result:%v", permissionType, *serverResponsePtr)
+			return
+		}
+		// Expect changes to enc key and updated at
+		expectedAfterUpdates := *originalUserObjectPtr
+		var expectedAfterUpdatesPermission *bool
+		switch permissionType {
+		case "permissions.channel.add":
+			expectedAfterUpdatesPermission = &expectedAfterUpdates.Permissions.Channel.Add
+		case "permissions.user.add":
+			expectedAfterUpdatesPermission = &expectedAfterUpdates.Permissions.User.Add
+		case "permissions.user.remove":
+			expectedAfterUpdatesPermission = &expectedAfterUpdates.Permissions.User.Remove
+		case "permissions.user.encKeyUpdate":
+			expectedAfterUpdatesPermission = &expectedAfterUpdates.Permissions.User.EncKeyUpdate
+		case "permissions.user.signKeyUpdate":
+			expectedAfterUpdatesPermission = &expectedAfterUpdates.Permissions.User.SignKeyUpdate
+		case "permissions.user.permissionsUpdate":
+			expectedAfterUpdatesPermission = &expectedAfterUpdates.Permissions.User.PermissionsUpdate
+		}
+		*expectedAfterUpdatesPermission = true
+		expectedAfterUpdates.UpdatedAt = getJanuaryDate(30)
+		if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(expectedAfterUpdates, serverResponsePtr.Data[0]) {
+			t.Errorf("Recent permission %v update should succeed but and affect key and timestamps.\n expected=%+v\n result=%+v", permissionType, expectedAfterUpdates, serverResponsePtr.Data[0])
+		}
+	}
+
+	ShutdownServer()
+}
+
+func TestDisableUpdateRequest(t *testing.T) {
+	if !resetAndStartServer(t, multipleWorkersConfig()) {
+		return
+	}
+
+	// Create issuer and certifier with no remove user permission
+	if !createIssuerAndCertifier(t,
+		true, true, true, true, true, true,
+		true, true, false, true, true, true,
+	) {
+		return
+	}
+	// Create user
+	userid := "USER"
+	originalUserObjectPtr, success := createUser(
+		t, false, "ISSUER", "CERTIFIER", userid, false, false, false, false, false, false,
+	)
+	if !success {
+		return
+	}
+
+	// Try to update active boolean
+	active := true
+	// Without subject id
+	serverResponsePtr, ok, success := makeAndGetUserUpdateRequest(
+		t, "ISSUER", "CERTIFIER", []string{"active"}, getJanuaryDate(1), nil, nil, nil, nil, nil, nil, nil, nil, nil, &active, nil, nil, nil,
+	)
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != SubjectUnknownError {
+		t.Errorf("Update request to active without subject id should fail, result:%v", *serverResponsePtr)
+		return
+	}
+	// With subject id
+	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
+		t, "ISSUER", "CERTIFIER", []string{"active"}, getJanuaryDate(1), &userid, nil, nil, nil, nil, nil, nil, nil, nil, &active, nil, nil, nil,
+	)
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != CertifierPermissionsError {
+		t.Errorf("Update request to active without permissions should fail, result:%v", *serverResponsePtr)
+		return
+	}
+
+	// Create certifier with only user remove update permissions and use it to update again
+	_, success = createUser(
+		t, false, "ISSUER", "CERTIFIER", "REMOVE_CERTIFIER", false, false, true, false, false, false,
+	)
+	if !success {
+		return
+	}
+
+	// Try with stale date
+	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
+		t, "ISSUER", "REMOVE_CERTIFIER", []string{"active"}, getJanuaryDate(1), &userid, nil, nil, nil, nil, nil, nil, nil, nil, &active, nil, nil, nil,
+	)
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != Success {
+		t.Errorf("Update request to active with permissions should succeed, result:%v", *serverResponsePtr)
+		return
+	}
+	// Expect no changes
+	if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(*originalUserObjectPtr, serverResponsePtr.Data[0]) {
+		t.Errorf("Stale active update should succeed but not affect anything.\n expected=%+v\n result=%+v", *originalUserObjectPtr, serverResponsePtr.Data[0])
+	}
+
+	// Try with recent date
+	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
+		t, "ISSUER", "REMOVE_CERTIFIER", []string{"active"}, getJanuaryDate(30), &userid, nil, nil, nil, nil, nil, nil, nil, nil, &active, nil, nil, nil,
+	)
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != Success {
+		t.Errorf("Update request to active with permissions should succeed, result:%v", *serverResponsePtr)
+		return
+	}
+	// Expect changes to sign key and updated at
+	expectedAfterUpdates := *originalUserObjectPtr
+	expectedAfterUpdates.Active = true
+	expectedAfterUpdates.DisabledAt = getJanuaryDate(30)
+	expectedAfterUpdates.UpdatedAt = getJanuaryDate(30)
+	if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(expectedAfterUpdates, serverResponsePtr.Data[0]) {
+		t.Errorf("Recent active update should succeed but and affect key and timestamps.\n expected=%+v\n result=%+v", expectedAfterUpdates, serverResponsePtr.Data[0])
 	}
 
 	ShutdownServer()
