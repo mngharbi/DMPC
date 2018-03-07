@@ -7,14 +7,15 @@ import (
 /*
 	Structure of an operation before temporary encryption
 */
+type TemporaryEncryptionFields struct {
+	Encrypted  bool              `json:"encrypted"`
+	Challenges map[string]string `json:"challenges"`
+	Nonce      string            `json:"nonce"`
+}
 type OperationTemporaryEncrypted struct {
 	Version float64 `json:"version"`
 
-	Encryption struct {
-		Encrypted  bool              `json:"encrypted"`
-		Challenges map[string]string `json:"challenges"`
-		Nonce      string            `json:"nonce"`
-	} `json:"encryption"`
+	Encryption TemporaryEncryptionFields `json:"encryption"`
 
 	Transmission json.RawMessage `json:"transmission"`
 
@@ -24,24 +25,25 @@ type OperationTemporaryEncrypted struct {
 /*
 	Structure of an operation before permanent encryption
 */
+type PermanentEncryptionFields struct {
+	Encrypted bool   `json:"encrypted"`
+	KeyId     string `json:"keyId"`
+	Nonce     string `json:"nonce"`
+}
+type PermanentAuthenticationFields struct {
+	Signature string `json:"signature"`
+}
+type PermanentMetaFields struct {
+	RequestType int `json:"requestType"`
+}
 type OperationPermanentEncrypted struct {
-	Encryption struct {
-		Encrypted bool   `json:"encrypted"`
-		KeyId     string `json:"keyId"`
-		Nonce     string `json:"nonce"`
-	} `json:"encryption"`
+	Encryption PermanentEncryptionFields `json:"encryption"`
 
-	Issue struct {
-		Signature string `json:"signature"`
-	} `json:"issue"`
+	Issue PermanentAuthenticationFields `json:"issue"`
 
-	Certification struct {
-		Signature string `json:"signature"`
-	} `json:"certification"`
+	Certification PermanentAuthenticationFields `json:"certification"`
 
-	Meta struct {
-		RequestType int `json:"requestType"`
-	} `json:"meta"`
+	Meta PermanentMetaFields `json:"meta"`
 
 	Payload string `json:"payload"`
 }
