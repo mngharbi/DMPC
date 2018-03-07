@@ -5,129 +5,85 @@ import (
 	"testing"
 )
 
-func TestDecodeValid(t *testing.T) {
+/*
+	Temporary encrypted operation parsing
+*/
+func TestTempDecodeValid(t *testing.T) {
 	valid := []byte(`{
 		"version": 0.1,
 
 		"encryption": {
-			"temp": {
-				"encrypted": false,
-				"keys": {"mngharbi": "CIPHER"},
-				"nonce": "NO_ONCE"
-			},
-			"perm": {
-				"encrypted": true,
-				"keyId": "XXX",
-				"nonce": "NO_ONCE"
-			}
-		},
-
-		"issue": {
-			"id": "XXX",
-			"signature": "SIGN_USER"
-		},
-
-		"certification": {
-			"id": "XXX",
-			"signature": "SIGN_CERT"
+			"encrypted": false,
+			"challenges": {"CIPHER": "CHALLENGE_CIPHER"},
+			"nonce": "NO_ONCE"
 		},
 
 		"transmission": {},
 
-		"payload": {}
+		"payload": "BASE64_CIPHER"
 	}`)
 
-	var op Operation
-	err := op.Decode(valid)
+	var rawOp OperationTemporaryEncrypted
+	err := rawOp.Decode(valid)
 
 	if err != nil {
 		t.Error("Decoding Failed")
 	}
 
-	rawOp := op.Raw
-
 	if rawOp.Version != 0.1 {
 		t.Error("Version not decoded properly")
 	}
 
-	if !(rawOp.Encryption.Temp.Encrypted == false &&
-		rawOp.Encryption.Temp.Keys != nil && rawOp.Encryption.Temp.Keys["mngharbi"] == "CIPHER" &&
-		rawOp.Encryption.Temp.Nonce == "NO_ONCE") {
+	if !(rawOp.Encryption.Encrypted == false &&
+		rawOp.Encryption.Challenges != nil &&
+		rawOp.Encryption.Challenges["CIPHER"] == "CHALLENGE_CIPHER" &&
+		rawOp.Encryption.Nonce == "NO_ONCE") {
 		t.Error("Temporary encryption fields not decoded properly")
 	}
 
-	if !(rawOp.Encryption.Perm.Encrypted == true &&
-		rawOp.Encryption.Perm.KeyId == "XXX" &&
-		rawOp.Encryption.Perm.Nonce == "NO_ONCE") {
-		t.Error("Permanent encryption fields not decoded properly")
-	}
-
-	if rawOp.Issue.Id != "XXX" || rawOp.Issue.Signature != "SIGN_USER" {
-		t.Error("Issue fields not decoded properly")
-	}
-
-	if rawOp.Certification.Id != "XXX" || rawOp.Certification.Signature != "SIGN_CERT" {
-		t.Error("Certification fields not decoded properly")
+	if rawOp.Payload != "BASE64_CIPHER" {
+		t.Error("Payload fields not decoded properly")
 	}
 }
 
-func TestDecodeMalformedOperation(t *testing.T) {
+func TestTempDecodeMalformedRawOperation(t *testing.T) {
 	malformed := []byte(`{
 		"version": 0.1,
 
 		"encryption": {
-			"temp": {
-				"encrypted": "HI"
-			}
+			"encrypted": "HI"
 		}
 	}`)
 
-	var op Operation
-	err := op.Decode(malformed)
+	var rawOp OperationTemporaryEncrypted
+	err := rawOp.Decode(malformed)
 
 	if err == nil {
 		t.Error("Decoding should fail if type doesn't match")
 	}
 }
 
-func TestDecodeMissingAttributes(t *testing.T) {
+func TestTempDecodeMissingAttributes(t *testing.T) {
 	valid := []byte(`{
 		"version": 0.1
 	}`)
 
-	var op Operation
-	err := op.Decode(valid)
+	var rawOp OperationTemporaryEncrypted
+	err := rawOp.Decode(valid)
 
 	if err != nil {
 		t.Error("Decoding should not fail with missing parameters")
 	}
 }
 
-func TestDecodeEncodeCycle(t *testing.T) {
+func TestTempDecodeEncodeCycle(t *testing.T) {
 	valid := []byte(`{
 		"version": 0.1,
 
 		"encryption": {
-			"temp": {
-				"encrypted": false,
-				"keys": {"mngharbi": "CIPHER"},
-				"nonce": "NO_ONCE"
-			},
-			"perm": {
-				"encrypted": true,
-				"keyId": "XXX",
-				"nonce": "NO_ONCE"
-			}
-		},
-
-		"issue": {
-			"id": "XXX",
-			"signature": "SIGN_USER"
-		},
-
-		"certification": {
-			"id": "XXX",
-			"signature": "SIGN_CERT"
+			"encrypted": false,
+			"challenges": {"CIPHER": "CHALLENGE_CIPHER"},
+			"nonce": "NO_ONCE"
 		},
 
 		"transmission": {},
@@ -135,14 +91,131 @@ func TestDecodeEncodeCycle(t *testing.T) {
 		"payload": {}
 	}`)
 
-	var op Operation
-	var op2 Operation
-	op.Decode(valid)
-	encoded, _ := op.Encode()
-	op2.Decode(encoded)
+	var rawOp OperationTemporaryEncrypted
+	var rawOp2 OperationTemporaryEncrypted
+	rawOp.Decode(valid)
+	encoded, _ := rawOp.Encode()
+	rawOp2.Decode(encoded)
 
-	if !reflect.DeepEqual(op, op2) {
-		t.Error(op)
+	if !reflect.DeepEqual(rawOp, rawOp2) {
+		t.Error("Re-encoding should produce same value")
+	}
+}
+
+/*
+	Permanent encrypted operation parsing
+*/
+func TestPermDecodeValid(t *testing.T) {
+	valid := []byte(`{
+		"encryption": {
+			"encrypted": false,
+			"keyId": "KEY_ID",
+			"nonce": "NO_ONCE"
+		},
+
+		"issue": {
+			"signature":"ISSUER_SIGNATURE"
+		},
+
+		"certification": {
+			"signature":"CERTIFIER_SIGNATURE"
+		},
+
+		"meta": {
+			"requestType": 1
+		},
+
+		"payload": "BASE64_CIPHER"
+	}`)
+
+	var rawOp OperationPermanentEncrypted
+	err := rawOp.Decode(valid)
+
+	if err != nil {
+		t.Error("Decoding Failed")
+	}
+
+	if !(rawOp.Encryption.Encrypted == false &&
+		rawOp.Encryption.KeyId == "KEY_ID" &&
+		rawOp.Encryption.Nonce == "NO_ONCE") {
+		t.Error("Encryption fields not decoded properly")
+	}
+
+	if !(rawOp.Issue.Signature == "ISSUER_SIGNATURE") {
+		t.Error("Issuer signature not decoded properly")
+	}
+
+	if !(rawOp.Certification.Signature == "CERTIFIER_SIGNATURE") {
+		t.Error("Certification signature not decoded properly")
+	}
+
+	if !(rawOp.Meta.RequestType == 1) {
+		t.Error("Meta fields not decoded properly")
+	}
+
+	if rawOp.Payload != "BASE64_CIPHER" {
+		t.Error("Payload fields not decoded properly")
+	}
+}
+
+func TestPermDecodeMalformedRawOperation(t *testing.T) {
+	malformed := []byte(`{
+		"encryption": {
+			"encrypted": "HI"
+		}
+	}`)
+
+	var rawOp OperationPermanentEncrypted
+	err := rawOp.Decode(malformed)
+
+	if err == nil {
+		t.Error("Decoding should fail if type doesn't match")
+	}
+}
+
+func TestPermDecodeMissingAttributes(t *testing.T) {
+	valid := []byte(`{
+		"payload": "BASE64_CIPHER"
+	}`)
+
+	var rawOp OperationPermanentEncrypted
+	err := rawOp.Decode(valid)
+
+	if err != nil {
+		t.Error("Decoding should not fail with missing parameters")
+	}
+}
+
+func TestPermDecodeEncodeCycle(t *testing.T) {
+	valid := []byte(`{
+		"encryption": {
+			"encrypted": false,
+			"keyId": "KEY_ID",
+			"nonce": "NO_ONCE"
+		},
+
+		"issue": {
+			"signature":"ISSUER_SIGNATURE"
+		},
+
+		"certification": {
+			"signature":"CERTIFIER_SIGNATURE"
+		},
+
+		"meta": {
+			"requestType": 1
+		},
+
+		"payload": "BASE64_CIPHER"
+	}`)
+
+	var rawOp OperationPermanentEncrypted
+	var rawOp2 OperationPermanentEncrypted
+	rawOp.Decode(valid)
+	encoded, _ := rawOp.Encode()
+	rawOp2.Decode(encoded)
+
+	if !reflect.DeepEqual(rawOp, rawOp2) {
 		t.Error("Re-encoding should produce same value")
 	}
 }

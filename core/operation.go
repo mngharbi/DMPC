@@ -5,67 +5,73 @@ import (
 )
 
 /*
-	Structure of an operation as it comes in
+	Structure of an operation before temporary encryption
 */
-type RawOperation struct {
+type OperationTemporaryEncrypted struct {
 	Version    float64 `json:"version"`
-	Encryption struct {
-		// Temporary encryption
-		Temp struct {
-			Encrypted bool              `json:"encrypted"`
-			Keys      map[string]string `json:"keys"`
-			Nonce     string            `json:"nonce"`
-		} `json:"temp"`
 
-		// Permanent encryption
-		Perm struct {
-			Encrypted bool   `json:"encrypted"`
-			KeyId     string `json:"keyId"`
-			Nonce     string `json:"nonce"`
-		} `json:"perm"`
+	Encryption struct {
+		Encrypted       bool              `json:"encrypted"`
+		Challenges      map[string]string `json:"challenges"`
+		Nonce           string            `json:"nonce"`
+	} `json:"encryption"`
+
+	Transmission json.RawMessage `json:"transmission"`
+
+	Payload      string `json:"payload"`
+}
+
+/*
+	Structure of an operation before permanent encryption
+*/
+type OperationPermanentEncrypted struct {
+	Encryption struct {
+		Encrypted       bool              `json:"encrypted"`
+		KeyId           string            `json:"keyId"`
+		Nonce           string            `json:"nonce"`
 	} `json:"encryption"`
 
 	Issue struct {
-		Id        string `json:"id"`
 		Signature string `json:"signature"`
 	} `json:"issue"`
 
 	Certification struct {
-		Id        string `json:"id"`
 		Signature string `json:"signature"`
 	} `json:"certification"`
 
-	Transmission json.RawMessage `json:"transmission"`
-	Payload      json.RawMessage `json:"payload"`
+	Meta struct {
+		RequestType int `json:"requestType"`
+	} `json:"meta"`
+
+	Payload      string `json:"payload"`
 }
 
-/*
-	Structure of an operation augmented
-	with information on whether decryption/verification occured
-*/
-type Operation struct {
-	Raw                   *RawOperation
-	TempDecrypted         bool
-	PermDecrypted         bool
-	IssueVerified         bool
-	CertificationVerified bool
-}
-
-func (op *Operation) Decode(stream []byte) error {
+func (op *OperationTemporaryEncrypted) Decode(stream []byte) error {
 	// Try to decode json into raw operation
-	if err := json.Unmarshal(stream, &op.Raw); err != nil {
+	if err := json.Unmarshal(stream, &op); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (op *Operation) Encode() ([]byte, error) {
-	jsonStream, err := json.Marshal(op.Raw)
+func (op *OperationTemporaryEncrypted) Encode() ([]byte, error) {
+	jsonStream, _ := json.Marshal(op)
 
-	if err != nil {
-		return nil, err
+	return jsonStream, nil
+}
+
+func (op *OperationPermanentEncrypted) Decode(stream []byte) error {
+	// Try to decode json into raw operation
+	if err := json.Unmarshal(stream, &op); err != nil {
+		return err
 	}
+
+	return nil
+}
+
+func (op *OperationPermanentEncrypted) Encode() ([]byte, error) {
+	jsonStream, _ := json.Marshal(op)
 
 	return jsonStream, nil
 }
