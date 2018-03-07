@@ -8,17 +8,17 @@ import (
 	Structure of an operation before temporary encryption
 */
 type OperationTemporaryEncrypted struct {
-	Version    float64 `json:"version"`
+	Version float64 `json:"version"`
 
 	Encryption struct {
-		Encrypted       bool              `json:"encrypted"`
-		Challenges      map[string]string `json:"challenges"`
-		Nonce           string            `json:"nonce"`
+		Encrypted  bool              `json:"encrypted"`
+		Challenges map[string]string `json:"challenges"`
+		Nonce      string            `json:"nonce"`
 	} `json:"encryption"`
 
 	Transmission json.RawMessage `json:"transmission"`
 
-	Payload      string `json:"payload"`
+	Payload string `json:"payload"`
 }
 
 /*
@@ -26,9 +26,9 @@ type OperationTemporaryEncrypted struct {
 */
 type OperationPermanentEncrypted struct {
 	Encryption struct {
-		Encrypted       bool              `json:"encrypted"`
-		KeyId           string            `json:"keyId"`
-		Nonce           string            `json:"nonce"`
+		Encrypted bool   `json:"encrypted"`
+		KeyId     string `json:"keyId"`
+		Nonce     string `json:"nonce"`
 	} `json:"encryption"`
 
 	Issue struct {
@@ -43,7 +43,7 @@ type OperationPermanentEncrypted struct {
 		RequestType int `json:"requestType"`
 	} `json:"meta"`
 
-	Payload      string `json:"payload"`
+	Payload string `json:"payload"`
 }
 
 func (op *OperationTemporaryEncrypted) Decode(stream []byte) error {
