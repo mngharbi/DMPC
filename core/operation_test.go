@@ -23,7 +23,7 @@ func TestTempDecodeValid(t *testing.T) {
 		"payload": "BASE64_CIPHER"
 	}`)
 
-	var rawOp OperationTemporaryEncrypted
+	var rawOp TemporaryEncryptedOperation
 	err := rawOp.Decode(valid)
 
 	if err != nil {
@@ -55,7 +55,7 @@ func TestTempDecodeMalformedRawOperation(t *testing.T) {
 		}
 	}`)
 
-	var rawOp OperationTemporaryEncrypted
+	var rawOp TemporaryEncryptedOperation
 	err := rawOp.Decode(malformed)
 
 	if err == nil {
@@ -68,7 +68,7 @@ func TestTempDecodeMissingAttributes(t *testing.T) {
 		"version": 0.1
 	}`)
 
-	var rawOp OperationTemporaryEncrypted
+	var rawOp TemporaryEncryptedOperation
 	err := rawOp.Decode(valid)
 
 	if err != nil {
@@ -91,8 +91,8 @@ func TestTempDecodeEncodeCycle(t *testing.T) {
 		"payload": {}
 	}`)
 
-	var rawOp OperationTemporaryEncrypted
-	var rawOp2 OperationTemporaryEncrypted
+	var rawOp TemporaryEncryptedOperation
+	var rawOp2 TemporaryEncryptedOperation
 	rawOp.Decode(valid)
 	encoded, _ := rawOp.Encode()
 	rawOp2.Decode(encoded)
@@ -128,7 +128,7 @@ func TestPermDecodeValid(t *testing.T) {
 		"payload": "BASE64_CIPHER"
 	}`)
 
-	var rawOp OperationPermanentEncrypted
+	var rawOp PermanentEncryptedOperation
 	err := rawOp.Decode(valid)
 
 	if err != nil {
@@ -165,7 +165,7 @@ func TestPermDecodeMalformedRawOperation(t *testing.T) {
 		}
 	}`)
 
-	var rawOp OperationPermanentEncrypted
+	var rawOp PermanentEncryptedOperation
 	err := rawOp.Decode(malformed)
 
 	if err == nil {
@@ -178,7 +178,7 @@ func TestPermDecodeMissingAttributes(t *testing.T) {
 		"payload": "BASE64_CIPHER"
 	}`)
 
-	var rawOp OperationPermanentEncrypted
+	var rawOp PermanentEncryptedOperation
 	err := rawOp.Decode(valid)
 
 	if err != nil {
@@ -209,8 +209,8 @@ func TestPermDecodeEncodeCycle(t *testing.T) {
 		"payload": "BASE64_CIPHER"
 	}`)
 
-	var rawOp OperationPermanentEncrypted
-	var rawOp2 OperationPermanentEncrypted
+	var rawOp PermanentEncryptedOperation
+	var rawOp2 PermanentEncryptedOperation
 	rawOp.Decode(valid)
 	encoded, _ := rawOp.Encode()
 	rawOp2.Decode(encoded)

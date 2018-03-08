@@ -35,7 +35,7 @@ const (
 /*
 	Temporary decryption
 */
-func (op *OperationTemporaryEncrypted) Decrypt(asymKey *rsa.PrivateKey) (*OperationPermanentEncrypted, error) {
+func (op *TemporaryEncryptedOperation) Decrypt(asymKey *rsa.PrivateKey) (*PermanentEncryptedOperation, error) {
 	if op == nil {
 		panic("Calling Decrypt on nil pointer.")
 	}
@@ -120,7 +120,7 @@ func (op *OperationTemporaryEncrypted) Decrypt(asymKey *rsa.PrivateKey) (*Operat
 	}
 
 	// Decode payload
-	var decodedOp OperationPermanentEncrypted
+	var decodedOp PermanentEncryptedOperation
 	payloadDecodeErr := decodedOp.Decode(payloadBytes)
 	if payloadDecodeErr != nil {
 		return nil, errors.New(payloadDecodeError)

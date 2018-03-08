@@ -12,7 +12,7 @@ type TemporaryEncryptionFields struct {
 	Challenges map[string]string `json:"challenges"`
 	Nonce      string            `json:"nonce"`
 }
-type OperationTemporaryEncrypted struct {
+type TemporaryEncryptedOperation struct {
 	Version float64 `json:"version"`
 
 	Encryption TemporaryEncryptionFields `json:"encryption"`
@@ -36,7 +36,7 @@ type PermanentAuthenticationFields struct {
 type PermanentMetaFields struct {
 	RequestType int `json:"requestType"`
 }
-type OperationPermanentEncrypted struct {
+type PermanentEncryptedOperation struct {
 	Encryption PermanentEncryptionFields `json:"encryption"`
 
 	Issue PermanentAuthenticationFields `json:"issue"`
@@ -48,7 +48,7 @@ type OperationPermanentEncrypted struct {
 	Payload string `json:"payload"`
 }
 
-func (op *OperationTemporaryEncrypted) Decode(stream []byte) error {
+func (op *TemporaryEncryptedOperation) Decode(stream []byte) error {
 	// Try to decode json into raw operation
 	if err := json.Unmarshal(stream, &op); err != nil {
 		return err
@@ -57,13 +57,13 @@ func (op *OperationTemporaryEncrypted) Decode(stream []byte) error {
 	return nil
 }
 
-func (op *OperationTemporaryEncrypted) Encode() ([]byte, error) {
+func (op *TemporaryEncryptedOperation) Encode() ([]byte, error) {
 	jsonStream, _ := json.Marshal(op)
 
 	return jsonStream, nil
 }
 
-func (op *OperationPermanentEncrypted) Decode(stream []byte) error {
+func (op *PermanentEncryptedOperation) Decode(stream []byte) error {
 	// Try to decode json into raw operation
 	if err := json.Unmarshal(stream, &op); err != nil {
 		return err
@@ -72,7 +72,7 @@ func (op *OperationPermanentEncrypted) Decode(stream []byte) error {
 	return nil
 }
 
-func (op *OperationPermanentEncrypted) Encode() ([]byte, error) {
+func (op *PermanentEncryptedOperation) Encode() ([]byte, error) {
 	jsonStream, _ := json.Marshal(op)
 
 	return jsonStream, nil
