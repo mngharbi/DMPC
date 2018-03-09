@@ -227,3 +227,20 @@ func TestInavlidPayloadEncoding(t *testing.T) {
 		t.Errorf("Temporary decryption should fail with invalid payload encoding. err=%v", err)
 	}
 }
+
+func TestInavlidPayloadFormat(t *testing.T) {
+	// Use invalid base64 string for payload
+	temporaryEncryptedOperation := generateTemporaryEncryptedOperation(
+		false,
+		map[string]string{},
+		[]byte("PLAINTEXT"),
+		false,
+		[]byte("INVALID_PAYLOAD"),
+		false,
+	)
+
+	_, err := temporaryEncryptedOperation.Decrypt(generatePrivateKey())
+	if err != invalidPayloadError {
+		t.Errorf("Temporary decryption should fail with invalid payload encoding. err=%v", err)
+	}
+}
