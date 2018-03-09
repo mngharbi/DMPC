@@ -26,16 +26,27 @@ func generateTemporaryEncryptedOperation(
 	encrypted bool,
 	challenges map[string]string,
 	nonce []byte,
+	nonceEncoded bool,
 	payload []byte,
+	payloadEncoded bool,
 ) *TemporaryEncryptedOperation {
+	nonceResult := string(nonce)
+	payloadResult := string(payload)
+	if !nonceEncoded {
+		nonceResult = Base64EncodeToString(nonce)
+	}
+	if !payloadEncoded {
+		payloadResult = Base64EncodeToString(payload)
+	}
+
 	return &TemporaryEncryptedOperation{
 		Version: 0.1,
 		Encryption: TemporaryEncryptionFields{
 			Encrypted:  encrypted,
 			Challenges: challenges,
-			Nonce:      Base64EncodeToString(nonce),
+			Nonce:      nonceResult,
 		},
-		Payload: Base64EncodeToString(payload),
+		Payload: payloadResult,
 	}
 }
 
@@ -78,7 +89,9 @@ func generateTemporaryEncryptedOperationWithEncryption(
 		true,
 		challenges,
 		temporaryNonce,
+		false,
 		payloadCiphertext,
+		false,
 	), recipientKey
 }
 
@@ -86,27 +99,50 @@ func generatePermanentEncryptedOperation(
 	encrypted bool,
 	keyId string,
 	nonce []byte,
+	nonceEncoded bool,
 	issuerSignature []byte,
+	issuerSignatureEncoded bool,
 	certifierSignature []byte,
+	certifierSignatureEncoded bool,
 	requestType int,
 	payload []byte,
+	payloadEncoded bool,
 ) *PermanentEncryptedOperation {
+	// Encode or convert to string
+	nonceResult := string(nonce)
+	issuerSignatureResult := string(issuerSignature)
+	certifierSignatureResult := string(certifierSignature)
+	payloadResult := string(payload)
+	if !nonceEncoded {
+		nonceResult = Base64EncodeToString(nonce)
+	}
+	if !issuerSignatureEncoded {
+		issuerSignatureResult = Base64EncodeToString(issuerSignature)
+	}
+	if !certifierSignatureEncoded {
+		certifierSignatureResult = Base64EncodeToString(certifierSignature)
+	}
+	if !payloadEncoded {
+		payloadResult = Base64EncodeToString(payload)
+	}
+
+	// Create operation
 	return &PermanentEncryptedOperation{
 		Encryption: PermanentEncryptionFields{
 			Encrypted: encrypted,
 			KeyId:     keyId,
-			Nonce:     Base64EncodeToString(nonce),
+			Nonce:     nonceResult,
 		},
 		Issue: PermanentAuthenticationFields{
-			Signature: Base64EncodeToString(issuerSignature),
+			Signature: issuerSignatureResult,
 		},
 		Certification: PermanentAuthenticationFields{
-			Signature: Base64EncodeToString(certifierSignature),
+			Signature: certifierSignatureResult,
 		},
 		Meta: PermanentMetaFields{
 			RequestType: requestType,
 		},
-		Payload: Base64EncodeToString(payload),
+		Payload: payloadResult,
 	}
 }
 
@@ -137,10 +173,14 @@ func generatePermanentEncryptedOperationWithEncryption(
 		true,
 		keyId,
 		permanentNonce,
+		false,
 		issuerSignature,
+		false,
 		certifierSignature,
+		false,
 		requestType,
 		ciphertextPayload,
+		false,
 	)
 }
 
@@ -149,7 +189,7 @@ func generatePermanentEncryptedOperationWithEncryption(
 */
 
 func TestValidOperation(t *testing.T) {
-	// Make encrypted
+	// Make valid encrypted operation
 	encryptedInnerOperation := generatePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
 		generateRandomBytes(SymmetricKeySize),
@@ -168,5 +208,22 @@ func TestValidOperation(t *testing.T) {
 		t.Errorf("encryptedInnerOperation=%v", encryptedInnerOperation)
 		t.Errorf("decryptedTemporaryEncryptedOperation=%v", decryptedTemporaryEncryptedOperation)
 		t.Errorf("err=%v", err)
+	}
+}
+
+func TestInavlidPayloadEncoding(t *testing.T) {
+	// Use invalid base64 string for payload
+	temporaryEncryptedOperation := generateTemporaryEncryptedOperation(
+		false,
+		map[string]string{},
+		[]byte("PLAINTEXT"),
+		false,
+		[]byte("\\"),
+		true,
+	)
+
+	_, err := temporaryEncryptedOperation.Decrypt(generatePrivateKey())
+	if err != invalidPayloadError {
+		t.Errorf("Temporary decryption should fail with invalid payload encoding. err=%v", err)
 	}
 }
