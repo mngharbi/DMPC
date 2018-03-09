@@ -157,9 +157,10 @@ func (op *TemporaryEncryptedOperation) Decrypt(asymKey *rsa.PrivateKey) (*Perman
 		// Check nonce
 		symKeyNonceBytes, err := Base64DecodeString(op.Encryption.Nonce)
 		if err == nil {
-			if ValidateNonce(symKeyNonceBytes) != nil {
-				return nil, invalidNonceError
-			}
+			err = ValidateNonce(symKeyNonceBytes)
+		}
+		if err != nil {
+			return nil, invalidNonceError
 		}
 
 		// Find a symmetric key that passes challenge

@@ -229,7 +229,7 @@ func TestInavlidPayloadEncoding(t *testing.T) {
 }
 
 func TestInavlidPayloadFormat(t *testing.T) {
-	// Use invalid base64 string for payload
+	// Use invalid payload structure
 	temporaryEncryptedOperation := generateTemporaryEncryptedOperation(
 		false,
 		map[string]string{},
@@ -242,5 +242,48 @@ func TestInavlidPayloadFormat(t *testing.T) {
 	_, err := temporaryEncryptedOperation.Decrypt(generatePrivateKey())
 	if err != invalidPayloadError {
 		t.Errorf("Temporary decryption should fail with invalid payload encoding. err=%v", err)
+	}
+}
+
+func TestInavlidNonce(t *testing.T) {
+	// Make valid encrypted operation
+	encryptedInnerOperation := generatePermanentEncryptedOperationWithEncryption(
+		"KEY_ID",
+		generateRandomBytes(SymmetricKeySize),
+		1,
+		[]byte("REQUEST_PAYLOAD"),
+	)
+	innerOperationJson, _ := encryptedInnerOperation.Encode()
+
+	// Use invalid base64 string for nonce
+	temporaryEncryptedOperation := generateTemporaryEncryptedOperation(
+		true,
+		map[string]string{},
+		[]byte("12"),
+		true,
+		innerOperationJson,
+		false,
+	)
+
+	_, err := temporaryEncryptedOperation.Decrypt(generatePrivateKey())
+	if err != invalidNonceError {
+		t.Errorf("Temporary decryption should fail with invalid nonce encoding. err=%v", err)
+		return
+	}
+
+	// Use nonce with invalid length
+	temporaryEncryptedOperation = generateTemporaryEncryptedOperation(
+		true,
+		map[string]string{},
+		generateRandomBytes(1+SymmetricNonceSize),
+		false,
+		innerOperationJson,
+		false,
+	)
+
+	_, err = temporaryEncryptedOperation.Decrypt(generatePrivateKey())
+	if err != invalidNonceError {
+		t.Errorf("Temporary decryption should fail with invalid nonce length. err=%v", err)
+		return
 	}
 }
