@@ -140,10 +140,6 @@ func SymmetricDecrypt(aead cipher.AEAD, dst []byte, nonce []byte, ciphertext []b
 	Temporary decryption
 */
 func (op *TemporaryEncryptedOperation) Decrypt(asymKey *rsa.PrivateKey) (*PermanentEncryptedOperation, error) {
-	if op == nil {
-		panic("Calling Decrypt on nil pointer.")
-	}
-
 	// Base64 decode payload
 	payloadBytes, err := Base64DecodeString(op.Payload)
 	if err != nil {
@@ -174,18 +170,14 @@ func (op *TemporaryEncryptedOperation) Decrypt(asymKey *rsa.PrivateKey) (*Perman
 			// Decrypt symmetric key
 			symKeyPlainBytes, err := AsymmetricDecrypt(asymKey, symKeyCipherBytes)
 			if err == nil {
-				if ValidateSymmetricKey(symKeyPlainBytes) != nil {
-					continue
-				}
+				err = ValidateSymmetricKey(symKeyPlainBytes)
 			}
-
-			// Make Aead
-			symKeyAead, symKeyAeadErr := NewAead(symKeyPlainBytes)
-			if symKeyAeadErr != nil {
-				panic("Aead creation failed despite valid key and nonce size")
+			if err != nil {
+				continue
 			}
 
 			// Decode challenge
+			symKeyAead, _ := NewAead(symKeyPlainBytes)
 			symKeyChallengeBytes, err := Base64DecodeString(symKeyChallenge)
 			if err != nil {
 				continue
