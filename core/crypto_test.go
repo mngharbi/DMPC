@@ -188,7 +188,7 @@ func generatePermanentEncryptedOperationWithEncryption(
 	Temporary decryption
 */
 
-func TestValidOperation(t *testing.T) {
+func TestTemporaryValidOperation(t *testing.T) {
 	// Make valid encrypted operation
 	encryptedInnerOperation := generatePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
@@ -211,7 +211,7 @@ func TestValidOperation(t *testing.T) {
 	}
 }
 
-func TestInavlidPayloadEncoding(t *testing.T) {
+func TestTemporaryInavlidPayloadEncoding(t *testing.T) {
 	// Use invalid base64 string for payload
 	temporaryEncryptedOperation := generateTemporaryEncryptedOperation(
 		false,
@@ -228,7 +228,7 @@ func TestInavlidPayloadEncoding(t *testing.T) {
 	}
 }
 
-func TestInavlidPayloadFormat(t *testing.T) {
+func TestTemporaryInavlidPayloadStructure(t *testing.T) {
 	// Use invalid payload structure
 	temporaryEncryptedOperation := generateTemporaryEncryptedOperation(
 		false,
@@ -241,11 +241,11 @@ func TestInavlidPayloadFormat(t *testing.T) {
 
 	_, err := temporaryEncryptedOperation.Decrypt(generatePrivateKey())
 	if err != invalidPayloadError {
-		t.Errorf("Temporary decryption should fail with invalid payload encoding. err=%v", err)
+		t.Errorf("Temporary decryption should fail with invalid payload structure. err=%v", err)
 	}
 }
 
-func TestInavlidNonce(t *testing.T) {
+func TestTemporaryInavlidNonce(t *testing.T) {
 	// Make valid encrypted operation
 	encryptedInnerOperation := generatePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
