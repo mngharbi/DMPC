@@ -223,7 +223,7 @@ func TestInavlidPayloadEncoding(t *testing.T) {
 	)
 
 	_, err := temporaryEncryptedOperation.Decrypt(generatePrivateKey())
-	if err != invalidPayloadError {
+	if err != payloadDecodeError {
 		t.Errorf("Temporary decryption should fail with invalid payload encoding. err=%v", err)
 	}
 }

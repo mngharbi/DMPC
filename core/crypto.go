@@ -36,9 +36,9 @@ var signError error = errors.New("Signing failed.")
 var asymmetrictEncryptionError error = errors.New("Asymmetric encryption failed.")
 var asymmetrictDecryptionError error = errors.New("Asymmetric decryption failed.")
 var symmetrictDecryptionError error = errors.New("Ssymmetric decryption failed.")
-var invalidPayloadError error = errors.New("Invalid payload provided.")
-var payloadDecryptionError error = errors.New("Payload decryption failed.")
 var payloadDecodeError error = errors.New("Payload decoding failed.")
+var payloadDecryptionError error = errors.New("Payload decryption failed.")
+var invalidPayloadError error = errors.New("Invalid payload provided.")
 
 /*
 	Primitives
@@ -147,7 +147,7 @@ func (op *TemporaryEncryptedOperation) Decrypt(asymKey *rsa.PrivateKey) (*Perman
 	// Base64 decode payload
 	payloadBytes, err := Base64DecodeString(op.Payload)
 	if err != nil {
-		return nil, invalidPayloadError
+		return nil, payloadDecodeError
 	}
 
 	// Decrypt payload if encrypted
@@ -227,7 +227,7 @@ func (op *TemporaryEncryptedOperation) Decrypt(asymKey *rsa.PrivateKey) (*Perman
 	var decodedOp PermanentEncryptedOperation
 	payloadDecodeErr := decodedOp.Decode(payloadBytes)
 	if payloadDecodeErr != nil {
-		return nil, payloadDecodeError
+		return nil, invalidPayloadError
 	}
 
 	return &decodedOp, nil
