@@ -460,3 +460,18 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 		return
 	}
 }
+
+func TestTemporaryInavlidPayloadStruncture(t *testing.T) {
+	// Make undecryptable permanent operation
+	temporaryEncryptedOperation, privateKey := generateTemporaryEncryptedOperationWithEncryption(
+		[]byte("{"),
+		[]byte(correctChallenge),
+		func(map[string]string){},
+		nil,
+	)
+
+	_, err := temporaryEncryptedOperation.Decrypt(privateKey)
+	if err != invalidPayloadError {
+		t.Errorf("Temporary decryption should fail with incorrectly structured payload. err=%v", err)
+	}
+}

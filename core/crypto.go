@@ -207,15 +207,12 @@ func (op *TemporaryEncryptedOperation) Decrypt(asymKey *rsa.PrivateKey) (*Perman
 		}
 
 		// Decrypt payload
-		payloadBytes, err = SymmetricDecrypt(
+		payloadBytes, _ = SymmetricDecrypt(
 			aead,
 			payloadBytes[:0],
 			symKeyNonceBytes,
 			payloadBytes,
 		)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	// Decode payload into structure
