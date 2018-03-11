@@ -18,6 +18,8 @@ import (
 
 const (
 	AsymmetricKeySizeBits = 2048
+	AsymmetricKeySizeBytes = 256
+	maxAsymmetricCiphertextLength = AsymmetricKeySizeBytes - 11
 	HashingAlgorithm      = crypto.SHA256
 	SymmetricKeySize      = chacha20poly1305.KeySize
 	SymmetricNonceSize    = chacha20poly1305.NonceSize

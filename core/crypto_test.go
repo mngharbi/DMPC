@@ -52,6 +52,8 @@ func generateTemporaryEncryptedOperation(
 
 func generateTemporaryEncryptedOperationWithEncryption(
 	plainPayload []byte,
+	plaintextChallenge []byte,
+	modifyChallenges func(map[string]string),
 ) (*TemporaryEncryptedOperation, *rsa.PrivateKey) {
 	// Make temporary key and nonce
 	temporaryNonce := generateRandomBytes(SymmetricNonceSize)
@@ -69,7 +71,7 @@ func generateTemporaryEncryptedOperationWithEncryption(
 		aead,
 		[]byte{},
 		temporaryNonce,
-		[]byte(correctChallenge),
+		[]byte(plaintextChallenge),
 	)
 
 	// Make RSA key and use it to encrypt temporary key
@@ -80,10 +82,9 @@ func generateTemporaryEncryptedOperationWithEncryption(
 	challengeCiphertextBase64 := Base64EncodeToString(challengeCiphertext)
 	symKeyEncryptedBase64 := Base64EncodeToString(symKeyEncrypted)
 	challenges := map[string]string{
-		"random":              "test",
 		symKeyEncryptedBase64: challengeCiphertextBase64,
-		"random2":             "test2",
 	}
+	modifyChallenges(challenges)
 
 	return generateTemporaryEncryptedOperation(
 		true,
@@ -185,6 +186,7 @@ func generatePermanentEncryptedOperationWithEncryption(
 }
 
 const invalidBase64string = "12"
+const validBase64string = "123"
 
 /*
 	Temporary decryption
@@ -201,6 +203,10 @@ func TestTemporaryValidOperation(t *testing.T) {
 	innerOperationJson, _ := encryptedInnerOperation.Encode()
 	temporaryEncryptedOperation, recipientKey := generateTemporaryEncryptedOperationWithEncryption(
 		innerOperationJson,
+		[]byte(correctChallenge),
+		func(challenges map[string]string) {
+			challenges[validBase64string] = validBase64string
+		},
 	)
 
 	decryptedTemporaryEncryptedOperation, err := temporaryEncryptedOperation.Decrypt(recipientKey)
@@ -288,4 +294,3 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 		t.Errorf("Temporary decryption should fail with invalid nonce length. err=%v", err)
 		return
 	}
-}
