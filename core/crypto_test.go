@@ -294,3 +294,4 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 		t.Errorf("Temporary decryption should fail with invalid nonce length. err=%v", err)
 		return
 	}
+}
