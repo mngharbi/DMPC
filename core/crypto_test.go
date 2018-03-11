@@ -299,3 +299,164 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 		return
 	}
 }
+
+func TestTemporaryInavlidChallenges(t *testing.T) {
+	// Make valid encrypted operation
+	encryptedInnerOperation := generatePermanentEncryptedOperationWithEncryption(
+		"KEY_ID",
+		generateRandomBytes(SymmetricKeySize),
+		1,
+		[]byte("REQUEST_PAYLOAD"),
+	)
+	innerOperationJson, _ := encryptedInnerOperation.Encode()
+
+	privateKey := generatePrivateKey()
+
+	// Invalid symmetric key encoding
+	challenges := map[string]string{
+		invalidBase64string: invalidBase64string,
+	}
+	temporaryEncryptedOperation := generateTemporaryEncryptedOperation(
+		true,
+		challenges,
+		generateRandomBytes(SymmetricNonceSize),
+		false,
+		innerOperationJson,
+		false,
+	)
+	_, err := temporaryEncryptedOperation.Decrypt(privateKey)
+	if err != noSymmetricKeyFoundError {
+		t.Errorf("Temporary decryption should fail with invalid temp key encoding. err=%v", err)
+		return
+	}
+
+	// Invalid symmetric key ciphertext
+	invalidKeyCiphertext := generateRandomBytes(1+maxAsymmetricCiphertextLength)
+	invalidKeyCiphertextBase64 := Base64EncodeToString(invalidKeyCiphertext)
+	challenges = map[string]string{
+		invalidKeyCiphertextBase64: validBase64string,
+	}
+	temporaryEncryptedOperation = generateTemporaryEncryptedOperation(
+		true,
+		challenges,
+		generateRandomBytes(SymmetricNonceSize),
+		false,
+		innerOperationJson,
+		false,
+	)
+	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	if err != noSymmetricKeyFoundError {
+		t.Errorf("Temporary decryption should fail with invalid temp key ciphertext. err=%v", err)
+		return
+	}
+
+	// Invalid symmetric key length
+	invalidKeyCiphertext = generateRandomBytes(1+SymmetricKeySize)
+	invalidKeyCiphertextBase64 = Base64EncodeToString(invalidKeyCiphertext)
+	challenges = map[string]string{
+		invalidKeyCiphertextBase64: validBase64string,
+	}
+	temporaryEncryptedOperation = generateTemporaryEncryptedOperation(
+		true,
+		challenges,
+		generateRandomBytes(SymmetricNonceSize),
+		false,
+		innerOperationJson,
+		false,
+	)
+	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	if err != noSymmetricKeyFoundError {
+		t.Errorf("Temporary decryption should fail with invalid temp key ciphertext. err=%v", err)
+		return
+	}
+
+	// Invalid symmetric key length
+	invalidKeyCiphertext = generateRandomBytes(1+SymmetricKeySize)
+	invalidKeyCiphertextBase64 = Base64EncodeToString(invalidKeyCiphertext)
+	challenges = map[string]string{
+		invalidKeyCiphertextBase64: validBase64string,
+	}
+	temporaryEncryptedOperation = generateTemporaryEncryptedOperation(
+		true,
+		challenges,
+		generateRandomBytes(SymmetricNonceSize),
+		false,
+		innerOperationJson,
+		false,
+	)
+	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	if err != noSymmetricKeyFoundError {
+		t.Errorf("Temporary decryption should fail with invalid temp key ciphertext. err=%v", err)
+		return
+	}
+
+	// Invalid challenge ciphertext encoding
+	validKeyCiphertext := generateRandomBytes(SymmetricKeySize)
+	validKeyCiphertextBase64 := Base64EncodeToString(validKeyCiphertext)
+	challenges = map[string]string{
+		validKeyCiphertextBase64: invalidBase64string,
+	}
+	temporaryEncryptedOperation = generateTemporaryEncryptedOperation(
+		true,
+		challenges,
+		generateRandomBytes(SymmetricNonceSize),
+		false,
+		innerOperationJson,
+		false,
+	)
+	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	if err != noSymmetricKeyFoundError {
+		t.Errorf("Temporary decryption should fail with invalid challege encoding. err=%v", err)
+		return
+	}
+
+	// Invalid challenge ciphertext
+	validKeyCiphertext = generateRandomBytes(SymmetricKeySize)
+	validKeyCiphertextBase64 = Base64EncodeToString(validKeyCiphertext)
+	invalidChallengeCiphertext := generateRandomBytes(1+SymmetricKeySize)
+	invalidChallengeCiphertextBase64 := Base64EncodeToString(invalidChallengeCiphertext)
+	challenges = map[string]string{
+		validKeyCiphertextBase64: invalidChallengeCiphertextBase64,
+	}
+	temporaryEncryptedOperation = generateTemporaryEncryptedOperation(
+		true,
+		challenges,
+		generateRandomBytes(SymmetricNonceSize),
+		false,
+		innerOperationJson,
+		false,
+	)
+	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	if err != noSymmetricKeyFoundError {
+		t.Errorf("Temporary decryption should fail with invalid challenge ciphertext. err=%v", err)
+		return
+	}
+
+	// Valid challenge ciphertext, doesn't match challenge string
+	temporaryEncryptedOperation, _ = generateTemporaryEncryptedOperationWithEncryption(
+		innerOperationJson,
+		[]byte("WRONG CHALLENGE"),
+		func(map[string]string){},
+		privateKey,
+	)
+	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	if err != noSymmetricKeyFoundError {
+		t.Errorf("Temporary decryption should fail with incorrect challenge. err=%v", err)
+		return
+	}
+
+	// Skipping wrong challenge
+	temporaryEncryptedOperation, _ = generateTemporaryEncryptedOperationWithEncryption(
+		innerOperationJson,
+		[]byte(correctChallenge),
+		func(challenges map[string]string) {
+			challenges["invalidBase64string"] = invalidBase64string
+		},
+		privateKey,
+	)
+	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	if err != nil {
+		t.Errorf("Temporary decryption should not fail with extra incorrect challenge. err=%v", err)
+		return
+	}
+}
