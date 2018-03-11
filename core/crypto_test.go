@@ -54,6 +54,7 @@ func generateTemporaryEncryptedOperationWithEncryption(
 	plainPayload []byte,
 	plaintextChallenge []byte,
 	modifyChallenges func(map[string]string),
+	recipientKey *rsa.PrivateKey,
 ) (*TemporaryEncryptedOperation, *rsa.PrivateKey) {
 	// Make temporary key and nonce
 	temporaryNonce := generateRandomBytes(SymmetricNonceSize)
@@ -74,8 +75,10 @@ func generateTemporaryEncryptedOperationWithEncryption(
 		[]byte(plaintextChallenge),
 	)
 
-	// Make RSA key and use it to encrypt temporary key
-	recipientKey := generatePrivateKey()
+	// Make RSA key if nil and use it to encrypt temporary key
+	if recipientKey == nil {
+		recipientKey = generatePrivateKey()
+	}
 	symKeyEncrypted, _ := AsymmetricEncrypt(&recipientKey.PublicKey, temporaryKey[:])
 
 	// Make challenges map
@@ -207,6 +210,7 @@ func TestTemporaryValidOperation(t *testing.T) {
 		func(challenges map[string]string) {
 			challenges[validBase64string] = validBase64string
 		},
+		nil,
 	)
 
 	decryptedTemporaryEncryptedOperation, err := temporaryEncryptedOperation.Decrypt(recipientKey)
