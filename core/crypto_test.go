@@ -184,6 +184,8 @@ func generatePermanentEncryptedOperationWithEncryption(
 	)
 }
 
+const invalidBase64string = "12"
+
 /*
 	Temporary decryption
 */
@@ -218,7 +220,7 @@ func TestTemporaryInavlidPayloadEncoding(t *testing.T) {
 		map[string]string{},
 		[]byte("PLAINTEXT"),
 		false,
-		[]byte("\\"),
+		[]byte(invalidBase64string),
 		true,
 	)
 
@@ -259,7 +261,7 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 	temporaryEncryptedOperation := generateTemporaryEncryptedOperation(
 		true,
 		map[string]string{},
-		[]byte("12"),
+		[]byte(invalidBase64string),
 		true,
 		innerOperationJson,
 		false,
