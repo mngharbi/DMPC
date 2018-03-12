@@ -450,7 +450,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 		innerOperationJson,
 		[]byte(correctChallenge),
 		func(challenges map[string]string) {
-			challenges["invalidBase64string"] = invalidBase64string
+			challenges[invalidBase64string] = invalidBase64string
 		},
 		privateKey,
 	)
