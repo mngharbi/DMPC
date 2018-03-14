@@ -41,6 +41,7 @@ var symmetrictDecryptionError error = errors.New("Ssymmetric decryption failed."
 var payloadDecodeError error = errors.New("Payload decoding failed.")
 var payloadDecryptionError error = errors.New("Payload decryption failed.")
 var invalidPayloadError error = errors.New("Invalid payload provided.")
+var keyNotFoundError error = errors.New("Symmetric Key not found by ID.")
 var invalidSignatureEncodingError error = errors.New("Invalid signature encoding.")
 var invalidIssuerSignatureError error = errors.New("Invalid issuer signature provided.")
 var invalidCertifierSignatureError error = errors.New("Invalid certifier signature provided.")
@@ -255,6 +256,9 @@ func (op *PermanentEncryptedOperation) Decrypt(
 
 		// Get key
 		keyBytes := getKeyById(op.Encryption.KeyId)
+		if keyBytes == nil {
+			return nil, keyNotFoundError
+		}
 
 		// Use key to decrypt
 		aead, _ := NewAead(keyBytes)
