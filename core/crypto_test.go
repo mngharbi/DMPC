@@ -153,11 +153,11 @@ func generatePermanentEncryptedOperation(
 func generatePermanentEncryptedOperationWithEncryption(
 	keyId string,
 	permanentKey []byte,
+	permanentNonce []byte,
 	requestType int,
 	plainPayload []byte,
 ) (*PermanentEncryptedOperation, *rsa.PrivateKey, *rsa.PrivateKey) {
 	// Encrypt payload with symmetric permanent key
-	permanentNonce := generateRandomBytes(SymmetricNonceSize)
 	aead, _ := NewAead(permanentKey)
 	ciphertextPayload := SymmetricEncrypt(
 		aead,
@@ -200,6 +200,7 @@ func TestTemporaryValidOperation(t *testing.T) {
 	encryptedInnerOperation, _, _ := generatePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
 		generateRandomBytes(SymmetricKeySize),
+		generateRandomBytes(SymmetricNonceSize),
 		1,
 		[]byte("REQUEST_PAYLOAD"),
 	)
@@ -262,6 +263,7 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 	encryptedInnerOperation, _, _ := generatePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
 		generateRandomBytes(SymmetricKeySize),
+		generateRandomBytes(SymmetricNonceSize),
 		1,
 		[]byte("REQUEST_PAYLOAD"),
 	)
@@ -305,6 +307,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	encryptedInnerOperation, _, _ := generatePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
 		generateRandomBytes(SymmetricKeySize),
+		generateRandomBytes(SymmetricNonceSize),
 		1,
 		[]byte("REQUEST_PAYLOAD"),
 	)
