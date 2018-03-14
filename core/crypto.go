@@ -41,6 +41,9 @@ var symmetrictDecryptionError error = errors.New("Ssymmetric decryption failed."
 var payloadDecodeError error = errors.New("Payload decoding failed.")
 var payloadDecryptionError error = errors.New("Payload decryption failed.")
 var invalidPayloadError error = errors.New("Invalid payload provided.")
+var invalidSignatureEncodingError error = errors.New("Invalid signature encoding.")
+var invalidIssuerSignatureError error = errors.New("Invalid issuer signature provided.")
+var invalidCertifierSignatureError error = errors.New("Invalid certifier signature provided.")
 
 /*
 	Primitives
@@ -223,4 +226,73 @@ func (op *TemporaryEncryptedOperation) Decrypt(asymKey *rsa.PrivateKey) (*Perman
 	}
 
 	return &decodedOp, nil
+}
+
+/*
+	Permanent decryption
+*/
+func (op *PermanentEncryptedOperation) Decrypt(
+	getKeyById (func(string) []byte),
+	issuerSigningKey *rsa.PublicKey,
+	certifierSigningKey *rsa.PublicKey,
+) ([]byte, error) {
+	// Base64 decode payload
+	payloadBytes, err := Base64DecodeString(op.Payload)
+	if err != nil {
+		return nil, payloadDecodeError
+	}
+
+	// Decrypt payload
+	if op.Encryption.Encrypted {
+		// Decode nonce
+		nonceBytes, err := Base64DecodeString(op.Encryption.Nonce)
+		if err == nil {
+			err = ValidateNonce(nonceBytes)
+		}
+		if err != nil {
+			return nil, invalidNonceError
+		}
+
+		// Get key
+		keyBytes := getKeyById(op.Encryption.KeyId)
+
+		// Use key to decrypt
+		aead, _ := NewAead(keyBytes)
+		payloadBytes, _ = SymmetricDecrypt(
+			aead,
+			payloadBytes[:0],
+			nonceBytes,
+			payloadBytes,
+		)
+	}
+
+	// Decode and verify issuer signature
+	issuerSignature, err := Base64DecodeString(op.Issue.Signature)
+	if err != nil {
+		return nil, invalidSignatureEncodingError
+	}
+	issuerVerified := Verify(
+		issuerSigningKey,
+		Hash(payloadBytes),
+		issuerSignature,
+	)
+	if !issuerVerified {
+		return nil, invalidIssuerSignatureError
+	}
+
+	// Decode and verify certifier signature
+	certifierSignature, err := Base64DecodeString(op.Certification.Signature)
+	if err != nil {
+		return nil, invalidSignatureEncodingError
+	}
+	certifierVerified := Verify(
+		certifierSigningKey,
+		Hash(payloadBytes),
+		certifierSignature,
+	)
+	if !certifierVerified {
+		return nil, invalidCertifierSignatureError
+	}
+
+	return payloadBytes, nil
 }

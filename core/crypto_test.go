@@ -478,3 +478,45 @@ func TestTemporaryInavlidPayloadStruncture(t *testing.T) {
 		t.Errorf("Temporary decryption should fail with incorrectly structured payload. err=%v", err)
 	}
 }
+
+/*
+	Permanent decryption
+*/
+func TestPermanentValidOperation(t *testing.T) {
+	// Make valid encrypted operation
+	permanentKey := generateRandomBytes(SymmetricKeySize)
+	permanentNonce := generateRandomBytes(SymmetricNonceSize)
+	requestPayload := []byte("REQUEST_PAYLOAD")
+	encryptedInnerOperation, issuerKey, certifierKey := generatePermanentEncryptedOperationWithEncryption(
+		"KEY_ID",
+		permanentKey,
+		permanentNonce,
+		1,
+		requestPayload,
+	)
+	innerOperationJson, _ := encryptedInnerOperation.Encode()
+	temporaryEncryptedOperation, recipientKey := generateTemporaryEncryptedOperationWithEncryption(
+		innerOperationJson,
+		[]byte(correctChallenge),
+		func(challenges map[string]string) {},
+		nil,
+	)
+
+	decryptedTemporaryEncryptedOperation, err := temporaryEncryptedOperation.Decrypt(recipientKey)
+	if err != nil ||
+		!reflect.DeepEqual(encryptedInnerOperation, decryptedTemporaryEncryptedOperation) {
+		t.Errorf("Temporary decryption failed.")
+		return
+	}
+
+	decryptedDecodedPayload, err := decryptedTemporaryEncryptedOperation.Decrypt(
+		func(string) []byte { return permanentKey },
+		&issuerKey.PublicKey,
+		&certifierKey.PublicKey,
+	)
+	if err != nil ||
+		!reflect.DeepEqual(decryptedDecodedPayload, requestPayload) {
+		t.Errorf("Permanent decryption failed. found=%+v, expected=%v", decryptedDecodedPayload, requestPayload)
+		return
+	}
+}
