@@ -189,7 +189,7 @@ func generatePermanentEncryptedOperationWithEncryption(
 }
 
 const invalidBase64string = "12"
-const validBase64string = "123"
+const validBase64string = "bQ=="
 
 /*
 	Temporary decryption
@@ -513,11 +513,11 @@ func TestPermanentInvalidPayload(t *testing.T) {
 		true,
 		"KEY_ID",
 		generateRandomBytes(SymmetricNonceSize),
-		false,
+		true,
 		[]byte(validBase64string),
-		false,
+		true,
 		[]byte(validBase64string),
-		false,
+		true,
 		1,
 		[]byte(invalidBase64string),
 		true,
@@ -529,7 +529,59 @@ func TestPermanentInvalidPayload(t *testing.T) {
 		nil,
 	)
 	if err != payloadDecodeError {
-		t.Errorf("Permanent decryption should fail with invalid base64 string. found=%+v, expected=%v")
+		t.Errorf("Permanent decryption should fail with invalid base64 payload. found=%+v, expected=%v")
+		return
+	}
+}
+
+func TestPermanentInvalidNonce(t *testing.T) {
+	// Make permanent opration with invalid nonce encoding
+	encryptedInnerOperation := generatePermanentEncryptedOperation(
+		true,
+		"KEY_ID",
+		[]byte(invalidBase64string),
+		true,
+		[]byte(validBase64string),
+		true,
+		[]byte(validBase64string),
+		true,
+		1,
+		[]byte(validBase64string),
+		true,
+	)
+
+	_, err := encryptedInnerOperation.Decrypt(
+		func(string) []byte { return nil },
+		nil,
+		nil,
+	)
+	if err != invalidNonceError {
+		t.Errorf("Permanent decryption should fail with invalid base64 nonce.")
+		return
+	}
+
+	// Make valid encrypted operation
+	encryptedInnerOperation = generatePermanentEncryptedOperation(
+		true,
+		"KEY_ID",
+		generateRandomBytes(1+SymmetricNonceSize),
+		false,
+		[]byte(validBase64string),
+		true,
+		[]byte(validBase64string),
+		true,
+		1,
+		[]byte(validBase64string),
+		true,
+	)
+
+	_, err = encryptedInnerOperation.Decrypt(
+		func(string) []byte { return nil },
+		nil,
+		nil,
+	)
+	if err != invalidNonceError {
+		t.Errorf("Permanent decryption should fail with invalid nonce length.")
 		return
 	}
 }
