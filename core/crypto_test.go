@@ -494,22 +494,8 @@ func TestPermanentValidOperation(t *testing.T) {
 		1,
 		requestPayload,
 	)
-	innerOperationJson, _ := encryptedInnerOperation.Encode()
-	temporaryEncryptedOperation, recipientKey := generateTemporaryEncryptedOperationWithEncryption(
-		innerOperationJson,
-		[]byte(correctChallenge),
-		func(challenges map[string]string) {},
-		nil,
-	)
 
-	decryptedTemporaryEncryptedOperation, err := temporaryEncryptedOperation.Decrypt(recipientKey)
-	if err != nil ||
-		!reflect.DeepEqual(encryptedInnerOperation, decryptedTemporaryEncryptedOperation) {
-		t.Errorf("Temporary decryption failed.")
-		return
-	}
-
-	decryptedDecodedPayload, err := decryptedTemporaryEncryptedOperation.Decrypt(
+	decryptedDecodedPayload, err := encryptedInnerOperation.Decrypt(
 		func(string) []byte { return permanentKey },
 		&issuerKey.PublicKey,
 		&certifierKey.PublicKey,
@@ -517,6 +503,33 @@ func TestPermanentValidOperation(t *testing.T) {
 	if err != nil ||
 		!reflect.DeepEqual(decryptedDecodedPayload, requestPayload) {
 		t.Errorf("Permanent decryption failed. found=%+v, expected=%v", decryptedDecodedPayload, requestPayload)
+		return
+	}
+}
+
+func TestPermanentInvalidPayload(t *testing.T) {
+	// Make valid encrypted operation
+	encryptedInnerOperation := generatePermanentEncryptedOperation(
+		true,
+		"KEY_ID",
+		generateRandomBytes(SymmetricNonceSize),
+		false,
+		[]byte(validBase64string),
+		false,
+		[]byte(validBase64string),
+		false,
+		1,
+		[]byte(invalidBase64string),
+		true,
+	)
+
+	_, err := encryptedInnerOperation.Decrypt(
+		func(string) []byte { return nil },
+		nil,
+		nil,
+	)
+	if err != payloadDecodeError {
+		t.Errorf("Permanent decryption should fail with invalid base64 string. found=%+v, expected=%v")
 		return
 	}
 }
