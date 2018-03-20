@@ -156,8 +156,8 @@ func generatePermanentEncryptedOperationWithEncryption(
 	permanentNonce []byte,
 	requestType int,
 	plainPayload []byte,
-	modifyIssuerSignature (func([]byte) ([]byte, bool)),
-	modifyCertifierSignature (func([]byte) ([]byte, bool)),
+	modifyIssuerSignature func([]byte) ([]byte, bool),
+	modifyCertifierSignature func([]byte) ([]byte, bool),
 ) (*PermanentEncryptedOperation, *rsa.PrivateKey, *rsa.PrivateKey) {
 	// Encrypt payload with symmetric permanent key
 	aead, _ := NewAead(permanentKey)
@@ -349,7 +349,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	}
 
 	// Invalid symmetric key ciphertext
-	invalidKeyCiphertext := generateRandomBytes(1+maxAsymmetricCiphertextLength)
+	invalidKeyCiphertext := generateRandomBytes(1 + maxAsymmetricCiphertextLength)
 	invalidKeyCiphertextBase64 := Base64EncodeToString(invalidKeyCiphertext)
 	challenges = map[string]string{
 		invalidKeyCiphertextBase64: validBase64string,
@@ -369,7 +369,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	}
 
 	// Invalid symmetric key length
-	invalidKeyCiphertext = generateRandomBytes(1+SymmetricKeySize)
+	invalidKeyCiphertext = generateRandomBytes(1 + SymmetricKeySize)
 	invalidKeyCiphertextBase64 = Base64EncodeToString(invalidKeyCiphertext)
 	challenges = map[string]string{
 		invalidKeyCiphertextBase64: validBase64string,
@@ -389,7 +389,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	}
 
 	// Invalid symmetric key length
-	invalidKeyCiphertext = generateRandomBytes(1+SymmetricKeySize)
+	invalidKeyCiphertext = generateRandomBytes(1 + SymmetricKeySize)
 	invalidKeyCiphertextBase64 = Base64EncodeToString(invalidKeyCiphertext)
 	challenges = map[string]string{
 		invalidKeyCiphertextBase64: validBase64string,
@@ -431,7 +431,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	// Invalid challenge ciphertext
 	validKeyCiphertext = generateRandomBytes(SymmetricKeySize)
 	validKeyCiphertextBase64 = Base64EncodeToString(validKeyCiphertext)
-	invalidChallengeCiphertext := generateRandomBytes(1+SymmetricKeySize)
+	invalidChallengeCiphertext := generateRandomBytes(1 + SymmetricKeySize)
 	invalidChallengeCiphertextBase64 := Base64EncodeToString(invalidChallengeCiphertext)
 	challenges = map[string]string{
 		validKeyCiphertextBase64: invalidChallengeCiphertextBase64,
@@ -454,7 +454,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	temporaryEncryptedOperation, _ = generateTemporaryEncryptedOperationWithEncryption(
 		innerOperationJson,
 		[]byte("WRONG CHALLENGE"),
-		func(map[string]string){},
+		func(map[string]string) {},
 		privateKey,
 	)
 	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
@@ -484,7 +484,7 @@ func TestTemporaryInavlidPayloadStruncture(t *testing.T) {
 	temporaryEncryptedOperation, privateKey := generateTemporaryEncryptedOperationWithEncryption(
 		[]byte("{"),
 		[]byte(correctChallenge),
-		func(map[string]string){},
+		func(map[string]string) {},
 		nil,
 	)
 

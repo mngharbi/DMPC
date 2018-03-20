@@ -17,13 +17,13 @@ import (
 */
 
 const (
-	AsymmetricKeySizeBits = 2048
-	AsymmetricKeySizeBytes = 256
+	AsymmetricKeySizeBits         = 2048
+	AsymmetricKeySizeBytes        = 256
 	maxAsymmetricCiphertextLength = AsymmetricKeySizeBytes - 11
-	HashingAlgorithm      = crypto.SHA256
-	SymmetricKeySize      = chacha20poly1305.KeySize
-	SymmetricNonceSize    = chacha20poly1305.NonceSize
-	correctChallenge      = "Nizar Gharbi"
+	HashingAlgorithm              = crypto.SHA256
+	SymmetricKeySize              = chacha20poly1305.KeySize
+	SymmetricNonceSize            = chacha20poly1305.NonceSize
+	correctChallenge              = "Nizar Gharbi"
 )
 
 /*
@@ -233,7 +233,7 @@ func (op *TemporaryEncryptedOperation) Decrypt(asymKey *rsa.PrivateKey) (*Perman
 	Permanent decryption
 */
 func (op *PermanentEncryptedOperation) Decrypt(
-	getKeyById (func(string) []byte),
+	getKeyById func(string) []byte,
 	issuerSigningKey *rsa.PublicKey,
 	certifierSigningKey *rsa.PublicKey,
 ) ([]byte, error) {
