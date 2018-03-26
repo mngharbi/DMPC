@@ -36,6 +36,11 @@ func MakeRequest(rawRequest []byte) (chan *UserResponse, []error) {
 	return makeEncodedRequest(rawRequest, false)
 }
 
+func MakeUnverifiedDecodedRequest(request *UserRequest) (chan *UserResponse, []error) {
+	request.skipPermissions = true
+	return makeRequest(request)
+}
+
 func makeEncodedRequest(rawRequest []byte, skipPermissions bool) (chan *UserResponse, []error) {
 	// Build request object
 	rqPtr := &UserRequest{}
