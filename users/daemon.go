@@ -29,14 +29,14 @@ func ShutdownServer() {
 }
 
 func MakeUnverifiedRequest(rawRequest []byte) (chan *UserResponse, []error) {
-	return makeRequest(rawRequest, true)
+	return makeEncodedRequest(rawRequest, true)
 }
 
 func MakeRequest(rawRequest []byte) (chan *UserResponse, []error) {
-	return makeRequest(rawRequest, false)
+	return makeEncodedRequest(rawRequest, false)
 }
 
-func makeRequest(rawRequest []byte, skipPermissions bool) (chan *UserResponse, []error) {
+func makeEncodedRequest(rawRequest []byte, skipPermissions bool) (chan *UserResponse, []error) {
 	// Build request object
 	rqPtr := &UserRequest{}
 	rqPtr.skipPermissions = skipPermissions
@@ -45,6 +45,10 @@ func makeRequest(rawRequest []byte, skipPermissions bool) (chan *UserResponse, [
 		return nil, decodingErrors
 	}
 
+	return makeRequest(rqPtr)
+}
+
+func makeRequest(rqPtr *UserRequest) (chan *UserResponse, []error) {
 	// Make request to server
 	nativeResponseChannel, err := gofarm.MakeRequest(rqPtr)
 	if err != nil {
@@ -62,7 +66,7 @@ func makeRequest(rawRequest []byte, skipPermissions bool) (chan *UserResponse, [
 		}
 	}()
 
-	return responseChannel, []error{}
+	return responseChannel, nil
 }
 
 /*
