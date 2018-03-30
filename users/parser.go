@@ -29,6 +29,7 @@ type PermissionsObject struct {
 type UserObject struct {
 	Id            string `json:"id"`
 	EncKey        string `json:"encKey"`
+	// @TODO: Make it possible to pass this directly
 	encKeyObject  *rsa.PublicKey
 	SignKey       string `json:"signKey"`
 	signKeyObject *rsa.PublicKey
