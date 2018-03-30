@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"errors"
+	"github.com/mngharbi/DMPC/core"
 	"time"
 )
 
@@ -112,12 +113,12 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 	case CreateRequest:
 		rq.Fields = []string{}
 
-		if parsedKey, err := convertRsaStringToKey(rq.Data.EncKey); err == nil {
+		if parsedKey, err := core.StringToAsymKey(rq.Data.EncKey); err == nil {
 			rq.Data.encKeyObject = parsedKey
 		} else {
 			res = append(res, err)
 		}
-		if parsedKey, err := convertRsaStringToKey(rq.Data.SignKey); err == nil {
+		if parsedKey, err := core.StringToAsymKey(rq.Data.SignKey); err == nil {
 			rq.Data.signKeyObject = parsedKey
 		} else {
 			res = append(res, err)
@@ -133,14 +134,14 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 		rq.sanitizeFieldsUpdated()
 
 		if contains(rq.Fields, "encKey") {
-			if parsedKey, err := convertRsaStringToKey(rq.Data.EncKey); err == nil {
+			if parsedKey, err := core.StringToAsymKey(rq.Data.EncKey); err == nil {
 				rq.Data.encKeyObject = parsedKey
 			} else {
 				res = append(res, err)
 			}
 		}
 		if contains(rq.Fields, "signKey") {
-			if parsedKey, err := convertRsaStringToKey(rq.Data.SignKey); err == nil {
+			if parsedKey, err := core.StringToAsymKey(rq.Data.SignKey); err == nil {
 				rq.Data.signKeyObject = parsedKey
 			} else {
 				res = append(res, err)

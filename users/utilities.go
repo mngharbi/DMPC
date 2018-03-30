@@ -5,18 +5,14 @@
 package users
 
 import (
-	"bytes"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
-	"errors"
+	"github.com/mngharbi/DMPC/core"
 )
 
 // Make a user object from a user record
 func (usr *UserObject) createFromRecord(rec *userRecord) {
 	usr.Id = rec.Id
-	usr.EncKey = convertKeyToString(&rec.EncKey.Key)
-	usr.SignKey = convertKeyToString(&rec.SignKey.Key)
+	usr.EncKey = core.AsymKeyToString(&rec.EncKey.Key)
+	usr.SignKey = core.AsymKeyToString(&rec.SignKey.Key)
 	usr.Permissions.Channel.Add = rec.Permissions.Channel.Add.Ok
 	usr.Permissions.User.Add = rec.Permissions.User.Add.Ok
 	usr.Permissions.User.Remove = rec.Permissions.User.Remove.Ok
@@ -45,41 +41,4 @@ func contains(s []string, e string) bool {
 		}
 	}
 	return false
-}
-
-func convertKeyToString(key *rsa.PublicKey) string {
-	// Break into bytes
-	keyBytes, _ := x509.MarshalPKIXPublicKey(key)
-
-	// Build pem block containing public key
-	block := &pem.Block{
-		Type:  "RSA PUBLIC KEY",
-		Bytes: keyBytes,
-	}
-
-	// PEM encode block
-	buf := new(bytes.Buffer)
-	pem.Encode(buf, block)
-
-	// Return string representing bytes
-	return string(pem.EncodeToMemory(block))
-}
-
-func convertRsaStringToKey(rsaString string) (*rsa.PublicKey, error) {
-	block, _ := pem.Decode([]byte(rsaString))
-	if block == nil {
-		return nil, errors.New("failed to parse PEM block containing the public key")
-	}
-
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, errors.New("failed to parse DER encoded public key: " + err.Error())
-	}
-
-	switch pub := pub.(type) {
-	case *rsa.PublicKey:
-		return pub, nil
-	default:
-		return nil, errors.New("unknown type of public key" + err.Error())
-	}
 }
