@@ -31,6 +31,7 @@ type PermanentEncryptionFields struct {
 	Nonce     string `json:"nonce"`
 }
 type PermanentAuthenticationFields struct {
+	Id string `json:"id"`
 	Signature string `json:"signature"`
 }
 type PermanentMetaFields struct {
