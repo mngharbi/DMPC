@@ -148,8 +148,10 @@ func GeneratePermanentEncryptedOperation(
 	keyId string,
 	nonce []byte,
 	nonceEncoded bool,
+	issuerId string,
 	issuerSignature []byte,
 	issuerSignatureEncoded bool,
+	certifierId string,
 	certifierSignature []byte,
 	certifierSignatureEncoded bool,
 	requestType int,
@@ -182,9 +184,11 @@ func GeneratePermanentEncryptedOperation(
 			Nonce:     nonceResult,
 		},
 		Issue: PermanentAuthenticationFields{
+			Id: issuerId,
 			Signature: issuerSignatureResult,
 		},
 		Certification: PermanentAuthenticationFields{
+			Id: certifierId,
 			Signature: certifierSignatureResult,
 		},
 		Meta: PermanentMetaFields{
@@ -200,7 +204,9 @@ func GeneratePermanentEncryptedOperationWithEncryption(
 	permanentNonce []byte,
 	requestType int,
 	plainPayload []byte,
+	issuerId string,
 	modifyIssuerSignature func([]byte) ([]byte, bool),
+	certifierId string,
 	modifyCertifierSignature func([]byte) ([]byte, bool),
 ) (*PermanentEncryptedOperation, *rsa.PrivateKey, *rsa.PrivateKey) {
 	// Encrypt payload with symmetric permanent key
@@ -227,8 +233,10 @@ func GeneratePermanentEncryptedOperationWithEncryption(
 		keyId,
 		permanentNonce,
 		false,
+		issuerId,
 		issuerSignature,
 		issuerSignatureEncoded,
+		certifierId,
 		certifierSignature,
 		certifierSignatureEncoded,
 		requestType,

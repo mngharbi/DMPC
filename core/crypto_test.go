@@ -28,7 +28,9 @@ func TestTemporaryValidOperation(t *testing.T) {
 		generateRandomBytes(SymmetricNonceSize),
 		1,
 		[]byte("REQUEST_PAYLOAD"),
+		"ISSUER",
 		dummyByteToByteTransformer,
+		"CERTIFIER",
 		dummyByteToByteTransformer,
 	)
 	innerOperationJson, _ := encryptedInnerOperation.Encode()
@@ -93,7 +95,9 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 		generateRandomBytes(SymmetricNonceSize),
 		1,
 		[]byte("REQUEST_PAYLOAD"),
+		"ISSUER",
 		dummyByteToByteTransformer,
+		"CERTIFIER",
 		dummyByteToByteTransformer,
 	)
 	innerOperationJson, _ := encryptedInnerOperation.Encode()
@@ -139,7 +143,9 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 		generateRandomBytes(SymmetricNonceSize),
 		1,
 		[]byte("REQUEST_PAYLOAD"),
+		"ISSUER",
 		dummyByteToByteTransformer,
+		"CERTIFIER",
 		dummyByteToByteTransformer,
 	)
 	innerOperationJson, _ := encryptedInnerOperation.Encode()
@@ -324,7 +330,9 @@ func TestPermanentValidOperation(t *testing.T) {
 		permanentNonce,
 		1,
 		requestPayload,
+		"ISSUER",
 		dummyByteToByteTransformer,
+		"CERTIFIER",
 		dummyByteToByteTransformer,
 	)
 
@@ -347,8 +355,10 @@ func TestPermanentInvalidPayload(t *testing.T) {
 		"KEY_ID",
 		generateRandomBytes(SymmetricNonceSize),
 		true,
+		"ISSUER",
 		[]byte(validBase64string),
 		true,
+		"CERTIFIER",
 		[]byte(validBase64string),
 		true,
 		1,
@@ -374,8 +384,10 @@ func TestPermanentInvalidNonce(t *testing.T) {
 		"KEY_ID",
 		[]byte(invalidBase64string),
 		true,
+		"ISSUER",
 		[]byte(validBase64string),
 		true,
+		"CERTIFIER",
 		[]byte(validBase64string),
 		true,
 		1,
@@ -399,8 +411,10 @@ func TestPermanentInvalidNonce(t *testing.T) {
 		"KEY_ID",
 		generateRandomBytes(1+SymmetricNonceSize),
 		false,
+		"ISSUER",
 		[]byte(validBase64string),
 		true,
+		"CERTIFIER",
 		[]byte(validBase64string),
 		true,
 		1,
@@ -426,8 +440,10 @@ func TestPermanentNotFoundKey(t *testing.T) {
 		"KEY_ID",
 		generateRandomBytes(SymmetricNonceSize),
 		false,
+		"ISSUER",
 		[]byte(validBase64string),
 		true,
+		"CERTIFIER",
 		[]byte(validBase64string),
 		true,
 		1,
@@ -458,7 +474,9 @@ func TestPermanentInvalidIssuerSignature(t *testing.T) {
 		permanentNonce,
 		1,
 		requestPayload,
+		"ISSUER",
 		func([]byte) ([]byte, bool) { return []byte(invalidBase64string), true },
+		"CERTIFIER",
 		dummyByteToByteTransformer,
 	)
 
@@ -478,7 +496,9 @@ func TestPermanentInvalidIssuerSignature(t *testing.T) {
 		permanentNonce,
 		1,
 		requestPayload,
+		"ISSUER",
 		func([]byte) ([]byte, bool) { return []byte(validBase64string), true },
+		"CERTIFIER",
 		dummyByteToByteTransformer,
 	)
 
@@ -503,7 +523,9 @@ func TestPermanentInvalidCertifierSignature(t *testing.T) {
 		permanentNonce,
 		1,
 		requestPayload,
+		"ISSUER",
 		dummyByteToByteTransformer,
+		"CERTIFIER",
 		func([]byte) ([]byte, bool) { return []byte(invalidBase64string), true },
 	)
 
@@ -523,7 +545,9 @@ func TestPermanentInvalidCertifierSignature(t *testing.T) {
 		permanentNonce,
 		1,
 		requestPayload,
+		"ISSUER",
 		dummyByteToByteTransformer,
+		"CERTIFIER",
 		func([]byte) ([]byte, bool) { return []byte(validBase64string), true },
 	)
 
