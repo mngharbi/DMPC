@@ -186,6 +186,16 @@ func StringToAsymKey(rsaString string) (*rsa.PublicKey, error) {
 	}
 }
 
+func GeneratePrivateKey() *rsa.PrivateKey {
+	priv, _ := rsa.GenerateKey(rand.Reader, AsymmetricKeySizeBits)
+	return priv
+}
+
+func GeneratePublicKey() *rsa.PublicKey {
+	priv := GeneratePrivateKey()
+	return &priv.PublicKey
+}
+
 /*
 	Temporary decryption
 */
