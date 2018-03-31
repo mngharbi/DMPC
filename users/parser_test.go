@@ -2,6 +2,7 @@ package users
 
 import (
 	"encoding/json"
+	"github.com/mngharbi/DMPC/core"
 	"reflect"
 	"testing"
 	"time"
@@ -11,11 +12,11 @@ import (
 	Decoding
 */
 func TestDecodeCreateRequest(t *testing.T) {
-	encKey := generatePublicKey()
+	encKey := core.GeneratePublicKey()
 	encKeyStringEncoded := jsonPemEncodeKey(encKey)
 	var encKeyStringDecoded string
 	json.Unmarshal([]byte(encKeyStringEncoded), &encKeyStringDecoded)
-	signKey := generatePublicKey()
+	signKey := core.GeneratePublicKey()
 	signKeyStringEncoded := jsonPemEncodeKey(signKey)
 	var signKeyStringDecoded string
 	json.Unmarshal([]byte(signKeyStringEncoded), &signKeyStringDecoded)
@@ -90,11 +91,11 @@ func TestDecodeCreateRequest(t *testing.T) {
 }
 
 func TestDecodeUpdateRequest(t *testing.T) {
-	encKey := generatePublicKey()
+	encKey := core.GeneratePublicKey()
 	encKeyStringEncoded := jsonPemEncodeKey(encKey)
 	var encKeyStringDecoded string
 	json.Unmarshal([]byte(encKeyStringEncoded), &encKeyStringDecoded)
-	signKey := generatePublicKey()
+	signKey := core.GeneratePublicKey()
 	signKeyStringEncoded := jsonPemEncodeKey(signKey)
 	var signKeyStringDecoded string
 	json.Unmarshal([]byte(signKeyStringEncoded), &signKeyStringDecoded)
@@ -283,11 +284,11 @@ func TestDecodeMissingCertifierUpdateRequest(t *testing.T) {
 }
 
 func TestDecodeEncode(t *testing.T) {
-	encKey := generatePublicKey()
+	encKey := core.GeneratePublicKey()
 	encKeyStringEncoded := jsonPemEncodeKey(encKey)
 	var encKeyStringDecoded string
 	json.Unmarshal([]byte(encKeyStringEncoded), &encKeyStringDecoded)
-	signKey := generatePublicKey()
+	signKey := core.GeneratePublicKey()
 	signKeyStringEncoded := jsonPemEncodeKey(signKey)
 	var signKeyStringDecoded string
 	json.Unmarshal([]byte(signKeyStringEncoded), &signKeyStringDecoded)

@@ -6,11 +6,11 @@ package users
 
 import (
 	"bytes"
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"github.com/mngharbi/DMPC/core"
 	"strings"
 	"testing"
 	"time"
@@ -34,16 +34,6 @@ func booleanToString(boolean bool) string {
 /*
 	Crypto
 */
-
-func generatePrivateKey() *rsa.PrivateKey {
-	priv, _ := rsa.GenerateKey(rand.Reader, 2048)
-	return priv
-}
-
-func generatePublicKey() *rsa.PublicKey {
-	priv := generatePrivateKey()
-	return &priv.PublicKey
-}
 
 func pemEncodeKey(key *rsa.PublicKey) string {
 	keyBytes, _ := x509.MarshalPKIXPublicKey(key)
@@ -102,11 +92,11 @@ func generateUserCreateRequest(
 	userPermissionsUpdatePermission bool,
 ) (request []byte, object *UserObject) {
 	// Encode keys
-	encKey := generatePublicKey()
+	encKey := core.GeneratePublicKey()
 	encKeyStringEncoded := jsonPemEncodeKey(encKey)
 	var encKeyStringDecoded string
 	json.Unmarshal([]byte(encKeyStringEncoded), &encKeyStringDecoded)
-	signKey := generatePublicKey()
+	signKey := core.GeneratePublicKey()
 	signKeyStringEncoded := jsonPemEncodeKey(signKey)
 	var signKeyStringDecoded string
 	json.Unmarshal([]byte(signKeyStringEncoded), &signKeyStringDecoded)

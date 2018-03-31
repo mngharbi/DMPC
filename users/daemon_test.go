@@ -1,6 +1,7 @@
 package users
 
 import (
+	"github.com/mngharbi/DMPC/core"
 	"reflect"
 	"strings"
 	"testing"
@@ -322,7 +323,7 @@ func TestEncKeyUpdateRequest(t *testing.T) {
 	}
 
 	// Try to update encKey
-	publicKey := generatePublicKey()
+	publicKey := core.GeneratePublicKey()
 	encKeyString := pemEncodeKey(publicKey)
 	encKeyStringJson := jsonPemEncodeKey(publicKey)
 	encKeyStringJson = strings.TrimSuffix(encKeyStringJson, `"`)
@@ -418,7 +419,7 @@ func TestSignKeyUpdateRequest(t *testing.T) {
 	}
 
 	// Try to update signKey
-	publicKey := generatePublicKey()
+	publicKey := core.GeneratePublicKey()
 	signKeyString := pemEncodeKey(publicKey)
 	signKeyStringJson := jsonPemEncodeKey(publicKey)
 	signKeyStringJson = strings.TrimSuffix(signKeyStringJson, `"`)

@@ -1,6 +1,7 @@
 package users
 
 import (
+	"github.com/mngharbi/DMPC/core"
 	"reflect"
 	"testing"
 	"time"
@@ -20,7 +21,7 @@ func testReqTime() time.Time {
 
 func generateKeyRecord() keyRecord {
 	return keyRecord{
-		Key:       *generatePublicKey(),
+		Key:       *core.GeneratePublicKey(),
 		UpdatedAt: testRecordTime(),
 	}
 }
@@ -113,7 +114,7 @@ func TestUpdateRequestEncKey(t *testing.T) {
 	obj := testRecord(true)
 
 	expected := obj
-	expected.EncKey.Key = *generatePublicKey()
+	expected.EncKey.Key = *core.GeneratePublicKey()
 	expected.EncKey.UpdatedAt = testReqTime()
 	expected.UpdatedAt = testReqTime()
 
@@ -134,7 +135,7 @@ func TestUpdateRequestEncKeySkipped(t *testing.T) {
 	expected := obj
 
 	req := testRequest(UpdateRequest, true)
-	req.Data.encKeyObject = generatePublicKey()
+	req.Data.encKeyObject = core.GeneratePublicKey()
 	req.Fields = []string{"encKey"}
 
 	obj.applyUpdateRequest(&req)
@@ -148,7 +149,7 @@ func TestUpdateRequestSignKey(t *testing.T) {
 	obj := testRecord(true)
 
 	expected := obj
-	expected.SignKey.Key = *generatePublicKey()
+	expected.SignKey.Key = *core.GeneratePublicKey()
 	expected.SignKey.UpdatedAt = testReqTime()
 	expected.UpdatedAt = testReqTime()
 
@@ -169,7 +170,7 @@ func TestUpdateRequestSignKeySkipped(t *testing.T) {
 	expected := obj
 
 	req := testRequest(UpdateRequest, true)
-	req.Data.signKeyObject = generatePublicKey()
+	req.Data.signKeyObject = core.GeneratePublicKey()
 	req.Fields = []string{"signKey"}
 
 	obj.applyUpdateRequest(&req)
