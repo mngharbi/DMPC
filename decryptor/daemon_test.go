@@ -30,16 +30,39 @@ func createDummyKeyRequesterFunctor() KeyRequester {
 		return nil
 	}
 }
-func createDummyExecutorRequesterFunctor() ExecutorRequester {
-	mutex := &sync.Mutex{}
-	ticketNum := 0
-	return func(int, string, string, []byte) int {
-		mutex.Lock()
-		ticketCopy := ticketNum
-		ticketNum += 1
-		mutex.Unlock()
+
+type dummyExecutorEntry struct {
+	requestNumber int
+	issuerId string
+	certifierId string
+	payload []byte
+}
+
+type dummyExecutorRegistry struct {
+	data map[int]dummyExecutorEntry
+	ticketNum int
+	lock *sync.Mutex
+}
+
+func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, ExecutorRequester) {
+	reg := dummyExecutorRegistry{
+		ticketNum: 0,
+		lock: &sync.Mutex{},
+	}
+	requester := func(requestNumber int, issuerId string, certifierId string, payload []byte) int {
+		reg.lock.Lock()
+		ticketCopy := reg.ticketNum
+		reg.data[ticketCopy] = dummyExecutorEntry{
+			requestNumber: requestNumber,
+			issuerId: issuerId,
+			certifierId: certifierId,
+			payload: payload,
+		}
+		reg.ticketNum += 1
+		reg.lock.Unlock()
 		return ticketCopy
 	}
+	return &reg, requester
 }
 
 /*
@@ -58,7 +81,8 @@ func getSignKeyCollection() map[string]*rsa.PublicKey {
 */
 
 func TestStartShutdownSingleWorker(t *testing.T) {
-	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersSignKeyRequesterFunctor(getSignKeyCollection(), true), createDummyKeyRequesterFunctor(), createDummyExecutorRequesterFunctor()) {
+	_, executorRequester := createDummyExecutorRequesterFunctor()
+	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersSignKeyRequesterFunctor(getSignKeyCollection(), true), createDummyKeyRequesterFunctor(), executorRequester) {
 		return
 	}
 	ShutdownServer()
