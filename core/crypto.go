@@ -6,9 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	"crypto/x509"
-	"encoding/pem"
-	"bytes"
 	"encoding/base64"
 	"errors"
 	"golang.org/x/crypto/chacha20poly1305"
@@ -143,57 +140,6 @@ func SymmetricDecrypt(aead cipher.AEAD, dst []byte, nonce []byte, ciphertext []b
 		return nil, symmetrictDecryptionError
 	}
 	return plaintext, nil
-}
-
-/*
-	Utilities
-*/
-
-func AsymKeyToString(key *rsa.PublicKey) string {
-	// Break into bytes
-	keyBytes, _ := x509.MarshalPKIXPublicKey(key)
-
-	// Build pem block containing public key
-	block := &pem.Block{
-		Type:  "RSA PUBLIC KEY",
-		Bytes: keyBytes,
-	}
-
-	// PEM encode block
-	buf := new(bytes.Buffer)
-	pem.Encode(buf, block)
-
-	// Return string representing bytes
-	return string(pem.EncodeToMemory(block))
-}
-
-func StringToAsymKey(rsaString string) (*rsa.PublicKey, error) {
-	block, _ := pem.Decode([]byte(rsaString))
-	if block == nil {
-		return nil, errors.New("failed to parse PEM block containing the public key")
-	}
-
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, errors.New("failed to parse DER encoded public key: " + err.Error())
-	}
-
-	switch pub := pub.(type) {
-	case *rsa.PublicKey:
-		return pub, nil
-	default:
-		return nil, errors.New("unknown type of public key" + err.Error())
-	}
-}
-
-func GeneratePrivateKey() *rsa.PrivateKey {
-	priv, _ := rsa.GenerateKey(rand.Reader, AsymmetricKeySizeBits)
-	return priv
-}
-
-func GeneratePublicKey() *rsa.PublicKey {
-	priv := GeneratePrivateKey()
-	return &priv.PublicKey
 }
 
 /*
