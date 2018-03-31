@@ -63,7 +63,7 @@ func makeRequest(rawRequest []byte, skipPermissions bool) (chan *gofarm.Response
 		return nil, []error{err}
 	}
 
-	return nativeResponseChannel, []error{err}
+	return nativeResponseChannel, nil
 }
 
 /*
@@ -89,6 +89,10 @@ func (sv *server) Shutdown() error { return nil }
 func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	decryptorWrapped := (*nativeRequest).(*decryptorRequest)
 
+	if len(decryptorWrapped.rawRequest) == 0 {
+		return failRequest(TemporaryDecryptionError)
+	}
+
 	// Decode payload
 	temporaryEncrypted := &core.TemporaryEncryptedOperation{}
 	err := temporaryEncrypted.Decode(decryptorWrapped.rawRequest)
@@ -99,6 +103,9 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	// Temporary decryption
 	permanentEncrypted, err := temporaryEncrypted.Decrypt(sv.globalKey)
 	if err != nil {
+		return failRequest(TemporaryDecryptionError)
+	}
+	if len(permanentEncrypted.Payload) == 0 {
 		return failRequest(TemporaryDecryptionError)
 	}
 
@@ -113,7 +120,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	issuerSignKey := keys[0]
 	certifierSignKey := keys[1]
 
-	// Permanent encryption
+	// Permanent decryption
 	plaintextBytes, err := permanentEncrypted.Decrypt(sv.keyRequester, issuerSignKey, certifierSignKey)
 	if err != nil {
 		return failRequest(PermanentDecryptionError)

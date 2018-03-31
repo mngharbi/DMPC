@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"github.com/mngharbi/DMPC/core"
+	"reflect"
 	"sync"
 	"testing"
 )
@@ -23,11 +24,11 @@ func generateRandomBytes(nbBytes int) (bytes []byte) {
 	Dummy subsystem lambdas
 */
 
-func createDummyUsersSignKeyRequesterFunctor(collection map[string]*rsa.PublicKey, success bool) UsersSignKeyRequester {
+func createDummyUsersSignKeyRequesterFunctor(collection map[string]*rsa.PrivateKey, success bool) UsersSignKeyRequester {
 	return func(keysIds []string) ([]*rsa.PublicKey, error) {
 		res := []*rsa.PublicKey{}
 		for _, keyId := range keysIds {
-			res = append(res, collection[keyId])
+			res = append(res, &(collection[keyId].PublicKey))
 		}
 		if !success {
 			return nil, errors.New("Could not find signing key.")
@@ -44,30 +45,38 @@ func createDummyKeyRequesterFunctor(collection map[string][]byte) KeyRequester {
 
 type dummyExecutorEntry struct {
 	requestNumber int
-	issuerId string
-	certifierId string
-	payload []byte
+	issuerId      string
+	certifierId   string
+	payload       []byte
 }
 
 type dummyExecutorRegistry struct {
-	data map[int]dummyExecutorEntry
+	data      map[int]dummyExecutorEntry
 	ticketNum int
-	lock *sync.Mutex
+	lock      *sync.Mutex
+}
+
+func (reg *dummyExecutorRegistry) getEntry(id int) dummyExecutorEntry {
+	reg.lock.Lock()
+	entryCopy := reg.data[id]
+	reg.lock.Unlock()
+	return entryCopy
 }
 
 func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, ExecutorRequester) {
 	reg := dummyExecutorRegistry{
+		data:      map[int]dummyExecutorEntry{},
 		ticketNum: 0,
-		lock: &sync.Mutex{},
+		lock:      &sync.Mutex{},
 	}
 	requester := func(requestNumber int, issuerId string, certifierId string, payload []byte) int {
 		reg.lock.Lock()
 		ticketCopy := reg.ticketNum
 		reg.data[ticketCopy] = dummyExecutorEntry{
 			requestNumber: requestNumber,
-			issuerId: issuerId,
-			certifierId: certifierId,
-			payload: payload,
+			issuerId:      issuerId,
+			certifierId:   certifierId,
+			payload:       payload,
 		}
 		reg.ticketNum += 1
 		reg.lock.Unlock()
@@ -80,10 +89,10 @@ func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, ExecutorRequ
 	Collections
 */
 
-func getSignKeyCollection() map[string]*rsa.PublicKey {
-	return map[string]*rsa.PublicKey{
-		"ISSUER_KEY":    core.GeneratePublicKey(),
-		"CERTIFIER_KEY": core.GeneratePublicKey(),
+func getSignKeyCollection() map[string]*rsa.PrivateKey {
+	return map[string]*rsa.PrivateKey{
+		"ISSUER_KEY":    core.GeneratePrivateKey(),
+		"CERTIFIER_KEY": core.GeneratePrivateKey(),
 	}
 }
 
@@ -103,5 +112,73 @@ func TestStartShutdownSingleWorker(t *testing.T) {
 	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersSignKeyRequesterFunctor(getSignKeyCollection(), true), createDummyKeyRequesterFunctor(getKeysCollection()), executorRequester) {
 		return
 	}
+	ShutdownServer()
+}
+
+func TestValidNonEncrypted(t *testing.T) {
+	reg, executorRequester := createDummyExecutorRequesterFunctor()
+	signKeyCollection := getSignKeyCollection()
+	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(getKeysCollection()), executorRequester) {
+		return
+	}
+
+	// Create non encrypted payload
+	payload := []byte("PAYLOAD")
+	hashedPayload := core.Hash(payload)
+	issuerSignature, _ := core.Sign(signKeyCollection["ISSUER_KEY"], hashedPayload[:])
+	certifierSignature, _ := core.Sign(signKeyCollection["CERTIFIER_KEY"], hashedPayload[:])
+	permanentEncryption := core.GeneratePermanentEncryptedOperation(
+		false,
+		"NO_KEY",
+		[]byte{},
+		false,
+		"ISSUER_KEY",
+		issuerSignature,
+		false,
+		"CERTIFIER_KEY",
+		certifierSignature,
+		false,
+		1,
+		payload,
+		false,
+	)
+	permanentEncryptionEncoded, _ := permanentEncryption.Encode()
+	temporaryEncryption := core.GenerateTemporaryEncryptedOperation(
+		false,
+		map[string]string{},
+		[]byte{},
+		false,
+		permanentEncryptionEncoded,
+		false,
+	)
+
+	// Make request and get ticket number
+	temporaryEncryptionEncoded, _ := temporaryEncryption.Encode()
+	channel, errs := MakeRequest(temporaryEncryptionEncoded)
+	if errs != nil {
+		t.Errorf("Valid non encrypted request should not fail. errs=%v", errs)
+		return
+	}
+	nativeRespPtr := <-channel
+	decryptorResp := (*nativeRespPtr).(*DecryptorResponse)
+	if decryptorResp.Result != Success ||
+		decryptorResp.Ticket != 0 {
+		t.Errorf("Making request failed. decryptorResp=%+v", decryptorResp)
+		return
+	}
+
+	// Check entry with the ticket number
+	executorEntry := reg.getEntry(decryptorResp.Ticket)
+	executorEntryExpected := dummyExecutorEntry{
+		requestNumber: 1,
+		issuerId:      "ISSUER_KEY",
+		certifierId:   "CERTIFIER_KEY",
+		payload:       payload,
+	}
+	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
+		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)
+		return
+	}
+
 	ShutdownServer()
 }
