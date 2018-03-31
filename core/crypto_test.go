@@ -22,7 +22,7 @@ func generateRandomBytes(nbBytes int) (bytes []byte) {
 	return
 }
 
-func generateTemporaryEncryptedOperation(
+func GenerateTemporaryEncryptedOperation(
 	encrypted bool,
 	challenges map[string]string,
 	nonce []byte,
@@ -50,7 +50,7 @@ func generateTemporaryEncryptedOperation(
 	}
 }
 
-func generateTemporaryEncryptedOperationWithEncryption(
+func GenerateTemporaryEncryptedOperationWithEncryption(
 	plainPayload []byte,
 	plaintextChallenge []byte,
 	modifyChallenges func(map[string]string),
@@ -89,7 +89,7 @@ func generateTemporaryEncryptedOperationWithEncryption(
 	}
 	modifyChallenges(challenges)
 
-	return generateTemporaryEncryptedOperation(
+	return GenerateTemporaryEncryptedOperation(
 		true,
 		challenges,
 		temporaryNonce,
@@ -99,7 +99,7 @@ func generateTemporaryEncryptedOperationWithEncryption(
 	), recipientKey
 }
 
-func generatePermanentEncryptedOperation(
+func GeneratePermanentEncryptedOperation(
 	encrypted bool,
 	keyId string,
 	nonce []byte,
@@ -150,7 +150,7 @@ func generatePermanentEncryptedOperation(
 	}
 }
 
-func generatePermanentEncryptedOperationWithEncryption(
+func GeneratePermanentEncryptedOperationWithEncryption(
 	keyId string,
 	permanentKey []byte,
 	permanentNonce []byte,
@@ -178,7 +178,7 @@ func generatePermanentEncryptedOperationWithEncryption(
 	certifierSignature, _ := Sign(certifierKey, plainPayloadHashed[:])
 	certifierSignature, certifierSignatureEncoded := modifyCertifierSignature(certifierSignature)
 
-	return generatePermanentEncryptedOperation(
+	return GeneratePermanentEncryptedOperation(
 		true,
 		keyId,
 		permanentNonce,
@@ -206,7 +206,7 @@ func dummyByteToByteTransformer(str []byte) ([]byte, bool) {
 
 func TestTemporaryValidOperation(t *testing.T) {
 	// Make valid encrypted operation
-	encryptedInnerOperation, _, _ := generatePermanentEncryptedOperationWithEncryption(
+	encryptedInnerOperation, _, _ := GeneratePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
 		generateRandomBytes(SymmetricKeySize),
 		generateRandomBytes(SymmetricNonceSize),
@@ -216,7 +216,7 @@ func TestTemporaryValidOperation(t *testing.T) {
 		dummyByteToByteTransformer,
 	)
 	innerOperationJson, _ := encryptedInnerOperation.Encode()
-	temporaryEncryptedOperation, recipientKey := generateTemporaryEncryptedOperationWithEncryption(
+	temporaryEncryptedOperation, recipientKey := GenerateTemporaryEncryptedOperationWithEncryption(
 		innerOperationJson,
 		[]byte(correctChallenge),
 		func(challenges map[string]string) {
@@ -237,7 +237,7 @@ func TestTemporaryValidOperation(t *testing.T) {
 
 func TestTemporaryInavlidPayloadEncoding(t *testing.T) {
 	// Use invalid base64 string for payload
-	temporaryEncryptedOperation := generateTemporaryEncryptedOperation(
+	temporaryEncryptedOperation := GenerateTemporaryEncryptedOperation(
 		false,
 		map[string]string{},
 		[]byte("PLAINTEXT"),
@@ -254,7 +254,7 @@ func TestTemporaryInavlidPayloadEncoding(t *testing.T) {
 
 func TestTemporaryInavlidPayloadStructure(t *testing.T) {
 	// Use invalid payload structure
-	temporaryEncryptedOperation := generateTemporaryEncryptedOperation(
+	temporaryEncryptedOperation := GenerateTemporaryEncryptedOperation(
 		false,
 		map[string]string{},
 		[]byte("PLAINTEXT"),
@@ -271,7 +271,7 @@ func TestTemporaryInavlidPayloadStructure(t *testing.T) {
 
 func TestTemporaryInavlidNonce(t *testing.T) {
 	// Make valid encrypted operation
-	encryptedInnerOperation, _, _ := generatePermanentEncryptedOperationWithEncryption(
+	encryptedInnerOperation, _, _ := GeneratePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
 		generateRandomBytes(SymmetricKeySize),
 		generateRandomBytes(SymmetricNonceSize),
@@ -283,7 +283,7 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 	innerOperationJson, _ := encryptedInnerOperation.Encode()
 
 	// Use invalid base64 string for nonce
-	temporaryEncryptedOperation := generateTemporaryEncryptedOperation(
+	temporaryEncryptedOperation := GenerateTemporaryEncryptedOperation(
 		true,
 		map[string]string{},
 		[]byte(invalidBase64string),
@@ -299,7 +299,7 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 	}
 
 	// Use nonce with invalid length
-	temporaryEncryptedOperation = generateTemporaryEncryptedOperation(
+	temporaryEncryptedOperation = GenerateTemporaryEncryptedOperation(
 		true,
 		map[string]string{},
 		generateRandomBytes(1+SymmetricNonceSize),
@@ -317,7 +317,7 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 
 func TestTemporaryInavlidChallenges(t *testing.T) {
 	// Make valid encrypted operation
-	encryptedInnerOperation, _, _ := generatePermanentEncryptedOperationWithEncryption(
+	encryptedInnerOperation, _, _ := GeneratePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
 		generateRandomBytes(SymmetricKeySize),
 		generateRandomBytes(SymmetricNonceSize),
@@ -334,7 +334,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	challenges := map[string]string{
 		invalidBase64string: invalidBase64string,
 	}
-	temporaryEncryptedOperation := generateTemporaryEncryptedOperation(
+	temporaryEncryptedOperation := GenerateTemporaryEncryptedOperation(
 		true,
 		challenges,
 		generateRandomBytes(SymmetricNonceSize),
@@ -354,7 +354,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	challenges = map[string]string{
 		invalidKeyCiphertextBase64: validBase64string,
 	}
-	temporaryEncryptedOperation = generateTemporaryEncryptedOperation(
+	temporaryEncryptedOperation = GenerateTemporaryEncryptedOperation(
 		true,
 		challenges,
 		generateRandomBytes(SymmetricNonceSize),
@@ -374,7 +374,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	challenges = map[string]string{
 		invalidKeyCiphertextBase64: validBase64string,
 	}
-	temporaryEncryptedOperation = generateTemporaryEncryptedOperation(
+	temporaryEncryptedOperation = GenerateTemporaryEncryptedOperation(
 		true,
 		challenges,
 		generateRandomBytes(SymmetricNonceSize),
@@ -394,7 +394,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	challenges = map[string]string{
 		invalidKeyCiphertextBase64: validBase64string,
 	}
-	temporaryEncryptedOperation = generateTemporaryEncryptedOperation(
+	temporaryEncryptedOperation = GenerateTemporaryEncryptedOperation(
 		true,
 		challenges,
 		generateRandomBytes(SymmetricNonceSize),
@@ -414,7 +414,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	challenges = map[string]string{
 		validKeyCiphertextBase64: invalidBase64string,
 	}
-	temporaryEncryptedOperation = generateTemporaryEncryptedOperation(
+	temporaryEncryptedOperation = GenerateTemporaryEncryptedOperation(
 		true,
 		challenges,
 		generateRandomBytes(SymmetricNonceSize),
@@ -436,7 +436,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	challenges = map[string]string{
 		validKeyCiphertextBase64: invalidChallengeCiphertextBase64,
 	}
-	temporaryEncryptedOperation = generateTemporaryEncryptedOperation(
+	temporaryEncryptedOperation = GenerateTemporaryEncryptedOperation(
 		true,
 		challenges,
 		generateRandomBytes(SymmetricNonceSize),
@@ -451,7 +451,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	}
 
 	// Valid challenge ciphertext, doesn't match challenge string
-	temporaryEncryptedOperation, _ = generateTemporaryEncryptedOperationWithEncryption(
+	temporaryEncryptedOperation, _ = GenerateTemporaryEncryptedOperationWithEncryption(
 		innerOperationJson,
 		[]byte("WRONG CHALLENGE"),
 		func(map[string]string) {},
@@ -464,7 +464,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	}
 
 	// Skipping wrong challenge
-	temporaryEncryptedOperation, _ = generateTemporaryEncryptedOperationWithEncryption(
+	temporaryEncryptedOperation, _ = GenerateTemporaryEncryptedOperationWithEncryption(
 		innerOperationJson,
 		[]byte(correctChallenge),
 		func(challenges map[string]string) {
@@ -481,7 +481,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 
 func TestTemporaryInavlidPayloadStruncture(t *testing.T) {
 	// Make undecryptable permanent operation
-	temporaryEncryptedOperation, privateKey := generateTemporaryEncryptedOperationWithEncryption(
+	temporaryEncryptedOperation, privateKey := GenerateTemporaryEncryptedOperationWithEncryption(
 		[]byte("{"),
 		[]byte(correctChallenge),
 		func(map[string]string) {},
@@ -502,7 +502,7 @@ func TestPermanentValidOperation(t *testing.T) {
 	permanentKey := generateRandomBytes(SymmetricKeySize)
 	permanentNonce := generateRandomBytes(SymmetricNonceSize)
 	requestPayload := []byte("REQUEST_PAYLOAD")
-	encryptedInnerOperation, issuerKey, certifierKey := generatePermanentEncryptedOperationWithEncryption(
+	encryptedInnerOperation, issuerKey, certifierKey := GeneratePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
 		permanentKey,
 		permanentNonce,
@@ -526,7 +526,7 @@ func TestPermanentValidOperation(t *testing.T) {
 
 func TestPermanentInvalidPayload(t *testing.T) {
 	// Make valid encrypted operation
-	encryptedInnerOperation := generatePermanentEncryptedOperation(
+	encryptedInnerOperation := GeneratePermanentEncryptedOperation(
 		true,
 		"KEY_ID",
 		generateRandomBytes(SymmetricNonceSize),
@@ -553,7 +553,7 @@ func TestPermanentInvalidPayload(t *testing.T) {
 
 func TestPermanentInvalidNonce(t *testing.T) {
 	// Make permanent opration with invalid nonce encoding
-	encryptedInnerOperation := generatePermanentEncryptedOperation(
+	encryptedInnerOperation := GeneratePermanentEncryptedOperation(
 		true,
 		"KEY_ID",
 		[]byte(invalidBase64string),
@@ -578,7 +578,7 @@ func TestPermanentInvalidNonce(t *testing.T) {
 	}
 
 	// Make valid encrypted operation
-	encryptedInnerOperation = generatePermanentEncryptedOperation(
+	encryptedInnerOperation = GeneratePermanentEncryptedOperation(
 		true,
 		"KEY_ID",
 		generateRandomBytes(1+SymmetricNonceSize),
@@ -605,7 +605,7 @@ func TestPermanentInvalidNonce(t *testing.T) {
 
 func TestPermanentNotFoundKey(t *testing.T) {
 	// Make valid permanent opration
-	encryptedInnerOperation := generatePermanentEncryptedOperation(
+	encryptedInnerOperation := GeneratePermanentEncryptedOperation(
 		true,
 		"KEY_ID",
 		generateRandomBytes(SymmetricNonceSize),
@@ -636,7 +636,7 @@ func TestPermanentInvalidIssuerSignature(t *testing.T) {
 	permanentKey := generateRandomBytes(SymmetricKeySize)
 	permanentNonce := generateRandomBytes(SymmetricNonceSize)
 	requestPayload := []byte("REQUEST_PAYLOAD")
-	encryptedInnerOperation, issuerKey, certifierKey := generatePermanentEncryptedOperationWithEncryption(
+	encryptedInnerOperation, issuerKey, certifierKey := GeneratePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
 		permanentKey,
 		permanentNonce,
@@ -656,7 +656,7 @@ func TestPermanentInvalidIssuerSignature(t *testing.T) {
 	}
 
 	// Make permanent opration without corresponding issuer signature
-	encryptedInnerOperation, issuerKey, certifierKey = generatePermanentEncryptedOperationWithEncryption(
+	encryptedInnerOperation, issuerKey, certifierKey = GeneratePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
 		permanentKey,
 		permanentNonce,
@@ -681,7 +681,7 @@ func TestPermanentInvalidCertifierSignature(t *testing.T) {
 	permanentKey := generateRandomBytes(SymmetricKeySize)
 	permanentNonce := generateRandomBytes(SymmetricNonceSize)
 	requestPayload := []byte("REQUEST_PAYLOAD")
-	encryptedInnerOperation, issuerKey, certifierKey := generatePermanentEncryptedOperationWithEncryption(
+	encryptedInnerOperation, issuerKey, certifierKey := GeneratePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
 		permanentKey,
 		permanentNonce,
@@ -701,7 +701,7 @@ func TestPermanentInvalidCertifierSignature(t *testing.T) {
 	}
 
 	// Make permanent opration without corresponding certifier signature
-	encryptedInnerOperation, issuerKey, certifierKey = generatePermanentEncryptedOperationWithEncryption(
+	encryptedInnerOperation, issuerKey, certifierKey = GeneratePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
 		permanentKey,
 		permanentNonce,
