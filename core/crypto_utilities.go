@@ -13,6 +13,17 @@ import (
 	"bytes"
 )
 
+func generatePrivateKey() *rsa.PrivateKey {
+	priv, _ := rsa.GenerateKey(rand.Reader, AsymmetricKeySizeBits)
+	return priv
+}
+
+func generateRandomBytes(nbBytes int) (bytes []byte) {
+	bytes = make([]byte, nbBytes)
+	rand.Read(bytes)
+	return
+}
+
 func AsymKeyToString(key *rsa.PublicKey) string {
 	// Break into bytes
 	keyBytes, _ := x509.MarshalPKIXPublicKey(key)

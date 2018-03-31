@@ -1,8 +1,6 @@
 package core
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"reflect"
 	"testing"
 )
@@ -10,17 +8,6 @@ import (
 /*
 	Test helpers
 */
-
-func generatePrivateKey() *rsa.PrivateKey {
-	priv, _ := rsa.GenerateKey(rand.Reader, AsymmetricKeySizeBits)
-	return priv
-}
-
-func generateRandomBytes(nbBytes int) (bytes []byte) {
-	bytes = make([]byte, nbBytes)
-	rand.Read(bytes)
-	return
-}
 
 const invalidBase64string = "12"
 const validBase64string = "bQ=="
