@@ -3,9 +3,7 @@ package decryptor
 import (
 	"crypto/rsa"
 	"github.com/mngharbi/DMPC/core"
-	"github.com/mngharbi/DMPC/users"
 	"github.com/mngharbi/gofarm"
-	"time"
 )
 
 type Config struct {
@@ -20,7 +18,7 @@ type decryptorRequest struct {
 /*
 	Types of lambdas to call other subsystems
 */
-type UsersDecodedRequester func(*users.UserRequest) (chan *users.UserResponse, []error)
+type UsersSignKeyRequester func([]string) ([]*rsa.PublicKey, error)
 type KeyRequester func(string) []byte
 type ExecutorRequester func(int, string, string, []byte) int
 
@@ -29,12 +27,12 @@ type ExecutorRequester func(int, string, string, []byte) int
 */
 func InitializeServer(
 	globalKey *rsa.PrivateKey,
-	usersRequester UsersDecodedRequester,
+	usersSignKeyRequester UsersSignKeyRequester,
 	keyRequester KeyRequester,
 	executorRequester ExecutorRequester,
 ) {
 	serverSingleton.globalKey = globalKey
-	serverSingleton.usersRequester = usersRequester
+	serverSingleton.usersSignKeyRequester = usersSignKeyRequester
 	serverSingleton.keyRequester = keyRequester
 	serverSingleton.executorRequester = executorRequester
 	gofarm.InitServer(&serverSingleton)
@@ -77,9 +75,9 @@ type server struct {
 	globalKey *rsa.PrivateKey
 
 	// Requester lambdas
-	usersRequester    UsersDecodedRequester
-	keyRequester      KeyRequester
-	executorRequester ExecutorRequester
+	usersSignKeyRequester UsersSignKeyRequester
+	keyRequester          KeyRequester
+	executorRequester     ExecutorRequester
 }
 
 var serverSingleton server
@@ -105,23 +103,15 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	}
 
 	// Get signing keys from users subsystem
-	usersChannel, errs := sv.usersRequester(&users.UserRequest{
-		Type: users.ReadRequest,
-		Fields: []string{
-			permanentEncrypted.Issue.Id,
-			permanentEncrypted.Certification.Id,
-		},
-		Timestamp: time.Now(),
+	keys, err := sv.usersSignKeyRequester([]string{
+		permanentEncrypted.Issue.Id,
+		permanentEncrypted.Certification.Id,
 	})
-	if len(errs) > 0 {
+	if err != nil {
 		return failRequest(PermanentDecryptionError)
 	}
-	usersRespPtr := <-usersChannel
-	if usersRespPtr.Result != users.Success {
-		return failRequest(PermanentDecryptionError)
-	}
-	issuerSignKey, _ := core.StringToAsymKey(usersRespPtr.Data[0].SignKey)
-	certifierSignKey, _ := core.StringToAsymKey(usersRespPtr.Data[1].SignKey)
+	issuerSignKey := keys[0]
+	certifierSignKey := keys[1]
 
 	// Permanent encryption
 	plaintextBytes, err := permanentEncrypted.Decrypt(sv.keyRequester, issuerSignKey, certifierSignKey)

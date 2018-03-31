@@ -1,7 +1,9 @@
 package decryptor
 
 import (
-	"github.com/mngharbi/DMPC/users"
+	"crypto/rsa"
+	"errors"
+	"github.com/mngharbi/DMPC/core"
 	"sync"
 	"testing"
 )
@@ -10,13 +12,19 @@ import (
 	Dummy subsystem lambdas
 */
 
-func createDummyUsersRequesterFunctor() UsersDecodedRequester {
-	return func(*users.UserRequest) (chan *users.UserResponse, []error) {
-		channel := make(chan *users.UserResponse, 1)
-		channel <- nil
-		return channel, nil
+func createDummyUsersSignKeyRequesterFunctor(collection map[string]*rsa.PublicKey, success bool) UsersSignKeyRequester {
+	return func(keysIds []string) ([]*rsa.PublicKey, error) {
+		res := []*rsa.PublicKey{}
+		for _, keyId := range keysIds {
+			res = append(res, collection[keyId])
+		}
+		if !success {
+			return nil, errors.New("Could not find signing key.")
+		}
+		return res, nil
 	}
 }
+
 func createDummyKeyRequesterFunctor() KeyRequester {
 	return func(string) []byte {
 		return nil
@@ -35,11 +43,22 @@ func createDummyExecutorRequesterFunctor() ExecutorRequester {
 }
 
 /*
+	Collections
+*/
+
+func getSignKeyCollection() map[string]*rsa.PublicKey {
+	return map[string]*rsa.PublicKey{
+		"ISSUER_KEY":    core.GeneratePublicKey(),
+		"CERTIFIER_KEY": core.GeneratePublicKey(),
+	}
+}
+
+/*
 	General tests
 */
 
 func TestStartShutdownSingleWorker(t *testing.T) {
-	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersRequesterFunctor(), createDummyKeyRequesterFunctor(), createDummyExecutorRequesterFunctor()) {
+	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersSignKeyRequesterFunctor(getSignKeyCollection(), true), createDummyKeyRequesterFunctor(), createDummyExecutorRequesterFunctor()) {
 		return
 	}
 	ShutdownServer()
