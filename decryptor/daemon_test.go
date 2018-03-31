@@ -1,12 +1,23 @@
 package decryptor
 
 import (
+	"crypto/rand"
 	"crypto/rsa"
 	"errors"
 	"github.com/mngharbi/DMPC/core"
 	"sync"
 	"testing"
 )
+
+/*
+	Test helpers
+*/
+
+func generateRandomBytes(nbBytes int) (bytes []byte) {
+	bytes = make([]byte, nbBytes)
+	rand.Read(bytes)
+	return
+}
 
 /*
 	Dummy subsystem lambdas
@@ -25,9 +36,9 @@ func createDummyUsersSignKeyRequesterFunctor(collection map[string]*rsa.PublicKe
 	}
 }
 
-func createDummyKeyRequesterFunctor() KeyRequester {
-	return func(string) []byte {
-		return nil
+func createDummyKeyRequesterFunctor(collection map[string][]byte) KeyRequester {
+	return func(keyId string) []byte {
+		return collection[keyId]
 	}
 }
 
@@ -76,13 +87,20 @@ func getSignKeyCollection() map[string]*rsa.PublicKey {
 	}
 }
 
+func getKeysCollection() map[string][]byte {
+	return map[string][]byte{
+		"KEY_1": generateRandomBytes(core.AsymmetricKeySizeBytes),
+		"KEY_2": generateRandomBytes(core.AsymmetricKeySizeBytes),
+	}
+}
+
 /*
 	General tests
 */
 
 func TestStartShutdownSingleWorker(t *testing.T) {
 	_, executorRequester := createDummyExecutorRequesterFunctor()
-	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersSignKeyRequesterFunctor(getSignKeyCollection(), true), createDummyKeyRequesterFunctor(), executorRequester) {
+	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersSignKeyRequesterFunctor(getSignKeyCollection(), true), createDummyKeyRequesterFunctor(getKeysCollection()), executorRequester) {
 		return
 	}
 	ShutdownServer()
