@@ -13,11 +13,6 @@ import (
 	"bytes"
 )
 
-func generatePrivateKey() *rsa.PrivateKey {
-	priv, _ := rsa.GenerateKey(rand.Reader, AsymmetricKeySizeBits)
-	return priv
-}
-
 func generateRandomBytes(nbBytes int) (bytes []byte) {
 	bytes = make([]byte, nbBytes)
 	rand.Read(bytes)
@@ -126,7 +121,7 @@ func GenerateTemporaryEncryptedOperationWithEncryption(
 
 	// Make RSA key if nil and use it to encrypt temporary key
 	if recipientKey == nil {
-		recipientKey = generatePrivateKey()
+		recipientKey = GeneratePrivateKey()
 	}
 	symKeyEncrypted, _ := AsymmetricEncrypt(&recipientKey.PublicKey, temporaryKey[:])
 
@@ -219,8 +214,8 @@ func GeneratePermanentEncryptedOperationWithEncryption(
 
 	// Hash and sign plaintext payload with new RSA keys
 	plainPayloadHashed := Hash(plainPayload)
-	issuerKey := generatePrivateKey()
-	certifierKey := generatePrivateKey()
+	issuerKey := GeneratePrivateKey()
+	certifierKey := GeneratePrivateKey()
 	issuerSignature, _ := Sign(issuerKey, plainPayloadHashed[:])
 	issuerSignature, issuerSignatureEncoded := modifyIssuerSignature(issuerSignature)
 

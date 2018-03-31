@@ -62,7 +62,7 @@ func TestTemporaryInavlidPayloadEncoding(t *testing.T) {
 		true,
 	)
 
-	_, err := temporaryEncryptedOperation.Decrypt(generatePrivateKey())
+	_, err := temporaryEncryptedOperation.Decrypt(GeneratePrivateKey())
 	if err != payloadDecodeError {
 		t.Errorf("Temporary decryption should fail with invalid payload encoding. err=%v", err)
 	}
@@ -79,7 +79,7 @@ func TestTemporaryInavlidPayloadStructure(t *testing.T) {
 		false,
 	)
 
-	_, err := temporaryEncryptedOperation.Decrypt(generatePrivateKey())
+	_, err := temporaryEncryptedOperation.Decrypt(GeneratePrivateKey())
 	if err != invalidPayloadError {
 		t.Errorf("Temporary decryption should fail with invalid payload structure. err=%v", err)
 	}
@@ -108,7 +108,7 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 		false,
 	)
 
-	_, err := temporaryEncryptedOperation.Decrypt(generatePrivateKey())
+	_, err := temporaryEncryptedOperation.Decrypt(GeneratePrivateKey())
 	if err != invalidNonceError {
 		t.Errorf("Temporary decryption should fail with invalid nonce encoding. err=%v", err)
 		return
@@ -124,7 +124,7 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 		false,
 	)
 
-	_, err = temporaryEncryptedOperation.Decrypt(generatePrivateKey())
+	_, err = temporaryEncryptedOperation.Decrypt(GeneratePrivateKey())
 	if err != invalidNonceError {
 		t.Errorf("Temporary decryption should fail with invalid nonce length. err=%v", err)
 		return
@@ -144,7 +144,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	)
 	innerOperationJson, _ := encryptedInnerOperation.Encode()
 
-	privateKey := generatePrivateKey()
+	privateKey := GeneratePrivateKey()
 
 	// Invalid symmetric key encoding
 	challenges := map[string]string{
