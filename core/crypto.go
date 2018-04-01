@@ -23,7 +23,7 @@ const (
 	HashingAlgorithm              = crypto.SHA256
 	SymmetricKeySize              = chacha20poly1305.KeySize
 	SymmetricNonceSize            = chacha20poly1305.NonceSize
-	correctChallenge              = "Nizar Gharbi"
+	CorrectChallenge              = "Nizar Gharbi"
 )
 
 /*
@@ -199,7 +199,7 @@ func (op *TemporaryEncryptedOperation) Decrypt(asymKey *rsa.PrivateKey) (*Perman
 
 			// Test if decrypted challenge is correct
 			if decryptedChallengeErr == nil &&
-				string(decryptedChallenge) == correctChallenge {
+				string(decryptedChallenge) == CorrectChallenge {
 				aead = symKeyAead
 				break
 			}

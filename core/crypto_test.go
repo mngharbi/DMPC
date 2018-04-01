@@ -36,7 +36,7 @@ func TestTemporaryValidOperation(t *testing.T) {
 	innerOperationJson, _ := encryptedInnerOperation.Encode()
 	temporaryEncryptedOperation, recipientKey := GenerateTemporaryEncryptedOperationWithEncryption(
 		innerOperationJson,
-		[]byte(correctChallenge),
+		[]byte(CorrectChallenge),
 		func(challenges map[string]string) {
 			challenges[validBase64string] = validBase64string
 		},
@@ -288,7 +288,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	// Skipping wrong challenge
 	temporaryEncryptedOperation, _ = GenerateTemporaryEncryptedOperationWithEncryption(
 		innerOperationJson,
-		[]byte(correctChallenge),
+		[]byte(CorrectChallenge),
 		func(challenges map[string]string) {
 			challenges[invalidBase64string] = invalidBase64string
 		},
@@ -305,7 +305,7 @@ func TestTemporaryInavlidPayloadStruncture(t *testing.T) {
 	// Make undecryptable permanent operation
 	temporaryEncryptedOperation, privateKey := GenerateTemporaryEncryptedOperationWithEncryption(
 		[]byte("{"),
-		[]byte(correctChallenge),
+		[]byte(CorrectChallenge),
 		func(map[string]string) {},
 		nil,
 	)
