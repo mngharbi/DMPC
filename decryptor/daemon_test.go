@@ -323,3 +323,72 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 
 	ShutdownServer()
 }
+
+func TestValidTemporaryPermanentEncrypted(t *testing.T) {
+	reg, executorRequester := createDummyExecutorRequesterFunctor()
+	keyCollection := getKeysCollection()
+
+	// Create non encrypted payload
+	payload := []byte("PAYLOAD")
+	permanentEncryption, issuerKey, certifierKey := core.GeneratePermanentEncryptedOperationWithEncryption(
+		"KEY_1",
+		keyCollection["KEY_1"],
+		generateRandomBytes(core.SymmetricNonceSize),
+		1,
+		payload,
+		"ISSUER_KEY",
+		func(b []byte) ([]byte, bool) { return b, false },
+		"CERTIFIER_KEY",
+		func(b []byte) ([]byte, bool) { return b, false },
+	)
+
+	signKeyCollection := map[string]*rsa.PrivateKey{
+		"ISSUER_KEY":    issuerKey,
+		"CERTIFIER_KEY": certifierKey,
+	}
+
+	// Start server
+	globalKey := core.GeneratePrivateKey()
+	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(keyCollection), executorRequester) {
+		return
+	}
+
+	permanentEncryptionEncoded, _ := permanentEncryption.Encode()
+	temporaryEncryption, _ := core.GenerateTemporaryEncryptedOperationWithEncryption(
+		permanentEncryptionEncoded,
+		[]byte(core.CorrectChallenge),
+		func(map[string]string) { },
+		globalKey,
+	)
+
+	// Make request and get ticket number
+	temporaryEncryptionEncoded, _ := temporaryEncryption.Encode()
+	channel, errs := MakeRequest(temporaryEncryptionEncoded)
+	if errs != nil {
+		t.Errorf("Valid non encrypted request should not fail. errs=%v", errs)
+		return
+	}
+	nativeRespPtr := <-channel
+	decryptorResp := (*nativeRespPtr).(*DecryptorResponse)
+	if decryptorResp.Result != Success ||
+		decryptorResp.Ticket != 0 {
+		t.Errorf("Making request failed. decryptorResp=%+v", decryptorResp)
+		return
+	}
+
+	// Check entry with the ticket number
+	executorEntry := reg.getEntry(decryptorResp.Ticket)
+	executorEntryExpected := dummyExecutorEntry{
+		isVerified:    true,
+		requestNumber: 1,
+		issuerId:      "ISSUER_KEY",
+		certifierId:   "CERTIFIER_KEY",
+		payload:       payload,
+	}
+	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
+		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)
+		return
+	}
+
+	ShutdownServer()
+}
