@@ -20,7 +20,7 @@ type decryptorRequest struct {
 */
 type UsersSignKeyRequester func([]string) ([]*rsa.PublicKey, error)
 type KeyRequester func(string) []byte
-type ExecutorRequester func(int, string, string, []byte) int
+type ExecutorRequester func(bool, int, string, string, []byte) int
 
 /*
 	Server API
@@ -128,6 +128,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 
 	// Send raw bytes and metadata to executor
 	ticketNb := sv.executorRequester(
+		decryptorWrapped.isVerified,
 		permanentEncrypted.Meta.RequestType,
 		permanentEncrypted.Issue.Id,
 		permanentEncrypted.Certification.Id,

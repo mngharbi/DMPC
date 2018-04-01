@@ -44,6 +44,7 @@ func createDummyKeyRequesterFunctor(collection map[string][]byte) KeyRequester {
 }
 
 type dummyExecutorEntry struct {
+	isVerified    bool
 	requestNumber int
 	issuerId      string
 	certifierId   string
@@ -69,10 +70,11 @@ func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, ExecutorRequ
 		ticketNum: 0,
 		lock:      &sync.Mutex{},
 	}
-	requester := func(requestNumber int, issuerId string, certifierId string, payload []byte) int {
+	requester := func(isVerified bool, requestNumber int, issuerId string, certifierId string, payload []byte) int {
 		reg.lock.Lock()
 		ticketCopy := reg.ticketNum
 		reg.data[ticketCopy] = dummyExecutorEntry{
+			isVerified:    isVerified,
 			requestNumber: requestNumber,
 			issuerId:      issuerId,
 			certifierId:   certifierId,
@@ -170,6 +172,7 @@ func TestValidNonEncrypted(t *testing.T) {
 	// Check entry with the ticket number
 	executorEntry := reg.getEntry(decryptorResp.Ticket)
 	executorEntryExpected := dummyExecutorEntry{
+		isVerified:    true,
 		requestNumber: 1,
 		issuerId:      "ISSUER_KEY",
 		certifierId:   "CERTIFIER_KEY",
