@@ -413,3 +413,84 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 
 	ShutdownServer()
 }
+
+func TestInvalidOperationEncoding(t *testing.T) {
+	// Make request while server is not running
+	keyCollection := getKeysCollection()
+	payload := []byte("PAYLOAD")
+	globalKey := core.GeneratePrivateKey()
+	temporaryEncryptionEncoded, issuerKey, certifierKey := generateValidEncryptedOperation(
+		"KEY_1",
+		keyCollection["KEY_1"],
+		payload,
+		"ISSUER_KEY",
+		"CERTIFIER_KEY",
+		globalKey,
+	)
+
+	_, errs := MakeRequest(temporaryEncryptionEncoded)
+
+	if len(errs) == 0 {
+		t.Errorf("Decryptor should not work while server is not running.")
+	}
+
+	signKeyCollection := map[string]*rsa.PrivateKey{
+		"ISSUER_KEY":    issuerKey,
+		"CERTIFIER_KEY": certifierKey,
+	}
+
+	_, executorRequester := createDummyExecutorRequesterFunctor()
+	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(keyCollection), executorRequester) {
+		return
+	}
+
+	// Make empty request
+	channel, errs := MakeRequest([]byte{})
+	if len(errs) != 0 {
+		t.Errorf("Decryptor should pass along request.")
+		return
+	}
+	nativeRespPtr := <-channel
+	decryptorResp := (*nativeRespPtr).(*DecryptorResponse)
+	if decryptorResp.Result != TemporaryDecryptionError {
+		t.Errorf("Decryptor request should fail if empty")
+		return
+	}
+
+	// Make request with invalid json structure
+	channel, errs = MakeRequest([]byte("{"))
+	if len(errs) != 0 {
+		t.Errorf("Decryptor should pass along request.")
+		return
+	}
+	nativeRespPtr = <-channel
+	decryptorResp = (*nativeRespPtr).(*DecryptorResponse)
+	if decryptorResp.Result != TemporaryDecryptionError {
+		t.Errorf("Decryptor request should fail if request is not encoded propoerly.")
+		return
+	}
+
+	// Encrypt request with the wrong key
+	differentKey := core.GeneratePrivateKey()
+	temporaryEncryptionEncodedWrongKey, _, _ := generateValidEncryptedOperation(
+		"KEY_1",
+		keyCollection["KEY_1"],
+		payload,
+		"ISSUER_KEY",
+		"CERTIFIER_KEY",
+		differentKey,
+	)
+	if len(errs) != 0 {
+		t.Errorf("Decryptor should pass along request.")
+		return
+	}
+	channel, errs = MakeRequest(temporaryEncryptionEncodedWrongKey)
+	nativeRespPtr = <-channel
+	decryptorResp = (*nativeRespPtr).(*DecryptorResponse)
+	if decryptorResp.Result != TemporaryDecryptionError {
+		t.Errorf("Decryptor request should fail if request is not temporarily encrypted with the right key.")
+		return
+	}
+
+	ShutdownServer()
+}
