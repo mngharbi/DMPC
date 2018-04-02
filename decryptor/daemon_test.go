@@ -20,6 +20,39 @@ func generateRandomBytes(nbBytes int) (bytes []byte) {
 	return
 }
 
+func generateValidEncryptedOperation(
+	keyId string,
+	key []byte,
+	payload []byte,
+	issuerId string,
+	certifierId string,
+	globalKey *rsa.PrivateKey,
+) ([]byte, *rsa.PrivateKey, *rsa.PrivateKey) {
+	permanentEncryption, issuerKey, certifierKey := core.GeneratePermanentEncryptedOperationWithEncryption(
+		keyId,
+		key,
+		generateRandomBytes(core.SymmetricNonceSize),
+		1,
+		payload,
+		issuerId,
+		func(b []byte) ([]byte, bool) { return b, false },
+		certifierId,
+		func(b []byte) ([]byte, bool) { return b, false },
+	)
+
+	permanentEncryptionEncoded, _ := permanentEncryption.Encode()
+	temporaryEncryption, _ := core.GenerateTemporaryEncryptedOperationWithEncryption(
+		permanentEncryptionEncoded,
+		[]byte(core.CorrectChallenge),
+		func(map[string]string) {},
+		globalKey,
+	)
+
+	temporaryEncryptionEncoded, _ := temporaryEncryption.Encode()
+
+	return temporaryEncryptionEncoded, issuerKey, certifierKey
+}
+
 /*
 	Dummy subsystem lambdas
 */
@@ -218,7 +251,7 @@ func TestValidTemporaryEncryptedOnly(t *testing.T) {
 	temporaryEncryption, _ := core.GenerateTemporaryEncryptedOperationWithEncryption(
 		permanentEncryptionEncoded,
 		[]byte(core.CorrectChallenge),
-		func(map[string]string) { },
+		func(map[string]string) {},
 		globalKey,
 	)
 
@@ -328,18 +361,16 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 	reg, executorRequester := createDummyExecutorRequesterFunctor()
 	keyCollection := getKeysCollection()
 
-	// Create non encrypted payload
+	// Create encrypted payload
 	payload := []byte("PAYLOAD")
-	permanentEncryption, issuerKey, certifierKey := core.GeneratePermanentEncryptedOperationWithEncryption(
+	globalKey := core.GeneratePrivateKey()
+	temporaryEncryptionEncoded, issuerKey, certifierKey := generateValidEncryptedOperation(
 		"KEY_1",
 		keyCollection["KEY_1"],
-		generateRandomBytes(core.SymmetricNonceSize),
-		1,
 		payload,
 		"ISSUER_KEY",
-		func(b []byte) ([]byte, bool) { return b, false },
 		"CERTIFIER_KEY",
-		func(b []byte) ([]byte, bool) { return b, false },
+		globalKey,
 	)
 
 	signKeyCollection := map[string]*rsa.PrivateKey{
@@ -348,21 +379,11 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 	}
 
 	// Start server
-	globalKey := core.GeneratePrivateKey()
 	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(keyCollection), executorRequester) {
 		return
 	}
 
-	permanentEncryptionEncoded, _ := permanentEncryption.Encode()
-	temporaryEncryption, _ := core.GenerateTemporaryEncryptedOperationWithEncryption(
-		permanentEncryptionEncoded,
-		[]byte(core.CorrectChallenge),
-		func(map[string]string) { },
-		globalKey,
-	)
-
 	// Make request and get ticket number
-	temporaryEncryptionEncoded, _ := temporaryEncryption.Encode()
 	channel, errs := MakeRequest(temporaryEncryptionEncoded)
 	if errs != nil {
 		t.Errorf("Valid non encrypted request should not fail. errs=%v", errs)
