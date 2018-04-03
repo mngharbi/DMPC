@@ -194,13 +194,10 @@ func TestValidNonEncrypted(t *testing.T) {
 
 	// Make request and get ticket number
 	temporaryEncryptionEncoded, _ := temporaryEncryption.Encode()
-	channel, errs := MakeRequest(temporaryEncryptionEncoded)
-	if errs != nil {
-		t.Errorf("Valid non encrypted request should not fail. errs=%v", errs)
+	decryptorResp, ok := makeRequestAndGetResult(t, temporaryEncryptionEncoded)
+	if !ok {
 		return
 	}
-	nativeRespPtr := <-channel
-	decryptorResp := (*nativeRespPtr).(*DecryptorResponse)
 	if decryptorResp.Result != Success ||
 		decryptorResp.Ticket != 0 {
 		t.Errorf("Making request failed. decryptorResp=%+v", decryptorResp)
@@ -262,13 +259,10 @@ func TestValidTemporaryEncryptedOnly(t *testing.T) {
 
 	// Make request and get ticket number
 	temporaryEncryptionEncoded, _ := temporaryEncryption.Encode()
-	channel, errs := MakeRequest(temporaryEncryptionEncoded)
-	if errs != nil {
-		t.Errorf("Valid non encrypted request should not fail. errs=%v", errs)
+	decryptorResp, ok := makeRequestAndGetResult(t, temporaryEncryptionEncoded)
+	if !ok {
 		return
 	}
-	nativeRespPtr := <-channel
-	decryptorResp := (*nativeRespPtr).(*DecryptorResponse)
 	if decryptorResp.Result != Success ||
 		decryptorResp.Ticket != 0 {
 		t.Errorf("Making request failed. decryptorResp=%+v", decryptorResp)
@@ -332,13 +326,10 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 
 	// Make request and get ticket number
 	temporaryEncryptionEncoded, _ := temporaryEncryption.Encode()
-	channel, errs := MakeRequest(temporaryEncryptionEncoded)
-	if errs != nil {
-		t.Errorf("Valid non encrypted request should not fail. errs=%v", errs)
+	decryptorResp, ok := makeRequestAndGetResult(t, temporaryEncryptionEncoded)
+	if !ok {
 		return
 	}
-	nativeRespPtr := <-channel
-	decryptorResp := (*nativeRespPtr).(*DecryptorResponse)
 	if decryptorResp.Result != Success ||
 		decryptorResp.Ticket != 0 {
 		t.Errorf("Making request failed. decryptorResp=%+v", decryptorResp)
@@ -389,13 +380,10 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 	}
 
 	// Make request and get ticket number
-	channel, errs := MakeRequest(temporaryEncryptionEncoded)
-	if errs != nil {
-		t.Errorf("Valid non encrypted request should not fail. errs=%v", errs)
+	decryptorResp, ok := makeRequestAndGetResult(t, temporaryEncryptionEncoded)
+	if !ok {
 		return
 	}
-	nativeRespPtr := <-channel
-	decryptorResp := (*nativeRespPtr).(*DecryptorResponse)
 	if decryptorResp.Result != Success ||
 		decryptorResp.Ticket != 0 {
 		t.Errorf("Making request failed. decryptorResp=%+v", decryptorResp)
@@ -450,26 +438,20 @@ func TestInvalidOperationEncoding(t *testing.T) {
 	}
 
 	// Make empty request
-	channel, errs := MakeRequest([]byte{})
-	if len(errs) != 0 {
-		t.Errorf("Decryptor should pass along request.")
+	decryptorResp, ok := makeRequestAndGetResult(t, []byte{})
+	if !ok {
 		return
 	}
-	nativeRespPtr := <-channel
-	decryptorResp := (*nativeRespPtr).(*DecryptorResponse)
 	if decryptorResp.Result != TemporaryDecryptionError {
 		t.Errorf("Decryptor request should fail if empty")
 		return
 	}
 
 	// Make request with invalid json structure
-	channel, errs = MakeRequest([]byte("{"))
-	if len(errs) != 0 {
-		t.Errorf("Decryptor should pass along request.")
+	decryptorResp, ok = makeRequestAndGetResult(t, []byte("{"))
+	if !ok {
 		return
 	}
-	nativeRespPtr = <-channel
-	decryptorResp = (*nativeRespPtr).(*DecryptorResponse)
 	if decryptorResp.Result != TemporaryDecryptionError {
 		t.Errorf("Decryptor request should fail if request is not encoded propoerly.")
 		return
@@ -485,13 +467,10 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		"CERTIFIER_KEY",
 		differentKey,
 	)
-	channel, errs = MakeRequest(temporaryEncryptionEncodedWrongKey)
-	if len(errs) != 0 {
-		t.Errorf("Decryptor should pass along request.")
+	decryptorResp, ok = makeRequestAndGetResult(t, temporaryEncryptionEncodedWrongKey)
+	if !ok {
 		return
 	}
-	nativeRespPtr = <-channel
-	decryptorResp = (*nativeRespPtr).(*DecryptorResponse)
 	if decryptorResp.Result != TemporaryDecryptionError {
 		t.Errorf("Decryptor request should fail if request is not temporarily encrypted with the right key.")
 		return
@@ -505,13 +484,10 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		globalKey,
 	)
 	temporaryEncryptionNoPayloadEncoded, _ := temporaryEncryptionNoPayload.Encode()
-	channel, errs = MakeRequest(temporaryEncryptionNoPayloadEncoded)
-	if len(errs) != 0 {
-		t.Errorf("Decryptor should pass along request.")
+	decryptorResp, ok = makeRequestAndGetResult(t, temporaryEncryptionNoPayloadEncoded)
+	if !ok {
 		return
 	}
-	nativeRespPtr = <-channel
-	decryptorResp = (*nativeRespPtr).(*DecryptorResponse)
 	if decryptorResp.Result != TemporaryDecryptionError {
 		t.Errorf("Decryptor request should fail if temporary encrypted payload is empty.")
 		return
@@ -526,13 +502,10 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		"CERTIFIER_KEY",
 		globalKey,
 	)
-	channel, errs = MakeRequest(temporaryEncryptionEncodedNoSignKey)
-	if len(errs) != 0 {
-		t.Errorf("Decryptor should pass along request.")
+	decryptorResp, ok = makeRequestAndGetResult(t, temporaryEncryptionEncodedNoSignKey)
+	if !ok {
 		return
 	}
-	nativeRespPtr = <-channel
-	decryptorResp = (*nativeRespPtr).(*DecryptorResponse)
 	if decryptorResp.Result != PermanentDecryptionError {
 		t.Errorf("Decryptor request should fail if singing key does not exist.")
 		return
@@ -547,13 +520,10 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		"CERTIFIER_KEY",
 		globalKey,
 	)
-	channel, errs = MakeRequest(temporaryEncryptionEncodedWrongPermanentKey)
-	if len(errs) != 0 {
-		t.Errorf("Decryptor should pass along request.")
+	decryptorResp, ok = makeRequestAndGetResult(t, temporaryEncryptionEncodedWrongPermanentKey)
+	if !ok {
 		return
 	}
-	nativeRespPtr = <-channel
-	decryptorResp = (*nativeRespPtr).(*DecryptorResponse)
 	if decryptorResp.Result != PermanentDecryptionError {
 		t.Errorf("Decryptor request should fail if permanent encrypted payload can't be decrypted.")
 		return

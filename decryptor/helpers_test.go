@@ -31,6 +31,19 @@ func resetAndStartServer(
 	return true
 }
 
+func makeRequestAndGetResult(
+	t *testing.T,
+	requestBytes []byte,
+) (*DecryptorResponse, bool) {
+	channel, errs := MakeRequest(requestBytes)
+	if len(errs) != 0 {
+		t.Errorf("Decryptor should pass along request.")
+		return nil, false
+	}
+	nativeRespPtr := <-channel
+	return (*nativeRespPtr).(*DecryptorResponse), true
+}
+
 func multipleWorkersConfig() Config {
 	return Config{
 		NumWorkers: 6,
