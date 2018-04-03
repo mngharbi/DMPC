@@ -58,13 +58,18 @@ func generateValidEncryptedOperation(
 */
 
 func createDummyUsersSignKeyRequesterFunctor(collection map[string]*rsa.PrivateKey, success bool) UsersSignKeyRequester {
+	notFoundError := errors.New("Could not find signing key.")
 	return func(keysIds []string) ([]*rsa.PublicKey, error) {
 		res := []*rsa.PublicKey{}
 		for _, keyId := range keysIds {
-			res = append(res, &(collection[keyId].PublicKey))
+			privateKey, ok := collection[keyId]
+			if !ok {
+				return nil, notFoundError
+			}
+			res = append(res, &(privateKey.PublicKey))
 		}
 		if !success {
-			return nil, errors.New("Could not find signing key.")
+			return nil, notFoundError
 		}
 		return res, nil
 	}
@@ -480,15 +485,77 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		"CERTIFIER_KEY",
 		differentKey,
 	)
+	channel, errs = MakeRequest(temporaryEncryptionEncodedWrongKey)
 	if len(errs) != 0 {
 		t.Errorf("Decryptor should pass along request.")
 		return
 	}
-	channel, errs = MakeRequest(temporaryEncryptionEncodedWrongKey)
 	nativeRespPtr = <-channel
 	decryptorResp = (*nativeRespPtr).(*DecryptorResponse)
 	if decryptorResp.Result != TemporaryDecryptionError {
 		t.Errorf("Decryptor request should fail if request is not temporarily encrypted with the right key.")
+		return
+	}
+
+	// Test empty decrypted permanent payload
+	temporaryEncryptionNoPayload, _ := core.GenerateTemporaryEncryptedOperationWithEncryption(
+		[]byte{},
+		[]byte(core.CorrectChallenge),
+		func(map[string]string) {},
+		globalKey,
+	)
+	temporaryEncryptionNoPayloadEncoded, _ := temporaryEncryptionNoPayload.Encode()
+	channel, errs = MakeRequest(temporaryEncryptionNoPayloadEncoded)
+	if len(errs) != 0 {
+		t.Errorf("Decryptor should pass along request.")
+		return
+	}
+	nativeRespPtr = <-channel
+	decryptorResp = (*nativeRespPtr).(*DecryptorResponse)
+	if decryptorResp.Result != TemporaryDecryptionError {
+		t.Errorf("Decryptor request should fail if temporary encrypted payload is empty.")
+		return
+	}
+
+	// Use inexistent signing key
+	temporaryEncryptionEncodedNoSignKey, _, _ := generateValidEncryptedOperation(
+		"KEY_1",
+		keyCollection["KEY_1"],
+		payload,
+		"NOT_EXISTENT",
+		"CERTIFIER_KEY",
+		globalKey,
+	)
+	channel, errs = MakeRequest(temporaryEncryptionEncodedNoSignKey)
+	if len(errs) != 0 {
+		t.Errorf("Decryptor should pass along request.")
+		return
+	}
+	nativeRespPtr = <-channel
+	decryptorResp = (*nativeRespPtr).(*DecryptorResponse)
+	if decryptorResp.Result != PermanentDecryptionError {
+		t.Errorf("Decryptor request should fail if singing key does not exist.")
+		return
+	}
+
+	// Use wrong permanent encryption key
+	temporaryEncryptionEncodedWrongPermanentKey, _, _ := generateValidEncryptedOperation(
+		"KEY_2",
+		keyCollection["KEY_1"],
+		payload,
+		"NOT_EXISTENT",
+		"CERTIFIER_KEY",
+		globalKey,
+	)
+	channel, errs = MakeRequest(temporaryEncryptionEncodedWrongPermanentKey)
+	if len(errs) != 0 {
+		t.Errorf("Decryptor should pass along request.")
+		return
+	}
+	nativeRespPtr = <-channel
+	decryptorResp = (*nativeRespPtr).(*DecryptorResponse)
+	if decryptorResp.Result != PermanentDecryptionError {
+		t.Errorf("Decryptor request should fail if permanent encrypted payload can't be decrypted.")
 		return
 	}
 
