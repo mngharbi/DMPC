@@ -74,9 +74,9 @@ const (
 )
 
 type UserResponse struct {
-	Result int
+	Result int `json:"result"`
 	// @TODO: Consider returning pointers after benchmarking
-	Data []UserObject
+	Data []UserObject `json:"data"`
 }
 
 /*
@@ -193,6 +193,19 @@ func (rq *UserRequest) sanitizeFieldsUpdated() {
 */
 func (usr *UserObject) Encode() ([]byte, error) {
 	jsonStream, err := json.Marshal(usr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonStream, nil
+}
+
+/*
+	User response encoding
+*/
+func (resp *UserResponse) Encode() ([]byte, error) {
+	jsonStream, err := json.Marshal(resp)
 
 	if err != nil {
 		return nil, err

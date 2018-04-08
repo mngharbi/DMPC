@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"github.com/mngharbi/DMPC/core"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
+	"unicode"
 )
 
 /*
@@ -356,5 +358,40 @@ func TestDecodeEncode(t *testing.T) {
 	if !reflect.DeepEqual(rq, secondRq) {
 		t.Errorf("%v\n", userDataJson)
 		t.Errorf("Re-encoding produced different results:\n result: %v\n expected: %v\n", rq, secondRq)
+	}
+}
+
+func stripAllWhitespace(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, s)
+}
+
+func TestEncodeResponse(t *testing.T) {
+	response := &UserResponse{
+		Result: 0,
+	}
+
+	responseEncodedExpected := []byte(`{
+		"result": 0,
+		"data": null
+	}`)
+
+	responseEncoded, err := response.Encode()
+	if err != nil {
+		t.Errorf("Response encoding failed.")
+		return
+	}
+
+	trimmedEncoded := []byte(stripAllWhitespace(string(responseEncoded)))
+	trimmedEncodedExpected := []byte(stripAllWhitespace(string(responseEncodedExpected)))
+
+	if !reflect.DeepEqual(trimmedEncoded, trimmedEncodedExpected) {
+		t.Errorf("%v != expected: %v", string(trimmedEncoded), string(trimmedEncodedExpected))
+		t.Errorf("Response encoding doesn't match expected encoding.")
+		return
 	}
 }
