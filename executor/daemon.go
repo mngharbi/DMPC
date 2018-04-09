@@ -1,21 +1,23 @@
 package executor
 
 import (
+	"errors"
 	"github.com/mngharbi/DMPC/users"
 	"github.com/mngharbi/gofarm"
 )
 
+/*
+	Errors
+*/
+
+var invalidRequestTypeError error = errors.New("Invalid request type.")
+
+/*
+	Daemon configuration
+*/
+
 type Config struct {
 	NumWorkers int
-}
-
-type executorRequest struct {
-	isVerified  bool
-	requestType int
-	issuerId    string
-	certifierId string
-	ticket      int
-	request     []byte
 }
 
 /*
@@ -49,6 +51,10 @@ func ShutdownServer() {
 	gofarm.ShutdownServer()
 }
 
+func (sv *server) reportFailure(ticketNb int, err error) {
+	sv.responseReporter(ticketNb, 3, nil, []error{err})
+}
+
 func MakeRequest(
 	isVerified bool,
 	requestType int,
@@ -56,6 +62,11 @@ func MakeRequest(
 	certifierId string,
 	request []byte,
 ) (int, error) {
+	// Check type
+	if !isValidRequestType(requestType) {
+		return 0, invalidRequestTypeError
+	}
+
 	// Generate ticket
 	ticketNb := serverSingleton.ticketGenerator()
 	err := serverSingleton.responseReporter(ticketNb, 0, nil, nil)
@@ -73,6 +84,7 @@ func MakeRequest(
 		request:     request,
 	})
 	if err != nil {
+		serverSingleton.reportFailure(ticketNb, err)
 		return 0, err
 	}
 
@@ -117,7 +129,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 		userResponsePtr := <-channel
 		userReponseEncoded, err := userResponsePtr.Encode()
 		if err != nil {
-			sv.responseReporter(wrappedRequest.ticket, 3, nil, []error{err})
+			sv.reportFailure(wrappedRequest.ticket, err)
 		} else {
 			sv.responseReporter(wrappedRequest.ticket, 2, userReponseEncoded, nil)
 		}
