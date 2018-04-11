@@ -52,14 +52,14 @@ func createDummyTicketGeneratorFunctor() TicketGenerator {
 	return generator
 }
 
-type dummyLoggerEntry struct {
+type dummyStatusEntry struct {
 	status int
 	result []byte
 	errors []error
 }
 
-type dummyLoggerRegistry struct {
-	ticketLogs map[int][]dummyLoggerEntry
+type dummyStatusRegistry struct {
+	ticketLogs map[int][]dummyStatusEntry
 	lock       *sync.Mutex
 }
 
@@ -71,9 +71,9 @@ type userRequesterCall struct {
 
 var responseReporterError error = errors.New("Response reporter error")
 
-func createDummyResposeReporterFunctor(success bool) (ResponseReporter, *dummyLoggerRegistry) {
-	reg := dummyLoggerRegistry{
-		ticketLogs: map[int][]dummyLoggerEntry{},
+func createDummyResposeReporterFunctor(success bool) (ResponseReporter, *dummyStatusRegistry) {
+	reg := dummyStatusRegistry{
+		ticketLogs: map[int][]dummyStatusEntry{},
 		lock:       &sync.Mutex{},
 	}
 	reporter := func(ticketNb int, status int, result []byte, errs []error) error {
@@ -81,7 +81,7 @@ func createDummyResposeReporterFunctor(success bool) (ResponseReporter, *dummyLo
 			return responseReporterError
 		}
 		reg.lock.Lock()
-		reg.ticketLogs[ticketNb] = append(reg.ticketLogs[ticketNb], dummyLoggerEntry{
+		reg.ticketLogs[ticketNb] = append(reg.ticketLogs[ticketNb], dummyStatusEntry{
 			status: status,
 			result: result,
 			errors: errs,
