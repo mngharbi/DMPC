@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"errors"
 	"github.com/mngharbi/DMPC/users"
 	"math/rand"
 	"sync"
@@ -68,12 +69,17 @@ type userRequesterCall struct {
 	request     []byte
 }
 
-func createDummyResposeReporterFunctor() (ResponseReporter, *dummyLoggerRegistry) {
+var responseReporterError error = errors.New("Response reporter error")
+
+func createDummyResposeReporterFunctor(success bool) (ResponseReporter, *dummyLoggerRegistry) {
 	reg := dummyLoggerRegistry{
 		ticketLogs: map[int][]dummyLoggerEntry{},
 		lock:       &sync.Mutex{},
 	}
 	reporter := func(ticketNb int, status int, result []byte, errs []error) error {
+		if !success {
+			return responseReporterError
+		}
 		reg.lock.Lock()
 		reg.ticketLogs[ticketNb] = append(reg.ticketLogs[ticketNb], dummyLoggerEntry{
 			status: status,
@@ -90,13 +96,72 @@ func createDummyResposeReporterFunctor() (ResponseReporter, *dummyLoggerRegistry
 	General tests
 */
 
-func TestStartShutdownWorker(t *testing.T) {
+func TestStartShutdownServer(t *testing.T) {
 	usersRequester, _ := createDummyUsersRequesterFunctor(1)
 	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(2)
-	responseReporter, _ := createDummyResposeReporterFunctor()
+	responseReporter, _ := createDummyResposeReporterFunctor(true)
 	ticketGenerator := createDummyTicketGeneratorFunctor()
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator) {
 		return
 	}
 	ShutdownServer()
+}
+
+func TestInvalidRequestType(t *testing.T) {
+	usersRequester, _ := createDummyUsersRequesterFunctor(1)
+	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(2)
+	responseReporter, _ := createDummyResposeReporterFunctor(true)
+	ticketGenerator := createDummyTicketGeneratorFunctor()
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator) {
+		return
+	}
+
+	_, err := MakeRequest(false, UsersRequest-1, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	if err != invalidRequestTypeError {
+		t.Error("Request with invalid type should be rejected.")
+	}
+
+	ShutdownServer()
+}
+
+func TestReponseReporterQueueError(t *testing.T) {
+	usersRequester, _ := createDummyUsersRequesterFunctor(1)
+	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(2)
+	responseReporter, reg := createDummyResposeReporterFunctor(false)
+	ticketGenerator := createDummyTicketGeneratorFunctor()
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator) {
+		return
+	}
+
+	ticketNb, err := MakeRequest(false, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	if err != responseReporterError {
+		t.Error("Request should fail with response reporter error while queueing.")
+	}
+
+	if len(reg.ticketLogs[ticketNb]) != 0 {
+		t.Error("Status for ticket number should be empty if queueing failed.")
+	}
+
+	ShutdownServer()
+}
+
+func TestRequestWhileNotRunning(t *testing.T) {
+	usersRequester, _ := createDummyUsersRequesterFunctor(1)
+	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(2)
+	responseReporter, reg := createDummyResposeReporterFunctor(true)
+	ticketGenerator := createDummyTicketGeneratorFunctor()
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator) {
+		return
+	}
+
+	ShutdownServer()
+
+	ticketNb, err := MakeRequest(false, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	if err == nil {
+		t.Error("Request should fail if made while server is down.")
+	}
+
+	if len(reg.ticketLogs[ticketNb]) != 2 || reg.ticketLogs[ticketNb][1].status != 3 {
+		t.Error("Status for ticket number should be updated if failing when server is down.")
+	}
 }

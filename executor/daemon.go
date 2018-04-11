@@ -71,7 +71,7 @@ func MakeRequest(
 	ticketNb := serverSingleton.ticketGenerator()
 	err := serverSingleton.responseReporter(ticketNb, 0, nil, nil)
 	if err != nil {
-		return 0, err
+		return ticketNb, err
 	}
 
 	// Make request
@@ -85,7 +85,7 @@ func MakeRequest(
 	})
 	if err != nil {
 		serverSingleton.reportFailure(ticketNb, err)
-		return 0, err
+		return ticketNb, err
 	}
 
 	return ticketNb, nil
