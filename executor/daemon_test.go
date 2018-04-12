@@ -5,6 +5,7 @@ import (
 	"github.com/mngharbi/DMPC/users"
 	"math/rand"
 	"reflect"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -14,10 +15,14 @@ import (
 	Dummy subsystem lambdas
 */
 
-func sendUserResponseAfterRandomDelay(channel chan *users.UserResponse, responseCode int) {
-	duration := time.Duration(rand.Intn(1000)) * time.Millisecond
+func waitForRandomDuration() {
+	duration := time.Duration(rand.Intn(100)) * time.Millisecond
 	timer := time.NewTimer(duration)
 	<-timer.C
+}
+
+func sendUserResponseAfterRandomDelay(channel chan *users.UserResponse, responseCode int) {
+	waitForRandomDuration()
 	UserResponsePtr := &users.UserResponse{
 		Result: responseCode,
 	}
@@ -25,7 +30,7 @@ func sendUserResponseAfterRandomDelay(channel chan *users.UserResponse, response
 }
 
 func createDummyUsersRequesterFunctor(responseCodeReturned int, errsReturned []error, closeChannel bool) (UsersRequester, chan userRequesterCall) {
-	var callsChannel chan userRequesterCall
+	callsChannel := make(chan userRequesterCall, 0)
 	requester := func(issuerId string, certifierId string, request []byte) (chan *users.UserResponse, []error) {
 		go (func() {
 			callsChannel <- userRequesterCall{
@@ -37,7 +42,7 @@ func createDummyUsersRequesterFunctor(responseCodeReturned int, errsReturned []e
 		if errsReturned != nil {
 			return nil, errsReturned
 		}
-		responseChannel := make(chan *users.UserResponse, 1)
+		responseChannel := make(chan *users.UserResponse)
 		if closeChannel {
 			close(responseChannel)
 		} else {
@@ -254,4 +259,62 @@ func TestVerifiedUserRequest(t *testing.T) {
 		t.Error("Request should run but fail, and statuses should be reported correctly when the request failed.")
 	}
 
+	// Test with one successful request
+	usersRequesterSuccessfulResponse, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterSuccessfulResponse, usersRequesterUnverified, responseReporter, ticketGenerator) {
+		return
+	}
+	ticketNb, err = MakeRequest(true, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	if err != nil {
+		t.Error("Request should not fail.")
+		return
+	}
+
+	ShutdownServer()
+
+	if len(reg.ticketLogs[ticketNb]) != 3 ||
+		reg.ticketLogs[ticketNb][0].status != QueuedStatus ||
+		reg.ticketLogs[ticketNb][1].status != RunningStatus ||
+		reg.ticketLogs[ticketNb][2].status != SuccessStatus {
+		t.Error("Request should succeed.")
+	}
+
+	// Test with concurrent successful requests and check calls made to users subsystem
+	usersRequesterSuccessfulResponseMultiple, callsChannel := createDummyUsersRequesterFunctor(users.Success, nil, false)
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterSuccessfulResponseMultiple, usersRequesterUnverified, responseReporter, ticketGenerator) {
+		return
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(10)
+	checksumExpected := 0
+	for i := 1; i <= 10; i++ {
+		checksumExpected += i
+		copyI := i
+		go (func() {
+			waitForRandomDuration()
+			payload := []byte(strconv.Itoa(copyI))
+			_, err = MakeRequest(true, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", payload)
+			wg.Done()
+		})()
+	}
+	wg.Wait()
+
+	ShutdownServer()
+
+	checksum := 0
+	for i := 1; i <= 10; i++ {
+		callLog := <-callsChannel
+		if callLog.issuerId != "ISSUER_ID" ||
+			callLog.certifierId != "CERTIFIER_ID" {
+			t.Error("Unexpected call made to users subsystem.")
+			return
+		} else {
+			nb, _ := strconv.Atoi(string(callLog.request))
+			checksum += nb
+		}
+	}
+	if checksum != checksumExpected {
+		t.Errorf("Payload didn't make it through as expected. checksum=%v, checksumExpected=%v", checksum, checksumExpected)
+	}
 }
