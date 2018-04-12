@@ -185,20 +185,26 @@ func TestRequestWhileNotRunning(t *testing.T) {
 	}
 }
 
-func TestVerifiedUserRequest(t *testing.T) {
+func doUserRequestTesting(t *testing.T, isVerified bool) {
 	// Set up context needed
-	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
+	usersRequesterDummy, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
 	responseReporter, reg := createDummyResposeReporterFunctor(true)
 	ticketGenerator := createDummyTicketGeneratorFunctor()
+	var usersRequester, usersRequesterVerified UsersRequester
 
 	// Test with request rejected directly from users requester
 	requestError := errors.New("Request Failed.")
 	usersRequesterFailing, _ := createDummyUsersRequesterFunctor(users.Success, []error{requestError}, false)
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterFailing, usersRequesterUnverified, responseReporter, ticketGenerator) {
+	if isVerified {
+		usersRequester, usersRequesterVerified = usersRequesterFailing, usersRequesterDummy
+	} else {
+		usersRequesterVerified, usersRequester = usersRequesterFailing, usersRequesterDummy
+	}
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
 		return
 	}
 
-	ticketNb, err := MakeRequest(true, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	ticketNb, err := MakeRequest(isVerified, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -217,10 +223,15 @@ func TestVerifiedUserRequest(t *testing.T) {
 
 	// Test with channel closed from users requester
 	usersRequesterSuccess, _ := createDummyUsersRequesterFunctor(users.Success, nil, true)
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterSuccess, usersRequesterUnverified, responseReporter, ticketGenerator) {
+	if isVerified {
+		usersRequester, usersRequesterVerified = usersRequesterSuccess, usersRequesterDummy
+	} else {
+		usersRequesterVerified, usersRequester = usersRequesterSuccess, usersRequesterDummy
+	}
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketNb, err = MakeRequest(true, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	ticketNb, err = MakeRequest(isVerified, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -239,10 +250,15 @@ func TestVerifiedUserRequest(t *testing.T) {
 
 	// Test with failed requests
 	usersRequesterUnsuccessfulResponse, _ := createDummyUsersRequesterFunctor(1+users.Success, nil, false)
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterUnsuccessfulResponse, usersRequesterUnverified, responseReporter, ticketGenerator) {
+	if isVerified {
+		usersRequester, usersRequesterVerified = usersRequesterUnsuccessfulResponse, usersRequesterDummy
+	} else {
+		usersRequesterVerified, usersRequester = usersRequesterUnsuccessfulResponse, usersRequesterDummy
+	}
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketNb, err = MakeRequest(true, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	ticketNb, err = MakeRequest(isVerified, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -261,10 +277,15 @@ func TestVerifiedUserRequest(t *testing.T) {
 
 	// Test with one successful request
 	usersRequesterSuccessfulResponse, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterSuccessfulResponse, usersRequesterUnverified, responseReporter, ticketGenerator) {
+	if isVerified {
+		usersRequester, usersRequesterVerified = usersRequesterSuccessfulResponse, usersRequesterDummy
+	} else {
+		usersRequesterVerified, usersRequester = usersRequesterSuccessfulResponse, usersRequesterDummy
+	}
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketNb, err = MakeRequest(true, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	ticketNb, err = MakeRequest(isVerified, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -281,7 +302,12 @@ func TestVerifiedUserRequest(t *testing.T) {
 
 	// Test with concurrent successful requests and check calls made to users subsystem
 	usersRequesterSuccessfulResponseMultiple, callsChannel := createDummyUsersRequesterFunctor(users.Success, nil, false)
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterSuccessfulResponseMultiple, usersRequesterUnverified, responseReporter, ticketGenerator) {
+	if isVerified {
+		usersRequester, usersRequesterVerified = usersRequesterSuccessfulResponseMultiple, usersRequesterDummy
+	} else {
+		usersRequesterVerified, usersRequester = usersRequesterSuccessfulResponseMultiple, usersRequesterDummy
+	}
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
 		return
 	}
 
@@ -294,7 +320,7 @@ func TestVerifiedUserRequest(t *testing.T) {
 		go (func() {
 			waitForRandomDuration()
 			payload := []byte(strconv.Itoa(copyI))
-			_, err = MakeRequest(true, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", payload)
+			_, err = MakeRequest(isVerified, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", payload)
 			wg.Done()
 		})()
 	}
@@ -317,4 +343,12 @@ func TestVerifiedUserRequest(t *testing.T) {
 	if checksum != checksumExpected {
 		t.Errorf("Payload didn't make it through as expected. checksum=%v, checksumExpected=%v", checksum, checksumExpected)
 	}
+}
+
+func TestUnverifiedUserRequest(t *testing.T) {
+	doUserRequestTesting(t, false)
+}
+
+func TestVerifiedUserRequest(t *testing.T) {
+	doUserRequestTesting(t, true)
 }
