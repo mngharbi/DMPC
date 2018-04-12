@@ -11,6 +11,7 @@ import (
 */
 
 var invalidRequestTypeError error = errors.New("Invalid request type.")
+var subsystemChannelClosed error = errors.New("Corresponding subsystem shutdown during the request.")
 
 /*
 	Daemon configuration
@@ -51,7 +52,7 @@ func ShutdownServer() {
 	gofarm.ShutdownServer()
 }
 
-func (sv *server) reportFailure(ticketNb int, reason int, errs []error) {
+func (sv *server) reportRejection(ticketNb int, reason int, errs []error) {
 	sv.responseReporter(ticketNb, FailedStatus, reason, nil, errs)
 }
 
@@ -84,7 +85,7 @@ func MakeRequest(
 		request:     request,
 	})
 	if err != nil {
-		serverSingleton.reportFailure(ticketNb, RejectedReason, []error{err})
+		serverSingleton.reportRejection(ticketNb, RejectedReason, []error{err})
 		return ticketNb, err
 	}
 
@@ -109,12 +110,13 @@ func (sv *server) Start(_ gofarm.Config, _ bool) error { return nil }
 
 func (sv *server) Shutdown() error { return nil }
 
-func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
+func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.Response) {
+	dummyResponsePtr = nil
+
 	wrappedRequest := (*nativeRequest).(*executorRequest)
 
 	switch wrappedRequest.requestType {
 	case UsersRequest:
-		// @TODO: Replace with status codes
 		sv.responseReporter(wrappedRequest.ticket, RunningStatus, NoReason, nil, nil)
 
 		// Determine lambda to use based on whether the request is verified or not
@@ -125,15 +127,28 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 			usersRequester = sv.usersRequesterUnverified
 		}
 
+		// Make the request to users subsytem
 		channel, errs := usersRequester(wrappedRequest.issuerId, wrappedRequest.certifierId, wrappedRequest.request)
 		if errs != nil {
-			sv.reportFailure(wrappedRequest.ticket, RejectedReason, errs)
-			break
+			sv.reportRejection(wrappedRequest.ticket, RejectedReason, errs)
+			return
 		}
-		userResponsePtr := <-channel
+
+		// Wait for response from users subsystem
+		userResponsePtr, ok := <-channel
+		if !ok {
+			sv.reportRejection(wrappedRequest.ticket, RejectedReason, []error{subsystemChannelClosed})
+			return
+		}
+
+		// Handle failure after running the request
 		userReponseEncoded, _ := userResponsePtr.Encode()
-		sv.responseReporter(wrappedRequest.ticket, SuccessStatus, NoReason, userReponseEncoded, nil)
+		if userResponsePtr.Result != users.Success {
+			sv.responseReporter(wrappedRequest.ticket, FailedStatus, FailedReason, userReponseEncoded, []error{subsystemChannelClosed})
+		} else {
+			sv.responseReporter(wrappedRequest.ticket, SuccessStatus, NoReason, userReponseEncoded, nil)
+		}
 	}
 
-	return nil
+	return
 }
