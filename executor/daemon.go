@@ -144,7 +144,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.
 		// Handle failure after running the request
 		userReponseEncoded, _ := userResponsePtr.Encode()
 		if userResponsePtr.Result != users.Success {
-			sv.responseReporter(wrappedRequest.ticket, FailedStatus, FailedReason, userReponseEncoded, []error{subsystemChannelClosed})
+			sv.responseReporter(wrappedRequest.ticket, FailedStatus, FailedReason, userReponseEncoded, nil)
 		} else {
 			sv.responseReporter(wrappedRequest.ticket, SuccessStatus, NoReason, userReponseEncoded, nil)
 		}
