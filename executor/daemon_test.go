@@ -108,8 +108,8 @@ func createDummyResposeReporterFunctor(success bool) (ResponseReporter, *dummySt
 */
 
 func TestStartShutdownServer(t *testing.T) {
-	usersRequester, _ := createDummyUsersRequesterFunctor(1, nil, false)
-	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(2, nil, false)
+	usersRequester, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
+	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
 	responseReporter, _ := createDummyResposeReporterFunctor(true)
 	ticketGenerator := createDummyTicketGeneratorFunctor()
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator) {
@@ -119,8 +119,8 @@ func TestStartShutdownServer(t *testing.T) {
 }
 
 func TestInvalidRequestType(t *testing.T) {
-	usersRequester, _ := createDummyUsersRequesterFunctor(1, nil, false)
-	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(2, nil, false)
+	usersRequester, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
+	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
 	responseReporter, _ := createDummyResposeReporterFunctor(true)
 	ticketGenerator := createDummyTicketGeneratorFunctor()
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator) {
@@ -136,8 +136,8 @@ func TestInvalidRequestType(t *testing.T) {
 }
 
 func TestReponseReporterQueueError(t *testing.T) {
-	usersRequester, _ := createDummyUsersRequesterFunctor(1, nil, false)
-	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(2, nil, false)
+	usersRequester, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
+	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
 	responseReporter, reg := createDummyResposeReporterFunctor(false)
 	ticketGenerator := createDummyTicketGeneratorFunctor()
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator) {
@@ -157,8 +157,8 @@ func TestReponseReporterQueueError(t *testing.T) {
 }
 
 func TestRequestWhileNotRunning(t *testing.T) {
-	usersRequester, _ := createDummyUsersRequesterFunctor(1, nil, false)
-	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(2, nil, false)
+	usersRequester, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
+	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
 	responseReporter, reg := createDummyResposeReporterFunctor(true)
 	ticketGenerator := createDummyTicketGeneratorFunctor()
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator) {
@@ -182,13 +182,13 @@ func TestRequestWhileNotRunning(t *testing.T) {
 
 func TestVerifiedUserRequest(t *testing.T) {
 	// Set up context needed
-	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(2, nil, false)
+	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
 	responseReporter, reg := createDummyResposeReporterFunctor(true)
 	ticketGenerator := createDummyTicketGeneratorFunctor()
 
 	// Test with request rejected directly from users requester
 	requestError := errors.New("Request Failed.")
-	usersRequesterFailing, _ := createDummyUsersRequesterFunctor(1, []error{requestError}, false)
+	usersRequesterFailing, _ := createDummyUsersRequesterFunctor(users.Success, []error{requestError}, false)
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterFailing, usersRequesterUnverified, responseReporter, ticketGenerator) {
 		return
 	}
@@ -207,11 +207,11 @@ func TestVerifiedUserRequest(t *testing.T) {
 		reg.ticketLogs[ticketNb][2].status != FailedStatus ||
 		reg.ticketLogs[ticketNb][2].failureReason != RejectedReason ||
 		!reflect.DeepEqual(reg.ticketLogs[ticketNb][2].errors, []error{requestError}) {
-		t.Error("Request should run but fail, and statuses should be reported correctly.")
+		t.Error("Request should run but fail, and statuses should be reported correctly when request is rejected.")
 	}
 
 	// Test with channel closed from users requester
-	usersRequesterSuccess, _ := createDummyUsersRequesterFunctor(3, nil, true)
+	usersRequesterSuccess, _ := createDummyUsersRequesterFunctor(users.Success, nil, true)
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterSuccess, usersRequesterUnverified, responseReporter, ticketGenerator) {
 		return
 	}
@@ -229,8 +229,29 @@ func TestVerifiedUserRequest(t *testing.T) {
 		reg.ticketLogs[ticketNb][2].status != FailedStatus ||
 		reg.ticketLogs[ticketNb][2].failureReason != RejectedReason ||
 		!reflect.DeepEqual(reg.ticketLogs[ticketNb][2].errors, []error{subsystemChannelClosed}) {
-		t.Error("Request should run but fail, and statuses should be reported correctly.")
+		t.Error("Request should run but fail, and statuses should be reported correctly when channel closes.")
 	}
 
+	// Test with failed requests
+	usersRequesterUnsuccessfulResponse, _ := createDummyUsersRequesterFunctor(1+users.Success, nil, false)
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterUnsuccessfulResponse, usersRequesterUnverified, responseReporter, ticketGenerator) {
+		return
+	}
+	ticketNb, err = MakeRequest(true, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	if err != nil {
+		t.Error("Request should not fail.")
+		return
+	}
+
+	ShutdownServer()
+
+	if len(reg.ticketLogs[ticketNb]) != 3 ||
+		reg.ticketLogs[ticketNb][0].status != QueuedStatus ||
+		reg.ticketLogs[ticketNb][1].status != RunningStatus ||
+		reg.ticketLogs[ticketNb][2].status != FailedStatus ||
+		reg.ticketLogs[ticketNb][2].failureReason != FailedReason ||
+		reg.ticketLogs[ticketNb][2].errors != nil {
+		t.Error("Request should run but fail, and statuses should be reported correctly when the request failed.")
+	}
 
 }
