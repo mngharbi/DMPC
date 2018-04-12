@@ -24,7 +24,7 @@ type Config struct {
 	Types of lambdas to call other subsystems
 */
 type UsersRequester func(string, string, []byte) (chan *users.UserResponse, []error)
-type ResponseReporter func(int, int, []byte, []error) error
+type ResponseReporter func(int, int, int, []byte, []error) error
 type TicketGenerator func() int
 
 /*
@@ -51,8 +51,8 @@ func ShutdownServer() {
 	gofarm.ShutdownServer()
 }
 
-func (sv *server) reportFailure(ticketNb int, err error) {
-	sv.responseReporter(ticketNb, 3, nil, []error{err})
+func (sv *server) reportFailure(ticketNb int, reason int, errs []error) {
+	sv.responseReporter(ticketNb, FailedStatus, reason, nil, errs)
 }
 
 func MakeRequest(
@@ -69,7 +69,7 @@ func MakeRequest(
 
 	// Generate ticket
 	ticketNb := serverSingleton.ticketGenerator()
-	err := serverSingleton.responseReporter(ticketNb, 0, nil, nil)
+	err := serverSingleton.responseReporter(ticketNb, QueuedStatus, NoReason, nil, nil)
 	if err != nil {
 		return ticketNb, err
 	}
@@ -84,7 +84,7 @@ func MakeRequest(
 		request:     request,
 	})
 	if err != nil {
-		serverSingleton.reportFailure(ticketNb, err)
+		serverSingleton.reportFailure(ticketNb, RejectedReason, []error{err})
 		return ticketNb, err
 	}
 
@@ -115,7 +115,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	switch wrappedRequest.requestType {
 	case UsersRequest:
 		// @TODO: Replace with status codes
-		sv.responseReporter(wrappedRequest.ticket, 1, nil, nil)
+		sv.responseReporter(wrappedRequest.ticket, RunningStatus, NoReason, nil, nil)
 
 		// Determine lambda to use based on whether the request is verified or not
 		var usersRequester UsersRequester
@@ -125,14 +125,14 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 			usersRequester = sv.usersRequesterUnverified
 		}
 
-		channel, _ := usersRequester(wrappedRequest.issuerId, wrappedRequest.certifierId, wrappedRequest.request)
-		userResponsePtr := <-channel
-		userReponseEncoded, err := userResponsePtr.Encode()
-		if err != nil {
-			sv.reportFailure(wrappedRequest.ticket, err)
-		} else {
-			sv.responseReporter(wrappedRequest.ticket, 2, userReponseEncoded, nil)
+		channel, errs := usersRequester(wrappedRequest.issuerId, wrappedRequest.certifierId, wrappedRequest.request)
+		if errs != nil {
+			sv.reportFailure(wrappedRequest.ticket, RejectedReason, errs)
+			break
 		}
+		userResponsePtr := <-channel
+		userReponseEncoded, _ := userResponsePtr.Encode()
+		sv.responseReporter(wrappedRequest.ticket, SuccessStatus, NoReason, userReponseEncoded, nil)
 	}
 
 	return nil

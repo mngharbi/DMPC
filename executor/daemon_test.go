@@ -53,9 +53,10 @@ func createDummyTicketGeneratorFunctor() TicketGenerator {
 }
 
 type dummyStatusEntry struct {
-	status int
-	result []byte
-	errors []error
+	status        int
+	failureReason int
+	result        []byte
+	errors        []error
 }
 
 type dummyStatusRegistry struct {
@@ -76,15 +77,16 @@ func createDummyResposeReporterFunctor(success bool) (ResponseReporter, *dummySt
 		ticketLogs: map[int][]dummyStatusEntry{},
 		lock:       &sync.Mutex{},
 	}
-	reporter := func(ticketNb int, status int, result []byte, errs []error) error {
+	reporter := func(ticketNb int, status int, failureReason int, result []byte, errs []error) error {
 		if !success {
 			return responseReporterError
 		}
 		reg.lock.Lock()
 		reg.ticketLogs[ticketNb] = append(reg.ticketLogs[ticketNb], dummyStatusEntry{
-			status: status,
-			result: result,
-			errors: errs,
+			status:        status,
+			failureReason: failureReason,
+			result:        result,
+			errors:        errs,
 		})
 		reg.lock.Unlock()
 		return nil
@@ -161,7 +163,10 @@ func TestRequestWhileNotRunning(t *testing.T) {
 		t.Error("Request should fail if made while server is down.")
 	}
 
-	if len(reg.ticketLogs[ticketNb]) != 2 || reg.ticketLogs[ticketNb][1].status != 3 {
+	if len(reg.ticketLogs[ticketNb]) != 2 ||
+		reg.ticketLogs[ticketNb][0].status != QueuedStatus ||
+		reg.ticketLogs[ticketNb][1].status != FailedStatus ||
+		reg.ticketLogs[ticketNb][1].failureReason != RejectedReason {
 		t.Error("Status for ticket number should be updated if failing when server is down.")
 	}
 }
