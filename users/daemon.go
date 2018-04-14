@@ -15,17 +15,25 @@ type Config struct {
 	NumWorkers int
 }
 
+func provisionServerOnce() {
+	if serverHandler == nil {
+		serverHandler = gofarm.ProvisionServer()
+	}
+}
+
 func StartServer(conf Config) error {
+	provisionServerOnce()
 	if !serverSingleton.isInitialized {
 		serverSingleton.isInitialized = true
-		gofarm.ResetServer()
-		gofarm.InitServer(&serverSingleton)
+		serverHandler.ResetServer()
+		serverHandler.InitServer(&serverSingleton)
 	}
-	return gofarm.StartServer(gofarm.Config{NumWorkers: conf.NumWorkers})
+	return serverHandler.StartServer(gofarm.Config{NumWorkers: conf.NumWorkers})
 }
 
 func ShutdownServer() {
-	gofarm.ShutdownServer()
+	provisionServerOnce()
+	serverHandler.ShutdownServer()
 }
 
 func MakeUnverifiedRequest(rawRequest []byte) (chan *UserResponse, []error) {
@@ -55,7 +63,7 @@ func makeEncodedRequest(rawRequest []byte, skipPermissions bool) (chan *UserResp
 
 func makeRequest(rqPtr *UserRequest) (chan *UserResponse, []error) {
 	// Make request to server
-	nativeResponseChannel, err := gofarm.MakeRequest(rqPtr)
+	nativeResponseChannel, err := serverHandler.MakeRequest(rqPtr)
 	if err != nil {
 		return nil, []error{err}
 	}
@@ -96,6 +104,7 @@ func getIndexes() (res []string) {
 }
 
 var serverSingleton server
+var serverHandler *gofarm.ServerHandler
 
 func (sv *server) Start(_ gofarm.Config, isFirstStart bool) error {
 	// Initialize store (only if starting for the first time)
