@@ -25,25 +25,35 @@ type ExecutorRequester func(bool, int, string, string, []byte) int
 /*
 	Server API
 */
+
+func provisionServerOnce() {
+	if serverHandler == nil {
+		serverHandler = gofarm.ProvisionServer()
+	}
+}
+
 func InitializeServer(
 	globalKey *rsa.PrivateKey,
 	usersSignKeyRequester UsersSignKeyRequester,
 	keyRequester KeyRequester,
 	executorRequester ExecutorRequester,
 ) {
+	provisionServerOnce()
 	serverSingleton.globalKey = globalKey
 	serverSingleton.usersSignKeyRequester = usersSignKeyRequester
 	serverSingleton.keyRequester = keyRequester
 	serverSingleton.executorRequester = executorRequester
-	gofarm.InitServer(&serverSingleton)
+	serverHandler.InitServer(&serverSingleton)
 }
 
 func StartServer(conf Config) error {
-	return gofarm.StartServer(gofarm.Config{NumWorkers: conf.NumWorkers})
+	provisionServerOnce()
+	return serverHandler.StartServer(gofarm.Config{NumWorkers: conf.NumWorkers})
 }
 
 func ShutdownServer() {
-	gofarm.ShutdownServer()
+	provisionServerOnce()
+	serverHandler.ShutdownServer()
 }
 
 func MakeUnverifiedRequest(rawRequest []byte) (chan *gofarm.Response, []error) {
@@ -55,7 +65,7 @@ func MakeRequest(rawRequest []byte) (chan *gofarm.Response, []error) {
 }
 
 func makeRequest(rawRequest []byte, skipPermissions bool) (chan *gofarm.Response, []error) {
-	nativeResponseChannel, err := gofarm.MakeRequest(&decryptorRequest{
+	nativeResponseChannel, err := serverHandler.MakeRequest(&decryptorRequest{
 		isVerified: !skipPermissions,
 		rawRequest: rawRequest,
 	})
@@ -70,6 +80,11 @@ func makeRequest(rawRequest []byte, skipPermissions bool) (chan *gofarm.Response
 	Server implementation
 */
 
+var (
+	serverSingleton server
+	serverHandler *gofarm.ServerHandler
+)
+
 type server struct {
 	// Asymmetric key
 	globalKey *rsa.PrivateKey
@@ -79,8 +94,6 @@ type server struct {
 	keyRequester          KeyRequester
 	executorRequester     ExecutorRequester
 }
-
-var serverSingleton server
 
 func (sv *server) Start(_ gofarm.Config, _ bool) error { return nil }
 

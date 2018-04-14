@@ -31,25 +31,35 @@ type TicketGenerator func() int
 /*
 	Server API
 */
+
+func provisionServerOnce() {
+	if serverHandler == nil {
+		serverHandler = gofarm.ProvisionServer()
+	}
+}
+
 func InitializeServer(
 	usersRequester UsersRequester,
 	usersRequesterUnverified UsersRequester,
 	responseReporter ResponseReporter,
 	ticketGenerator TicketGenerator,
 ) {
+	provisionServerOnce()
 	serverSingleton.usersRequester = usersRequester
 	serverSingleton.usersRequesterUnverified = usersRequesterUnverified
 	serverSingleton.responseReporter = responseReporter
 	serverSingleton.ticketGenerator = ticketGenerator
-	gofarm.InitServer(&serverSingleton)
+	serverHandler.InitServer(&serverSingleton)
 }
 
 func StartServer(conf Config) error {
-	return gofarm.StartServer(gofarm.Config{NumWorkers: conf.NumWorkers})
+	provisionServerOnce()
+	return serverHandler.StartServer(gofarm.Config{NumWorkers: conf.NumWorkers})
 }
 
 func ShutdownServer() {
-	gofarm.ShutdownServer()
+	provisionServerOnce()
+	serverHandler.ShutdownServer()
 }
 
 func (sv *server) reportRejection(ticketNb int, reason int, errs []error) {
@@ -76,7 +86,7 @@ func MakeRequest(
 	}
 
 	// Make request
-	_, err = gofarm.MakeRequest(&executorRequest{
+	_, err = serverHandler.MakeRequest(&executorRequest{
 		isVerified:  isVerified,
 		requestType: requestType,
 		issuerId:    issuerId,
@@ -96,6 +106,11 @@ func MakeRequest(
 	Server implementation
 */
 
+var (
+	serverSingleton server
+	serverHandler *gofarm.ServerHandler
+)
+
 type server struct {
 	// Requester lambdas
 	usersRequester           UsersRequester
@@ -103,8 +118,6 @@ type server struct {
 	responseReporter         ResponseReporter
 	ticketGenerator          TicketGenerator
 }
-
-var serverSingleton server
 
 func (sv *server) Start(_ gofarm.Config, _ bool) error { return nil }
 
