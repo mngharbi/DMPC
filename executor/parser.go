@@ -34,7 +34,7 @@ type executorRequest struct {
 	requestType int
 	issuerId    string
 	certifierId string
-	ticket      int
+	ticket      string
 	request     []byte
 }
 

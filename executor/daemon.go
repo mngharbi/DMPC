@@ -25,8 +25,8 @@ type Config struct {
 	Types of lambdas to call other subsystems
 */
 type UsersRequester func(string, string, []byte) (chan *users.UserResponse, []error)
-type ResponseReporter func(int, int, int, []byte, []error) error
-type TicketGenerator func() int
+type ResponseReporter func(string, int, int, []byte, []error) error
+type TicketGenerator func() string
 
 /*
 	Server API
@@ -62,8 +62,8 @@ func ShutdownServer() {
 	serverHandler.ShutdownServer()
 }
 
-func (sv *server) reportRejection(ticketNb int, reason int, errs []error) {
-	sv.responseReporter(ticketNb, FailedStatus, reason, nil, errs)
+func (sv *server) reportRejection(ticketId string, reason int, errs []error) {
+	sv.responseReporter(ticketId, FailedStatus, reason, nil, errs)
 }
 
 func MakeRequest(
@@ -72,17 +72,17 @@ func MakeRequest(
 	issuerId string,
 	certifierId string,
 	request []byte,
-) (int, error) {
+) (string, error) {
 	// Check type
 	if !isValidRequestType(requestType) {
-		return 0, invalidRequestTypeError
+		return "", invalidRequestTypeError
 	}
 
 	// Generate ticket
-	ticketNb := serverSingleton.ticketGenerator()
-	err := serverSingleton.responseReporter(ticketNb, QueuedStatus, NoReason, nil, nil)
+	ticketId := serverSingleton.ticketGenerator()
+	err := serverSingleton.responseReporter(ticketId, QueuedStatus, NoReason, nil, nil)
 	if err != nil {
-		return ticketNb, err
+		return ticketId, err
 	}
 
 	// Make request
@@ -91,15 +91,15 @@ func MakeRequest(
 		requestType: requestType,
 		issuerId:    issuerId,
 		certifierId: certifierId,
-		ticket:      ticketNb,
+		ticket:      ticketId,
 		request:     request,
 	})
 	if err != nil {
-		serverSingleton.reportRejection(ticketNb, RejectedReason, []error{err})
-		return ticketNb, err
+		serverSingleton.reportRejection(ticketId, RejectedReason, []error{err})
+		return ticketId, err
 	}
 
-	return ticketNb, nil
+	return ticketId, nil
 }
 
 /*
@@ -108,7 +108,7 @@ func MakeRequest(
 
 var (
 	serverSingleton server
-	serverHandler *gofarm.ServerHandler
+	serverHandler   *gofarm.ServerHandler
 )
 
 type server struct {
