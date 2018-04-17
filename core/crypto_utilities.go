@@ -5,12 +5,12 @@
 package core
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"bytes"
 )
 
 func generateRandomBytes(nbBytes int) (bytes []byte) {
@@ -184,11 +184,11 @@ func GeneratePermanentEncryptedOperation(
 			Nonce:     nonceResult,
 		},
 		Issue: PermanentAuthenticationFields{
-			Id: issuerId,
+			Id:        issuerId,
 			Signature: issuerSignatureResult,
 		},
 		Certification: PermanentAuthenticationFields{
-			Id: certifierId,
+			Id:        certifierId,
 			Signature: certifierSignatureResult,
 		},
 		Meta: PermanentMetaFields{
