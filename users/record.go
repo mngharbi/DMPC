@@ -47,7 +47,7 @@ type userRecord struct {
 	Active      booleanRecord
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-	Lock        *sync.RWMutex
+	lock        *sync.RWMutex
 }
 
 func (rec *userRecord) Less(index string, than interface{}) bool {
@@ -217,4 +217,28 @@ func (record *userRecord) isAuthorized(req *UserRequest) bool {
 	}
 
 	return result
+}
+
+/*
+	Record locking
+*/
+
+// Read lock
+func (record *userRecord) RLock() {
+	record.lock.RLock()
+}
+
+// Read unlock
+func (record *userRecord) RUnlock() {
+	record.lock.RUnlock()
+}
+
+// Write lock
+func (record *userRecord) Lock() {
+	record.lock.Lock()
+}
+
+// Write unlock
+func (record *userRecord) Unlock() {
+	record.lock.Unlock()
 }

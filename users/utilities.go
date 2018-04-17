@@ -6,6 +6,7 @@ package users
 
 import (
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/memstore"
 )
 
 // Make a user object from a user record
@@ -28,9 +29,16 @@ func (usr *UserObject) createFromRecord(rec *userRecord) {
 }
 
 // Make a dummy user record pointer for search from a user object
-func makeSearchByIdRecord(usr *UserObject) *userRecord {
+func (usr *UserObject) makeSearchByIdRecord() memstore.Item {
 	return &userRecord{
 		Id: usr.Id,
+	}
+}
+
+// Make a dummy user record pointer for search from an id
+func makeSearchByIdRecord(id string) memstore.Item {
+	return &userRecord{
+		Id: id,
 	}
 }
 

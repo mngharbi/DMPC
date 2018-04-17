@@ -211,7 +211,7 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 		}
 
 		// Make search record
-		searchRecordPtr := makeSearchByIdRecord(&rq.Data)
+		searchRecordPtr := (&rq.Data).makeSearchByIdRecord()
 
 		// Atomically apply request to record in memstore
 		updateFunc := func(obj memstore.Item) (memstore.Item, bool) {
@@ -234,7 +234,7 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 	case CreateRequest:
 		// Generate record
 		newUser := &userRecord{
-			Lock: &sync.RWMutex{},
+			lock: &sync.RWMutex{},
 		}
 		newUser.create(rq)
 

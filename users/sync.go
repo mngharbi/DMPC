@@ -10,52 +10,27 @@ import (
 	"github.com/mngharbi/memstore"
 )
 
-func memstoreLockingFunctor(lockType core.LockType, isLock bool) func(memstore.Item) (memstore.Item, bool) {
-	return func(obj memstore.Item) (memstore.Item, bool) {
-		objCopy := obj.(*userRecord)
-		if lockType == core.WriteLockType {
-			if isLock {
-				objCopy.Lock.Lock()
-			} else {
-				objCopy.Lock.Unlock()
-			}
-		} else {
-			if isLock {
-				objCopy.Lock.RLock()
-			} else {
-				objCopy.Lock.RUnlock()
-			}
-		}
-		return obj, true
-	}
-}
-
-func coreLockingFunctor(sv *server, collectionPtr *[]*userRecord, isLock bool) func(string, core.LockType) bool {
-	return func(id string, lockType core.LockType) bool {
-		memstoreItem := sv.store.UpdateData(&userRecord{Id: id}, "id", memstoreLockingFunctor(lockType, isLock))
-		if memstoreItem == nil {
-			return false
-		} else {
-			*collectionPtr = append(*collectionPtr, memstoreItem.(*userRecord))
-			return true
-		}
-	}
-}
-
 func lockUsers(sv *server, lockNeeds []core.LockNeed) (userRecords []*userRecord, lockingSuccess bool) {
 	// Build lock functions
-	doLocking := coreLockingFunctor(sv, &userRecords, true)
-	doUnlocking := coreLockingFunctor(sv, &userRecords, false)
+	var userRecordsItems []memstore.Item
+	doLocking := core.RecordLockingFunctorGenerator(sv.store, core.Locking, makeSearchByIdRecord, "id", true, &userRecordsItems)
+	doUnlocking := core.RecordLockingFunctorGenerator(sv.store, core.Unlocking, makeSearchByIdRecord, "id", true, &userRecordsItems)
 
 	// Do locking (rollback unlocking included)
 	lockingSuccess = core.Lock(doLocking, doUnlocking, lockNeeds)
+
+	// Build list of records from item interfaces
+	for _, recordItem := range userRecordsItems {
+		userRecords = append(userRecords, recordItem.(*userRecord))
+	}
 
 	return
 }
 
 func unlockUsers(sv *server, unlockNeeds []core.LockNeed) (userRecords []*userRecord, unlockingSuccess bool) {
 	// Build unlock function
-	doUnlocking := coreLockingFunctor(sv, &userRecords, false)
+	var userRecordsItems []memstore.Item
+	doUnlocking := core.RecordLockingFunctorGenerator(sv.store, core.Unlocking, makeSearchByIdRecord, "id", true, &userRecordsItems)
 
 	// Do unlocking
 	unlockingSuccess = core.Unlock(doUnlocking, unlockNeeds)
@@ -63,6 +38,11 @@ func unlockUsers(sv *server, unlockNeeds []core.LockNeed) (userRecords []*userRe
 	// If locking failed, don't return any results
 	if !unlockingSuccess {
 		userRecords = []*userRecord{}
+	} else {
+		// Build list of records from item interfaces
+		for _, recordItem := range userRecordsItems {
+			userRecords = append(userRecords, recordItem.(*userRecord))
+		}
 	}
 	return
 }
