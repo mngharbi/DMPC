@@ -90,12 +90,11 @@ type dummyExecutorEntry struct {
 }
 
 type dummyExecutorRegistry struct {
-	data      map[int]dummyExecutorEntry
-	ticketNum int
-	lock      *sync.Mutex
+	data map[string]dummyExecutorEntry
+	lock *sync.Mutex
 }
 
-func (reg *dummyExecutorRegistry) getEntry(id int) dummyExecutorEntry {
+func (reg *dummyExecutorRegistry) getEntry(id string) dummyExecutorEntry {
 	reg.lock.Lock()
 	entryCopy := reg.data[id]
 	reg.lock.Unlock()
@@ -104,13 +103,12 @@ func (reg *dummyExecutorRegistry) getEntry(id int) dummyExecutorEntry {
 
 func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, ExecutorRequester) {
 	reg := dummyExecutorRegistry{
-		data:      map[int]dummyExecutorEntry{},
-		ticketNum: 0,
-		lock:      &sync.Mutex{},
+		data: map[string]dummyExecutorEntry{},
+		lock: &sync.Mutex{},
 	}
-	requester := func(isVerified bool, requestNumber int, issuerId string, certifierId string, payload []byte) int {
+	requester := func(isVerified bool, requestNumber int, issuerId string, certifierId string, payload []byte) string {
 		reg.lock.Lock()
-		ticketCopy := reg.ticketNum
+		ticketCopy := core.GenerateUniqueId()
 		reg.data[ticketCopy] = dummyExecutorEntry{
 			isVerified:    isVerified,
 			requestNumber: requestNumber,
@@ -118,7 +116,6 @@ func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, ExecutorRequ
 			certifierId:   certifierId,
 			payload:       payload,
 		}
-		reg.ticketNum += 1
 		reg.lock.Unlock()
 		return ticketCopy
 	}
@@ -198,8 +195,7 @@ func TestValidNonEncrypted(t *testing.T) {
 	if !ok {
 		return
 	}
-	if decryptorResp.Result != Success ||
-		decryptorResp.Ticket != 0 {
+	if decryptorResp.Result != Success {
 		t.Errorf("Making request failed. decryptorResp=%+v", decryptorResp)
 		return
 	}
@@ -263,8 +259,7 @@ func TestValidTemporaryEncryptedOnly(t *testing.T) {
 	if !ok {
 		return
 	}
-	if decryptorResp.Result != Success ||
-		decryptorResp.Ticket != 0 {
+	if decryptorResp.Result != Success {
 		t.Errorf("Making request failed. decryptorResp=%+v", decryptorResp)
 		return
 	}
@@ -330,8 +325,7 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 	if !ok {
 		return
 	}
-	if decryptorResp.Result != Success ||
-		decryptorResp.Ticket != 0 {
+	if decryptorResp.Result != Success {
 		t.Errorf("Making request failed. decryptorResp=%+v", decryptorResp)
 		return
 	}
@@ -384,8 +378,7 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 	if !ok {
 		return
 	}
-	if decryptorResp.Result != Success ||
-		decryptorResp.Ticket != 0 {
+	if decryptorResp.Result != Success {
 		t.Errorf("Making request failed. decryptorResp=%+v", decryptorResp)
 		return
 	}

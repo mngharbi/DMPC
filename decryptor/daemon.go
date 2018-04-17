@@ -20,7 +20,7 @@ type decryptorRequest struct {
 */
 type UsersSignKeyRequester func([]string) ([]*rsa.PublicKey, error)
 type KeyRequester func(string) []byte
-type ExecutorRequester func(bool, int, string, string, []byte) int
+type ExecutorRequester func(bool, int, string, string, []byte) string
 
 /*
 	Server API
@@ -82,7 +82,7 @@ func makeRequest(rawRequest []byte, skipPermissions bool) (chan *gofarm.Response
 
 var (
 	serverSingleton server
-	serverHandler *gofarm.ServerHandler
+	serverHandler   *gofarm.ServerHandler
 )
 
 type server struct {
@@ -140,7 +140,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	}
 
 	// Send raw bytes and metadata to executor
-	ticketNb := sv.executorRequester(
+	ticketId := sv.executorRequester(
 		decryptorWrapped.isVerified,
 		permanentEncrypted.Meta.RequestType,
 		permanentEncrypted.Issue.Id,
@@ -148,7 +148,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 		plaintextBytes,
 	)
 
-	return successRequest(ticketNb)
+	return successRequest(ticketId)
 }
 
 func failRequest(errorType int) *gofarm.Response {
@@ -160,10 +160,10 @@ func failRequest(errorType int) *gofarm.Response {
 	return &nativeResp
 }
 
-func successRequest(ticketNb int) *gofarm.Response {
+func successRequest(ticketId string) *gofarm.Response {
 	decryptorRespPtr := &DecryptorResponse{
 		Result: Success,
-		Ticket: ticketNb,
+		Ticket: ticketId,
 	}
 
 	var nativeResp gofarm.Response = decryptorRespPtr

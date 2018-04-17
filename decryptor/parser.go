@@ -10,6 +10,6 @@ const (
 )
 
 type DecryptorResponse struct {
-	Result int `json:"result"`
-	Ticket int `json:"ticket"`
+	Result int    `json:"result"`
+	Ticket string `json:"ticket"`
 }
