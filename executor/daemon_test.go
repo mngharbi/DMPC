@@ -2,7 +2,7 @@ package executor
 
 import (
 	"errors"
-	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 	"math/rand"
 	"reflect"
@@ -56,9 +56,9 @@ func createDummyUsersRequesterFunctor(responseCodeReturned int, errsReturned []e
 
 func createDummyTicketGeneratorFunctor() TicketGenerator {
 	lock := &sync.Mutex{}
-	generator := func() string {
+	generator := func() status.Ticket {
 		lock.Lock()
-		ticket := core.GenerateUniqueId()
+		ticket := status.RequestNewTicket()
 		lock.Unlock()
 		return ticket
 	}
@@ -66,14 +66,14 @@ func createDummyTicketGeneratorFunctor() TicketGenerator {
 }
 
 type dummyStatusEntry struct {
-	status        int
-	failureReason int
+	status        status.StatusCode
+	failureReason status.FailReasonCode
 	result        []byte
 	errors        []error
 }
 
 type dummyStatusRegistry struct {
-	ticketLogs map[string][]dummyStatusEntry
+	ticketLogs map[status.Ticket][]dummyStatusEntry
 	lock       *sync.Mutex
 }
 
@@ -87,10 +87,10 @@ var responseReporterError error = errors.New("Response reporter error")
 
 func createDummyResposeReporterFunctor(success bool) (ResponseReporter, *dummyStatusRegistry) {
 	reg := dummyStatusRegistry{
-		ticketLogs: map[string][]dummyStatusEntry{},
+		ticketLogs: map[status.Ticket][]dummyStatusEntry{},
 		lock:       &sync.Mutex{},
 	}
-	reporter := func(ticketId string, status int, failureReason int, result []byte, errs []error) error {
+	reporter := func(ticketId status.Ticket, status status.StatusCode, failureReason status.FailReasonCode, result []byte, errs []error) error {
 		if !success {
 			return responseReporterError
 		}
@@ -177,9 +177,9 @@ func TestRequestWhileNotRunning(t *testing.T) {
 	}
 
 	if len(reg.ticketLogs[ticketId]) != 2 ||
-		reg.ticketLogs[ticketId][0].status != QueuedStatus ||
-		reg.ticketLogs[ticketId][1].status != FailedStatus ||
-		reg.ticketLogs[ticketId][1].failureReason != RejectedReason {
+		reg.ticketLogs[ticketId][0].status != status.QueuedStatus ||
+		reg.ticketLogs[ticketId][1].status != status.FailedStatus ||
+		reg.ticketLogs[ticketId][1].failureReason != status.RejectedReason {
 		t.Error("Status for ticket number should be updated if failing when server is down.")
 	}
 }
@@ -212,10 +212,10 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	ShutdownServer()
 
 	if len(reg.ticketLogs[ticketId]) != 3 ||
-		reg.ticketLogs[ticketId][0].status != QueuedStatus ||
-		reg.ticketLogs[ticketId][1].status != RunningStatus ||
-		reg.ticketLogs[ticketId][2].status != FailedStatus ||
-		reg.ticketLogs[ticketId][2].failureReason != RejectedReason ||
+		reg.ticketLogs[ticketId][0].status != status.QueuedStatus ||
+		reg.ticketLogs[ticketId][1].status != status.RunningStatus ||
+		reg.ticketLogs[ticketId][2].status != status.FailedStatus ||
+		reg.ticketLogs[ticketId][2].failureReason != status.RejectedReason ||
 		!reflect.DeepEqual(reg.ticketLogs[ticketId][2].errors, []error{requestError}) {
 		t.Error("Request should run but fail, and statuses should be reported correctly when request is rejected.")
 	}
@@ -239,10 +239,10 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	ShutdownServer()
 
 	if len(reg.ticketLogs[ticketId]) != 3 ||
-		reg.ticketLogs[ticketId][0].status != QueuedStatus ||
-		reg.ticketLogs[ticketId][1].status != RunningStatus ||
-		reg.ticketLogs[ticketId][2].status != FailedStatus ||
-		reg.ticketLogs[ticketId][2].failureReason != RejectedReason ||
+		reg.ticketLogs[ticketId][0].status != status.QueuedStatus ||
+		reg.ticketLogs[ticketId][1].status != status.RunningStatus ||
+		reg.ticketLogs[ticketId][2].status != status.FailedStatus ||
+		reg.ticketLogs[ticketId][2].failureReason != status.RejectedReason ||
 		!reflect.DeepEqual(reg.ticketLogs[ticketId][2].errors, []error{subsystemChannelClosed}) {
 		t.Error("Request should run but fail, and statuses should be reported correctly when channel closes.")
 	}
@@ -266,10 +266,10 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	ShutdownServer()
 
 	if len(reg.ticketLogs[ticketId]) != 3 ||
-		reg.ticketLogs[ticketId][0].status != QueuedStatus ||
-		reg.ticketLogs[ticketId][1].status != RunningStatus ||
-		reg.ticketLogs[ticketId][2].status != FailedStatus ||
-		reg.ticketLogs[ticketId][2].failureReason != FailedReason ||
+		reg.ticketLogs[ticketId][0].status != status.QueuedStatus ||
+		reg.ticketLogs[ticketId][1].status != status.RunningStatus ||
+		reg.ticketLogs[ticketId][2].status != status.FailedStatus ||
+		reg.ticketLogs[ticketId][2].failureReason != status.FailedReason ||
 		reg.ticketLogs[ticketId][2].errors != nil {
 		t.Error("Request should run but fail, and statuses should be reported correctly when the request failed.")
 	}
@@ -293,9 +293,9 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	ShutdownServer()
 
 	if len(reg.ticketLogs[ticketId]) != 3 ||
-		reg.ticketLogs[ticketId][0].status != QueuedStatus ||
-		reg.ticketLogs[ticketId][1].status != RunningStatus ||
-		reg.ticketLogs[ticketId][2].status != SuccessStatus {
+		reg.ticketLogs[ticketId][0].status != status.QueuedStatus ||
+		reg.ticketLogs[ticketId][1].status != status.RunningStatus ||
+		reg.ticketLogs[ticketId][2].status != status.SuccessStatus {
 		t.Error("Request should succeed.")
 	}
 

@@ -1,47 +1,31 @@
 package executor
 
+import (
+	"github.com/mngharbi/DMPC/status"
+)
+
 /*
 	Request types
 */
-
 const (
 	UsersRequest = iota
 )
 
 /*
-	Aliases for statuses
-*/
-
-const (
-	QueuedStatus = iota
-	RunningStatus
-	SuccessStatus
-	FailedStatus
-)
-
-const (
-	NoReason = iota
-	RejectedReason
-	FailedReason
-)
-
-/*
 	Internal request structure
 */
-
 type executorRequest struct {
 	isVerified  bool
 	requestType int
 	issuerId    string
 	certifierId string
-	ticket      string
+	ticket      status.Ticket
 	request     []byte
 }
 
 /*
 	Utilities
 */
-
 func isValidRequestType(requestType int) bool {
 	return UsersRequest <= requestType && requestType <= UsersRequest
 }
