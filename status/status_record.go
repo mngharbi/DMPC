@@ -125,8 +125,7 @@ func (current *StatusRecord) update(updated *StatusRecord) bool {
 
 func (rec *StatusRecord) createOrGet(mem *memstore.Memstore) *StatusRecord {
 	rec.lock = &sync.RWMutex{}
-	currentRecordItem := mem.AddOrGet(rec)
-	return currentRecordItem.(*StatusRecord)
+	return mem.AddOrGet(rec).(*StatusRecord)
 }
 
 func (rec *StatusRecord) isDone() bool {
