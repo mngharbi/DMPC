@@ -8,6 +8,14 @@ import (
 type UpdateChannel chan *StatusRecord
 
 /*
+	Structure of listening request
+*/
+type listeningRequest struct {
+	ticket  Ticket
+	channel UpdateChannel
+}
+
+/*
 	Structure storing channels for tickets
 	that don't have a status record yet
 */

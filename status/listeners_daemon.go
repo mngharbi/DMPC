@@ -3,7 +3,13 @@ package status
 import (
 	"github.com/mngharbi/gofarm"
 	"github.com/mngharbi/memstore"
+	"sync"
 )
+
+/*
+	Server defaults
+*/
+const DefaultChannelBufferSize = 3
 
 /*
 	Server API
@@ -34,6 +40,22 @@ func ShutdownListenersServer() {
 	listenersServerHandler.ShutdownServer()
 }
 
+func AddListener(ticket Ticket) (UpdateChannel, error) {
+	// Pass request to server to add it
+	listeningRequest := &listeningRequest{
+		ticket:  ticket,
+		channel: make(UpdateChannel, DefaultChannelBufferSize),
+	}
+
+	_, err := listenersServerHandler.MakeRequest(listeningRequest)
+	if err != nil {
+		close(listeningRequest.channel)
+		return listeningRequest.channel, err
+	}
+
+	return listeningRequest.channel, nil
+}
+
 /*
 	Server implementation
 */
@@ -58,6 +80,20 @@ func (sv *listenersServer) Start(_ gofarm.Config, isFirstStart bool) error {
 
 func (sv *listenersServer) Shutdown() error { return nil }
 
-func (sv *listenersServer) Work(rq *gofarm.Request) *gofarm.Response {
-	return nil
+func (sv *listenersServer) Work(rq *gofarm.Request) (dummyReturnVal *gofarm.Response) {
+	dummyReturnVal = nil
+	listeningRequest := (*rq).(*listeningRequest)
+
+	// Read/Create and read lock status record
+	newStatusRecord := makeStatusEmptyRecord(listeningRequest.ticket)
+	newStatusRecord.lock = &sync.RWMutex{}
+	currentStatusRecord := newStatusRecord.createOrGet(statusStore)
+	currentStatusRecord.RLock()
+
+	// Read record again (for race conditions)
+	currentStatusRecord = statusStore.Get(currentStatusRecord, statusMemstoreId).(*StatusRecord)
+
+	currentStatusRecord.RUnlock()
+
+	return
 }

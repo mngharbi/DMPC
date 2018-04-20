@@ -3,7 +3,6 @@ package status
 import (
 	"github.com/mngharbi/gofarm"
 	"github.com/mngharbi/memstore"
-	"sync"
 )
 
 /*
@@ -123,10 +122,8 @@ func (sv *statusServer) Work(rq *gofarm.Request) (dummyReturnVal *gofarm.Respons
 
 	changedRecord := (*rq).(*StatusRecord)
 
-	// Create and/or write lock record
-	changedRecord.lock = &sync.RWMutex{}
-	currentRecordItem := statusStore.AddOrGet(changedRecord)
-	currentRecord := currentRecordItem.(*StatusRecord)
+	// Read/Create and write lock status record
+	currentRecord := changedRecord.createOrGet(statusStore)
 	currentRecord.Lock()
 
 	doStatusUpdate(currentRecord, changedRecord)

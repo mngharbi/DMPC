@@ -2,6 +2,7 @@ package status
 
 import (
 	"errors"
+	"github.com/mngharbi/memstore"
 	"sync"
 )
 
@@ -122,18 +123,17 @@ func (current *StatusRecord) update(updated *StatusRecord) bool {
 	return true
 }
 
+func (rec *StatusRecord) createOrGet(mem *memstore.Memstore) *StatusRecord {
+	rec.lock = &sync.RWMutex{}
+	currentRecordItem := mem.AddOrGet(rec)
+	return currentRecordItem.(*StatusRecord)
+}
+
 func (rec *StatusRecord) isDone() bool {
 	return rec.Status >= SuccessStatus
 }
 
 func makeStatusEmptyRecord(id Ticket) *StatusRecord {
-	return &StatusRecord{
-		Id:   id,
-		lock: &sync.RWMutex{},
-	}
-}
-
-func makeStatusSearchRecord(id Ticket) *StatusRecord {
 	return &StatusRecord{
 		Id: id,
 	}
