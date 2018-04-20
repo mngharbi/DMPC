@@ -83,19 +83,12 @@ func (sv *statusServer) Start(_ gofarm.Config, isFirstStart bool) error {
 
 func (sv *statusServer) Shutdown() error { return nil }
 
-func (sv *statusServer) Work(rq *gofarm.Request) (dummyReturnVal *gofarm.Response) {
-	dummyReturnVal = nil
-
-	changedRecord := (*rq).(*StatusRecord)
-
-	// Create and/or write lock record
-	changedRecord.lock = &sync.RWMutex{}
-	currentRecordItem := statusStore.AddOrGet(changedRecord)
-	currentRecord := currentRecordItem.(*StatusRecord)
-	currentRecord.Lock()
-
+func doStatusUpdate(currentRecord *StatusRecord, changedRecord *StatusRecord) {
 	// Update record
-	currentRecord.update(changedRecord)
+	recordChanged := currentRecord.update(changedRecord)
+	if !recordChanged {
+		return
+	}
 
 	/*
 		Get listeners record
@@ -123,6 +116,22 @@ func (sv *statusServer) Work(rq *gofarm.Request) (dummyReturnVal *gofarm.Respons
 		listenersRecord.lock = nil
 		statusStore.Delete(currentRecord, statusMemstoreId)
 	}
+}
+
+func (sv *statusServer) Work(rq *gofarm.Request) (dummyReturnVal *gofarm.Response) {
+	dummyReturnVal = nil
+
+	changedRecord := (*rq).(*StatusRecord)
+
+	// Create and/or write lock record
+	changedRecord.lock = &sync.RWMutex{}
+	currentRecordItem := statusStore.AddOrGet(changedRecord)
+	currentRecord := currentRecordItem.(*StatusRecord)
+	currentRecord.Lock()
+
+	doStatusUpdate(currentRecord, changedRecord)
+
+	currentRecord.Unlock()
 
 	return
 }

@@ -109,11 +109,17 @@ func (rec *StatusRecord) checkAndSanitize() error {
 	return nil
 }
 
-func (current *StatusRecord) update(updated *StatusRecord) {
+func (current *StatusRecord) update(updated *StatusRecord) bool {
+	// Don't apply any stale updates
+	if current.Status >= updated.Status {
+		return false
+	}
+
 	current.Status = updated.Status
 	current.FailReason = updated.FailReason
 	current.Payload = updated.Payload
 	current.Errs = updated.Errs
+	return true
 }
 
 func (rec *StatusRecord) isDone() bool {
