@@ -126,6 +126,9 @@ func (sv *statusServer) Work(rq *gofarm.Request) (dummyReturnVal *gofarm.Respons
 	currentRecord := changedRecord.createOrGet(statusStore)
 	currentRecord.Lock()
 
+	// Read status record again (avoids race conditions)
+	currentRecord = statusStore.Get(currentRecord, statusMemstoreId).(*StatusRecord)
+
 	doStatusUpdate(currentRecord, changedRecord)
 
 	currentRecord.Unlock()
