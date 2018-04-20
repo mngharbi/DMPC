@@ -67,9 +67,13 @@ func (rec *StatusRecord) RUnlock() {
 	rec.lock.RUnlock()
 }
 
-// Indexes used to store status
+// Index used to store status
+const (
+	statusMemstoreId string = "id"
+)
+
 var statusIndexesMap map[string]bool = map[string]bool{
-	"id": true,
+	statusMemstoreId: true,
 }
 
 func getStatusIndexes() (res []string) {
@@ -82,7 +86,7 @@ func getStatusIndexes() (res []string) {
 // Comparison function for status records (required for memstore)
 func (rec *StatusRecord) Less(index string, than interface{}) bool {
 	switch index {
-	case "id":
+	case statusMemstoreId:
 		return rec.Id < than.(*StatusRecord).Id
 	}
 	return false
@@ -103,6 +107,17 @@ func (rec *StatusRecord) checkAndSanitize() error {
 	}
 
 	return nil
+}
+
+func (current *StatusRecord) update(updated *StatusRecord) {
+	current.Status = updated.Status
+	current.FailReason = updated.FailReason
+	current.Payload = updated.Payload
+	current.Errs = updated.Errs
+}
+
+func (rec *StatusRecord) isDone() bool {
+	return rec.Status >= SuccessStatus
 }
 
 func makeStatusEmptyRecord(id Ticket) *StatusRecord {

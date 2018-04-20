@@ -3,6 +3,7 @@ package status
 import (
 	"github.com/mngharbi/gofarm"
 	"github.com/mngharbi/memstore"
+	"sync"
 )
 
 /*
@@ -64,22 +65,64 @@ func UpdateStatus(ticket Ticket, status StatusCode, failReason FailReasonCode, p
 
 type statusServer struct {
 	isInitialized bool
-	store         *memstore.Memstore
 }
 
 var (
 	statusServerSingleton statusServer
 	statusServerHandler   *gofarm.ServerHandler
+	statusStore           *memstore.Memstore
 )
 
 func (sv *statusServer) Start(_ gofarm.Config, isFirstStart bool) error {
 	// Initialize store (only if starting for the first time)
 	if isFirstStart {
-		sv.store = memstore.New(getStatusIndexes())
+		statusStore = memstore.New(getStatusIndexes())
 	}
 	return nil
 }
 
 func (sv *statusServer) Shutdown() error { return nil }
 
-func (sv *statusServer) Work(_ *gofarm.Request) *gofarm.Response { return nil }
+func (sv *statusServer) Work(rq *gofarm.Request) (dummyReturnVal *gofarm.Response) {
+	dummyReturnVal = nil
+
+	changedRecord := (*rq).(*StatusRecord)
+
+	// Create and/or write lock record
+	changedRecord.lock = &sync.RWMutex{}
+	currentRecordItem := statusStore.AddOrGet(changedRecord)
+	currentRecord := currentRecordItem.(*StatusRecord)
+	currentRecord.Lock()
+
+	// Update record
+	currentRecord.update(changedRecord)
+
+	/*
+		Get listeners record
+
+		Note: listeners record is implicitly locked
+		because adding listeners takes a read lock on the status record
+	*/
+	listenersRecordItem := listenersStore.Get(makeListenersSearchRecord(currentRecord.Id), statusMemstoreId)
+	if listenersRecordItem == nil {
+		return
+	}
+	listenersRecord := listenersRecordItem.(*listenersRecord)
+
+	// Send update to all listners
+	for _, updateChannel := range listenersRecord.channels {
+		updateChannel <- currentRecord
+	}
+
+	// If final update, close all listener channels and delete listener record
+	if currentRecord.isDone() {
+		for _, updateChannel := range listenersRecord.channels {
+			close(updateChannel)
+		}
+		listenersRecord.channels = nil
+		listenersRecord.lock = nil
+		statusStore.Delete(currentRecord, statusMemstoreId)
+	}
+
+	return
+}
