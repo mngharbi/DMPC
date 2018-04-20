@@ -65,16 +65,10 @@ func (rec *listenersRecord) Less(index string, than interface{}) bool {
 	return false
 }
 
-func makeListenersEmptyRecord(id Ticket) *listenersRecord {
+func makeEmptyListenersRecord(id Ticket) *listenersRecord {
 	return &listenersRecord{
 		id:       id,
 		channels: []UpdateChannel{},
 		lock:     &sync.Mutex{},
-	}
-}
-
-func makeListenersSearchRecord(id Ticket) *listenersRecord {
-	return &listenersRecord{
-		id: id,
 	}
 }

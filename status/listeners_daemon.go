@@ -80,18 +80,42 @@ func (sv *listenersServer) Start(_ gofarm.Config, isFirstStart bool) error {
 
 func (sv *listenersServer) Shutdown() error { return nil }
 
+func doListenerServerWork(statusRecord *StatusRecord, channel UpdateChannel) {
+	// If status is done, we only need to put the last status
+	if statusRecord.isDone() {
+		channel <- statusRecord
+		close(channel)
+		return
+	}
+
+	// Read/Create and lock listeners record
+	newListenersRecord := makeEmptyListenersRecord(statusRecord.Id)
+	newListenersRecord.lock = &sync.Mutex{}
+	listenersRecordObj := listenersStore.AddOrGet(newListenersRecord).(*listenersRecord)
+	listenersRecordObj.Lock()
+
+	// Read listeners record again
+	listenersRecordObj = listenersStore.Get(listenersRecordObj, listenersMemstoreId).(*listenersRecord)
+
+	// Add channel to listeners
+	listenersRecordObj.channels = append(listenersRecordObj.channels, channel)
+
+	listenersRecordObj.Unlock()
+}
+
 func (sv *listenersServer) Work(rq *gofarm.Request) (dummyReturnVal *gofarm.Response) {
 	dummyReturnVal = nil
 	listeningRequest := (*rq).(*listeningRequest)
 
 	// Read/Create and read lock status record
 	newStatusRecord := makeStatusEmptyRecord(listeningRequest.ticket)
-	newStatusRecord.lock = &sync.RWMutex{}
 	currentStatusRecord := newStatusRecord.createOrGet(statusStore)
 	currentStatusRecord.RLock()
 
-	// Read record again (for race conditions)
+	// Read record again (avoids race conditions)
 	currentStatusRecord = statusStore.Get(currentStatusRecord, statusMemstoreId).(*StatusRecord)
+
+	doListenerServerWork(currentStatusRecord, listeningRequest.channel)
 
 	currentStatusRecord.RUnlock()
 

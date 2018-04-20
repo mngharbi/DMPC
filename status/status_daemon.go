@@ -95,7 +95,7 @@ func doStatusUpdate(currentRecord *StatusRecord, changedRecord *StatusRecord) {
 		Note: listeners record is implicitly locked
 		because adding listeners takes a read lock on the status record
 	*/
-	listenersRecordItem := listenersStore.Get(makeListenersSearchRecord(currentRecord.Id), statusMemstoreId)
+	listenersRecordItem := listenersStore.Get(makeEmptyListenersRecord(currentRecord.Id), statusMemstoreId)
 	if listenersRecordItem == nil {
 		return
 	}
