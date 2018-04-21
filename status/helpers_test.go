@@ -46,6 +46,7 @@ func multipleWorkersListenersConfig() ListenersServerConfig {
 }
 
 func resetAndStartBothServers(t *testing.T, statusConf StatusServerConfig, listenersConf ListenersServerConfig) bool {
+	serversStartWaitGroup = sync.WaitGroup{}
 	statusServerSingleton = statusServer{}
 	listenersServerSingleton = listenersServer{}
 	err := StartServers(statusConf, listenersConf)
