@@ -23,3 +23,19 @@ func multipleWorkersStatusConfig() StatusServerConfig {
 		NumWorkers: 6,
 	}
 }
+
+func resetAndStartListenersServer(t *testing.T, conf ListenersServerConfig) bool {
+	listenersServerSingleton = listenersServer{}
+	err := StartListenersServer(conf)
+	if err != nil {
+		t.Errorf(err.Error())
+		return false
+	}
+	return true
+}
+
+func multipleWorkersListenersConfig() ListenersServerConfig {
+	return ListenersServerConfig{
+		NumWorkers: 6,
+	}
+}
