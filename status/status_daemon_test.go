@@ -22,3 +22,10 @@ func TestInvalidStatusUpdate(t *testing.T) {
 		t.Errorf("Request with invalid failure code should fail. err=%v", err)
 	}
 }
+
+func TestStatusUpdateServerDown(t *testing.T) {
+	err := UpdateStatus(RequestNewTicket(), QueuedStatus, NoReason, nil, nil)
+	if err == nil {
+		t.Errorf("Request while server is down fails.")
+	}
+}
