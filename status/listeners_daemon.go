@@ -25,14 +25,16 @@ func provisionListenersServerOnce() {
 	}
 }
 
-func StartListenersServer(conf ListenersServerConfig) error {
+func StartListenersServer(conf ListenersServerConfig) (err error) {
 	provisionListenersServerOnce()
 	if !listenersServerSingleton.isInitialized {
 		listenersServerSingleton.isInitialized = true
 		listenersServerHandler.ResetServer()
 		listenersServerHandler.InitServer(&listenersServerSingleton)
 	}
-	return listenersServerHandler.StartServer(gofarm.Config{NumWorkers: conf.NumWorkers})
+	err = listenersServerHandler.StartServer(gofarm.Config{NumWorkers: conf.NumWorkers})
+	serversStartWaitGroup.Done()
+	return
 }
 
 func ShutdownListenersServer() {

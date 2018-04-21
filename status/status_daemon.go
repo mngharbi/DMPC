@@ -19,14 +19,16 @@ func provisionStatusServerOnce() {
 	}
 }
 
-func StartStatusServer(conf StatusServerConfig) error {
+func StartStatusServer(conf StatusServerConfig) (err error) {
 	provisionStatusServerOnce()
 	if !statusServerSingleton.isInitialized {
 		statusServerSingleton.isInitialized = true
 		statusServerHandler.ResetServer()
 		statusServerHandler.InitServer(&statusServerSingleton)
 	}
-	return statusServerHandler.StartServer(gofarm.Config{NumWorkers: conf.NumWorkers})
+	err = statusServerHandler.StartServer(gofarm.Config{NumWorkers: conf.NumWorkers})
+	serversStartWaitGroup.Done()
+	return
 }
 
 func ShutdownStatusServer() {
