@@ -46,14 +46,12 @@ func UpdateStatus(ticket Ticket, status StatusCode, failReason FailReasonCode, p
 	}
 
 	// Check record
-	err := statusRecord.checkAndSanitize()
-	if err != nil {
+	if err := statusRecord.check(); err != nil {
 		return err
 	}
 
 	// Make request to server
-	_, err = statusServerHandler.MakeRequest(statusRecord)
-	if err != nil {
+	if _, err := statusServerHandler.MakeRequest(statusRecord); err != nil {
 		return err
 	}
 

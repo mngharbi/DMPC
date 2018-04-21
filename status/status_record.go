@@ -96,14 +96,14 @@ func (rec *StatusRecord) Less(index string, than interface{}) bool {
 /*
 	Utilities
 */
-func (rec *StatusRecord) checkAndSanitize() error {
+func (rec *StatusRecord) check() error {
 	// Check status bounds
-	if !(rec.Status <= QueuedStatus && rec.Status <= FailedStatus) {
+	if !(QueuedStatus <= rec.Status && rec.Status <= FailedStatus) {
 		return statusRangeError
 	}
 
 	// Check fail reasons bounds
-	if !(rec.FailReason <= NoReason && rec.FailReason <= FailedReason) {
+	if !(NoReason <= rec.FailReason && rec.FailReason <= FailedReason) {
 		return failedRangeError
 	}
 
