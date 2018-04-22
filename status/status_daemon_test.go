@@ -8,7 +8,7 @@ func TestStatusStartShutdown(t *testing.T) {
 	if !resetAndStartStatusServer(t, multipleWorkersStatusConfig()) {
 		return
 	}
-	ShutdownStatusServer()
+	shutdownStatusServer()
 }
 
 func TestInvalidStatusUpdate(t *testing.T) {

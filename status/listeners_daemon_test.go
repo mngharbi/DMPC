@@ -8,7 +8,7 @@ func TestListenersStartShutdownMultipleWorker(t *testing.T) {
 	if !resetAndStartListenersServer(t, multipleWorkersListenersConfig()) {
 		return
 	}
-	ShutdownListenersServer()
+	shutdownListenersServer()
 }
 
 func TestAddListenerServerDown(t *testing.T) {
@@ -18,7 +18,7 @@ func TestAddListenerServerDown(t *testing.T) {
 		return
 	}
 
-	_, isOpen := <- ch
+	_, isOpen := <-ch
 	if isOpen {
 		t.Errorf("Add listener while listeners server is down should close channel.")
 	}

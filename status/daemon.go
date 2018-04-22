@@ -14,11 +14,11 @@ var (
 
 func StartServers(statusConf StatusServerConfig, listenersConf ListenersServerConfig) error {
 	serversStartWaitGroup.Add(2)
-	if err := StartStatusServer(statusConf); err != nil {
+	if err := startStatusServer(statusConf); err != nil {
 		serversStartWaitGroup = sync.WaitGroup{}
 		return err
 	}
-	if err := StartListenersServer(listenersConf); err != nil {
+	if err := startListenersServer(listenersConf); err != nil {
 		serversStartWaitGroup = sync.WaitGroup{}
 		return err
 	}
@@ -27,6 +27,6 @@ func StartServers(statusConf StatusServerConfig, listenersConf ListenersServerCo
 }
 
 func ShutdownServers() {
-	ShutdownStatusServer()
-	ShutdownListenersServer()
+	shutdownStatusServer()
+	shutdownListenersServer()
 }

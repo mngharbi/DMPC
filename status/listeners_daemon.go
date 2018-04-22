@@ -25,7 +25,7 @@ func provisionListenersServerOnce() {
 	}
 }
 
-func StartListenersServer(conf ListenersServerConfig) (err error) {
+func startListenersServer(conf ListenersServerConfig) (err error) {
 	provisionListenersServerOnce()
 	if !listenersServerSingleton.isInitialized {
 		listenersServerSingleton.isInitialized = true
@@ -37,7 +37,7 @@ func StartListenersServer(conf ListenersServerConfig) (err error) {
 	return
 }
 
-func ShutdownListenersServer() {
+func shutdownListenersServer() {
 	provisionListenersServerOnce()
 	listenersServerHandler.ShutdownServer()
 }

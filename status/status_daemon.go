@@ -19,7 +19,7 @@ func provisionStatusServerOnce() {
 	}
 }
 
-func StartStatusServer(conf StatusServerConfig) (err error) {
+func startStatusServer(conf StatusServerConfig) (err error) {
 	provisionStatusServerOnce()
 	if !statusServerSingleton.isInitialized {
 		statusServerSingleton.isInitialized = true
@@ -31,7 +31,7 @@ func StartStatusServer(conf StatusServerConfig) (err error) {
 	return
 }
 
-func ShutdownStatusServer() {
+func shutdownStatusServer() {
 	provisionStatusServerOnce()
 	statusServerHandler.ShutdownServer()
 }
