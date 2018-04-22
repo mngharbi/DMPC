@@ -6,6 +6,7 @@
 package status
 
 import (
+	"sync"
 	"testing"
 )
 
@@ -121,7 +122,7 @@ func TestFinalUpdate(t *testing.T) {
 		return
 	}
 	ticket := RequestNewTicket()
-	numListeners := 2
+	numListeners := 100
 	channels := []UpdateChannel{}
 	for i := 0; i < numListeners; i++ {
 		channel, _ := AddListener(ticket)
@@ -173,4 +174,93 @@ func TestFinalUpdate(t *testing.T) {
 		t.Errorf("After final update, new listeners channels should be closed immediately")
 	}
 	ShutdownServers()
+}
+
+func TestConcurrentUpdates(t *testing.T) {
+	if !resetAndStartBothServers(t, multipleWorkersStatusConfig(), multipleWorkersListenersConfig(), false) {
+		return
+	}
+	group := sync.WaitGroup{}
+	numTickets := 10
+	numListeners := 100
+	numListenersTotal := numTickets * numListeners
+	numStatusUpdates := numTickets * (SuccessStatus - QueuedStatus + 1)
+	group.Add(numListenersTotal + numStatusUpdates)
+
+	// Generate tickets
+	tickets := []Ticket{}
+	for i := 0; i < numTickets; i++ {
+		tickets = append(tickets, RequestNewTicket())
+	}
+
+	// Generate all possible status updates
+	statusUpdates := []*StatusRecord{}
+	for _, ticket := range tickets {
+		for status := QueuedStatus; status <= SuccessStatus; status++ {
+			statusCode := StatusCode(status)
+			statusUpdates = append(statusUpdates, &StatusRecord{
+				Id:         ticket,
+				Status:     statusCode,
+				FailReason: NoReason,
+				Payload:    nil,
+				Errs:       nil,
+			})
+		}
+	}
+	shuffleStatusRecords(statusUpdates)
+
+	// Add listeners concurrently
+	channelsLock := &sync.Mutex{}
+	channels := []UpdateChannel{}
+	go (func() {
+		for i := 0; i < numListeners; i++ {
+			for ticketIndex := 0; ticketIndex < numTickets; ticketIndex++ {
+				ticket := tickets[ticketIndex]
+				go (func() {
+					waitForRandomDuration()
+					channel, _ := AddListener(ticket)
+					channelsLock.Lock()
+					channels = append(channels, channel)
+					channelsLock.Unlock()
+					group.Done()
+				})()
+			}
+		}
+	})()
+
+	// Make status updates concurrently
+	for updateIndex, _ := range statusUpdates {
+		updateCached := statusUpdates[updateIndex]
+		go (func() {
+			waitForRandomDuration()
+			_ = UpdateStatus(updateCached.Id, updateCached.Status, updateCached.FailReason, updateCached.Payload, updateCached.Errs)
+			group.Done()
+		})()
+	}
+
+	group.Wait()
+
+	ShutdownServers()
+
+	if len(channels) != numListenersTotal {
+		t.Errorf("Total number of channels doesn't match listeners.")
+	}
+	if len(statusUpdates) != numStatusUpdates {
+		t.Errorf("Total number of status updates doesn't match expected number.")
+	}
+	if listenersStore.Len() != 0 {
+		t.Errorf("All listeners records should be deleted after final update.")
+	}
+	if statusStore.Len() != numTickets {
+		t.Errorf("There should be as many status records as tickets.")
+	}
+	for _, channel := range channels {
+		var lastUpdate *StatusRecord
+		for update := range channel {
+			lastUpdate = update
+		}
+		if lastUpdate.Status != SuccessStatus {
+			t.Errorf("Final update should always be sent to listener channel.")
+		}
+	}
 }

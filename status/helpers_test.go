@@ -5,9 +5,24 @@
 package status
 
 import (
+	"math/rand"
 	"sync"
 	"testing"
+	"time"
 )
+
+func waitForRandomDuration() {
+	duration := time.Duration(rand.Intn(100)) * time.Millisecond
+	timer := time.NewTimer(duration)
+	<-timer.C
+}
+
+func shuffleStatusRecords(src []*StatusRecord) {
+	for i := range src {
+		j := rand.Intn(i + 1)
+		src[i], src[j] = src[j], src[i]
+	}
+}
 
 func startStatusServerAndTest(t *testing.T, conf StatusServerConfig) bool {
 	serversStartWaitGroup = sync.WaitGroup{}
