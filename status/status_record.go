@@ -3,6 +3,7 @@ package status
 import (
 	"errors"
 	"github.com/mngharbi/memstore"
+	"reflect"
 	"sync"
 )
 
@@ -20,7 +21,8 @@ var (
 type StatusCode int
 
 const (
-	QueuedStatus = iota
+	NoStatus = iota
+	QueuedStatus
 	RunningStatus
 	SuccessStatus
 	FailedStatus
@@ -121,6 +123,14 @@ func (current *StatusRecord) update(updated *StatusRecord) bool {
 	current.Payload = updated.Payload
 	current.Errs = updated.Errs
 	return true
+}
+
+func (a *StatusRecord) isSame(b *StatusRecord) bool {
+	return a.Id == b.Id &&
+		a.Status == b.Status &&
+		a.FailReason == b.FailReason &&
+		reflect.DeepEqual(a.Payload, b.Payload) &&
+		reflect.DeepEqual(a.Errs, b.Errs)
 }
 
 func (rec *StatusRecord) createOrGet(mem *memstore.Memstore) *StatusRecord {

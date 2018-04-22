@@ -95,7 +95,7 @@ func doStatusUpdate(currentRecord *StatusRecord, changedRecord *StatusRecord) {
 		Note: listeners record is implicitly locked
 		because adding listeners takes a read lock on the status record
 	*/
-	listenersRecordItem := listenersStore.Get(makeEmptyListenersRecord(currentRecord.Id), statusMemstoreId)
+	listenersRecordItem := listenersStore.Get(makeEmptyListenersRecord(currentRecord.Id), listenersMemstoreId)
 	if listenersRecordItem == nil {
 		return
 	}
@@ -113,7 +113,7 @@ func doStatusUpdate(currentRecord *StatusRecord, changedRecord *StatusRecord) {
 		}
 		listenersRecord.channels = nil
 		listenersRecord.lock = nil
-		statusStore.Delete(currentRecord, statusMemstoreId)
+		listenersStore.Delete(listenersRecord, listenersMemstoreId)
 	}
 }
 
