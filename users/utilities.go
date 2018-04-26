@@ -12,8 +12,8 @@ import (
 // Make a user object from a user record
 func (usr *UserObject) createFromRecord(rec *userRecord) {
 	usr.Id = rec.Id
-	usr.EncKey = core.AsymKeyToString(&rec.EncKey.Key)
-	usr.SignKey = core.AsymKeyToString(&rec.SignKey.Key)
+	usr.EncKey = core.PublicAsymKeyToString(&rec.EncKey.Key)
+	usr.SignKey = core.PublicAsymKeyToString(&rec.SignKey.Key)
 	usr.Permissions.Channel.Add = rec.Permissions.Channel.Add.Ok
 	usr.Permissions.User.Add = rec.Permissions.User.Add.Ok
 	usr.Permissions.User.Remove = rec.Permissions.User.Remove.Ok
