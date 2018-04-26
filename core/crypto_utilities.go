@@ -19,13 +19,14 @@ func generateRandomBytes(nbBytes int) (bytes []byte) {
 	return
 }
 
-func AsymKeyToString(key *rsa.PublicKey) string {
-	// Break into bytes
-	keyBytes, _ := x509.MarshalPKIXPublicKey(key)
 
-	// Build pem block containing public key
+/*
+	Key encoding
+*/
+func pemEncodeBlock(keyBytes []byte, typeString string) string {
+	// Build pem block containing key
 	block := &pem.Block{
-		Type:  "RSA PUBLIC KEY",
+		Type:  typeString,
 		Bytes: keyBytes,
 	}
 
@@ -37,7 +38,15 @@ func AsymKeyToString(key *rsa.PublicKey) string {
 	return string(pem.EncodeToMemory(block))
 }
 
-func StringToAsymKey(rsaString string) (*rsa.PublicKey, error) {
+func PublicAsymKeyToString(key *rsa.PublicKey) string {
+	// Break into bytes
+	keyBytes, _ := x509.MarshalPKIXPublicKey(key)
+
+	// Encode block
+	return pemEncodeBlock(keyBytes, "RSA PUBLIC KEY")
+}
+
+func PublicStringToAsymKey(rsaString string) (*rsa.PublicKey, error) {
 	block, _ := pem.Decode([]byte(rsaString))
 	if block == nil {
 		return nil, errors.New("failed to parse PEM block containing the public key")
@@ -56,6 +65,30 @@ func StringToAsymKey(rsaString string) (*rsa.PublicKey, error) {
 	}
 }
 
+func PrivateAsymKeyToString(key *rsa.PrivateKey) string {
+	// Break into bytes
+	keyBytes := x509.MarshalPKCS1PrivateKey(key)
+
+	// Encode block
+	return pemEncodeBlock(keyBytes, "RSA PRIVATE KEY")
+}
+
+func PrivateStringToAsymKey(rsaString string) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode([]byte(rsaString))
+	if block == nil {
+		return nil, errors.New("failed to parse PEM block containing the public key")
+	}
+
+	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, errors.New("failed to parse PKCS1 encoded private key: " + err.Error())
+	}
+	return priv, nil
+}
+
+/*
+	Key generation
+*/
 func GeneratePrivateKey() *rsa.PrivateKey {
 	priv, _ := rsa.GenerateKey(rand.Reader, AsymmetricKeySizeBits)
 	return priv
@@ -143,6 +176,9 @@ func GenerateTemporaryEncryptedOperationWithEncryption(
 	), recipientKey
 }
 
+/*
+	Encrypted Operation(s) generation
+*/
 func GeneratePermanentEncryptedOperation(
 	encrypted bool,
 	keyId string,
