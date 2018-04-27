@@ -59,28 +59,28 @@ func Fatalf(format string, v ...interface{}) {
 }
 
 func Errorf(format string, v ...interface{}) {
-    if logLevel >= ERROR {
+    if logLevel < ERROR {
         return
     }
     errorStream.Printf(format, v...)
 }
 
 func Warnf(format string, v ...interface{}) {
-    if logLevel >= WARN {
+    if logLevel < WARN {
         return
     }
     warnStream.Printf(format, v...)
 }
 
 func Infof(format string, v ...interface{}) {
-    if logLevel >= INFO {
+    if logLevel < INFO {
         return
     }
     infoStream.Printf(format, v...)
 }
 
 func Debugf(format string, v ...interface{}) {
-    if logLevel >= DEBUG {
+    if logLevel < DEBUG {
         return
     }
     debugStream.Printf(format, v...)
