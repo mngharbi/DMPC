@@ -54,32 +54,32 @@ type Logger func (format string, v ...interface{})
 /*
     Utilities for logging
 */
-func Fatal(format string, v ...interface{}) {
+func Fatalf(format string, v ...interface{}) {
     fatalStream.Fatalf(format, v...)
 }
 
-func Error(format string, v ...interface{}) {
+func Errorf(format string, v ...interface{}) {
     if logLevel >= ERROR {
         return
     }
     errorStream.Printf(format, v...)
 }
 
-func Warn(format string, v ...interface{}) {
+func Warnf(format string, v ...interface{}) {
     if logLevel >= WARN {
         return
     }
     warnStream.Printf(format, v...)
 }
 
-func Info(format string, v ...interface{}) {
+func Infof(format string, v ...interface{}) {
     if logLevel >= INFO {
         return
     }
     infoStream.Printf(format, v...)
 }
 
-func debug(format string, v ...interface{}) {
+func Debugf(format string, v ...interface{}) {
     if logLevel >= DEBUG {
         return
     }
