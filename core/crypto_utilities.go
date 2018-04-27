@@ -19,7 +19,6 @@ func generateRandomBytes(nbBytes int) (bytes []byte) {
 	return
 }
 
-
 /*
 	Key encoding
 */
