@@ -22,7 +22,7 @@ func resetAndStartServer(
 	executorRequester ExecutorRequester,
 ) bool {
 	serverSingleton = server{}
-	InitializeServer(globalKey, usersSignKeyRequester, keyRequester, executorRequester)
+	InitializeServer(globalKey, usersSignKeyRequester, keyRequester, executorRequester, log)
 	err := StartServer(conf)
 	if err != nil {
 		t.Errorf(err.Error())

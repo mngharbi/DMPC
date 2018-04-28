@@ -8,6 +8,13 @@ import (
 )
 
 /*
+	Logging
+*/
+var (
+	log *core.LoggingHandler
+)
+
+/*
 	Server API
 */
 
@@ -21,9 +28,10 @@ func provisionServerOnce() {
 	}
 }
 
-func StartServer(conf Config) error {
+func StartServer(loggingHandler *core.LoggingHandler, conf Config) error {
 	provisionServerOnce()
 	if !serverSingleton.isInitialized {
+		log = loggingHandler
 		serverSingleton.isInitialized = true
 		serverHandler.ResetServer()
 		serverHandler.InitServer(&serverSingleton)

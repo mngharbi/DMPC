@@ -23,6 +23,13 @@ type KeyRequester func(string) []byte
 type ExecutorRequester func(bool, int, string, string, []byte) string
 
 /*
+	Logging
+*/
+var (
+	log *core.LoggingHandler
+)
+
+/*
 	Server API
 */
 
@@ -37,8 +44,10 @@ func InitializeServer(
 	usersSignKeyRequester UsersSignKeyRequester,
 	keyRequester KeyRequester,
 	executorRequester ExecutorRequester,
+	loggingHandler *core.LoggingHandler,
 ) {
 	provisionServerOnce()
+	log = loggingHandler
 	serverSingleton.globalKey = globalKey
 	serverSingleton.usersSignKeyRequester = usersSignKeyRequester
 	serverSingleton.keyRequester = keyRequester

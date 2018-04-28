@@ -21,7 +21,7 @@ func resetAndStartServer(
 	ticketGenerator TicketGenerator,
 ) bool {
 	serverSingleton = server{}
-	InitializeServer(usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator)
+	InitializeServer(usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator, log)
 	err := StartServer(conf)
 	if err != nil {
 		t.Errorf(err.Error())

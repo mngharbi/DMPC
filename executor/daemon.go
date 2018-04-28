@@ -2,6 +2,7 @@ package executor
 
 import (
 	"errors"
+	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 	"github.com/mngharbi/gofarm"
@@ -30,6 +31,13 @@ type ResponseReporter func(status.Ticket, status.StatusCode, status.FailReasonCo
 type TicketGenerator func() status.Ticket
 
 /*
+	Logging
+*/
+var (
+	log *core.LoggingHandler
+)
+
+/*
 	Server API
 */
 
@@ -44,8 +52,10 @@ func InitializeServer(
 	usersRequesterUnverified UsersRequester,
 	responseReporter ResponseReporter,
 	ticketGenerator TicketGenerator,
+	loggingHandler *core.LoggingHandler,
 ) {
 	provisionServerOnce()
+	log = loggingHandler
 	serverSingleton.usersRequester = usersRequester
 	serverSingleton.usersRequesterUnverified = usersRequesterUnverified
 	serverSingleton.responseReporter = responseReporter
