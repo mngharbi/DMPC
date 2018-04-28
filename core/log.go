@@ -22,8 +22,23 @@ const (
 	DEBUG
 )
 
-func SetLogLevel(newLogLevel LogLevel) {
-	logLevel = newLogLevel
+/*
+	Generates a logging handler
+	with new stdout/stderr streams
+*/
+func InitializeLogging() *LoggingHandler {
+	return &LoggingHandler{
+		logLevel:     FATAL,
+		stderrStream: log.New(os.Stderr, "", log.LstdFlags),
+		stdoutStream: log.New(os.Stdout, "", log.LstdFlags),
+	}
+}
+
+/*
+	Changes log level for a logging handler
+*/
+func (logHandler *LoggingHandler) SetLogLevel(logLevel LogLevel) {
+	logHandler.logLevel = logLevel
 }
 
 /*
@@ -38,53 +53,46 @@ const (
 )
 
 /*
-   Streams
+   Structure that keeps streams
+   used to use the same streams across packages
 */
-var (
-	logLevel    LogLevel
-	fatalStream *log.Logger = log.New(os.Stderr, fatalPrefix, log.LstdFlags)
-	errorStream *log.Logger = log.New(os.Stderr, errorPrefix, log.LstdFlags)
-	warnStream  *log.Logger = log.New(os.Stdout, warnPrefix, log.LstdFlags)
-	infoStream  *log.Logger = log.New(os.Stdout, infoPrefix, log.LstdFlags)
-	debugStream *log.Logger = log.New(os.Stdout, debugPrefix, log.LstdFlags)
-)
-
-/*
-   Log function definition
-*/
-type Logger func(format string, v ...interface{})
+type LoggingHandler struct {
+	logLevel     LogLevel
+	stderrStream *log.Logger
+	stdoutStream *log.Logger
+}
 
 /*
    Utilities for logging
 */
-func Fatalf(format string, v ...interface{}) {
-	fatalStream.Fatalf(format, v...)
+func (logHandler *LoggingHandler) Fatalf(format string, v ...interface{}) {
+	logHandler.stderrStream.Fatalf(fatalPrefix+format, v...)
 }
 
-func Errorf(format string, v ...interface{}) {
-	if logLevel < ERROR {
+func (logHandler *LoggingHandler) Errorf(format string, v ...interface{}) {
+	if logHandler.logLevel < ERROR {
 		return
 	}
-	errorStream.Printf(format, v...)
+	logHandler.stderrStream.Printf(errorPrefix+format, v...)
 }
 
-func Warnf(format string, v ...interface{}) {
-	if logLevel < WARN {
+func (logHandler *LoggingHandler) Warnf(format string, v ...interface{}) {
+	if logHandler.logLevel < WARN {
 		return
 	}
-	warnStream.Printf(format, v...)
+	logHandler.stdoutStream.Printf(warnPrefix+format, v...)
 }
 
-func Infof(format string, v ...interface{}) {
-	if logLevel < INFO {
+func (logHandler *LoggingHandler) Infof(format string, v ...interface{}) {
+	if logHandler.logLevel < INFO {
 		return
 	}
-	infoStream.Printf(format, v...)
+	logHandler.stdoutStream.Printf(infoPrefix+format, v...)
 }
 
-func Debugf(format string, v ...interface{}) {
-	if logLevel < DEBUG {
+func (logHandler *LoggingHandler) Debugf(format string, v ...interface{}) {
+	if logHandler.logLevel < DEBUG {
 		return
 	}
-	debugStream.Printf(format, v...)
+	logHandler.stdoutStream.Printf(debugPrefix+format, v...)
 }
