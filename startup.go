@@ -10,6 +10,13 @@ import (
 )
 
 /*
+	Package wide logging handler
+*/
+var (
+	log *core.LoggingHandler
+)
+
+/*
 	Error messages
 */
 const (
@@ -28,4 +35,24 @@ func checkSetup() {
 	if _, err := os.Stat(getSetupFilename()); err != nil {
 		log.Fatalf(setupError)
 	}
+}
+
+// Main function for startup
+func doSetup() (config *Config) {
+	// Initialize logging
+	log = core.InitializeLogging()
+	log.SetLogLevel(core.DEBUG)
+
+	// Check DMPC was configured
+	log.Debugf("Checking DMPC install configuration")
+	checkSetup()
+
+	// Get configuration structure
+	log.Debugf("Parsing configuration")
+	config = getConfig()
+
+	// Set log level from configuration
+	log.SetLogLevel(config.LogLevel)
+
+	return
 }

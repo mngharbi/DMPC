@@ -1,37 +1,17 @@
 package main
 
-import (
-	"github.com/mngharbi/DMPC/core"
-	"github.com/mngharbi/DMPC/users"
-)
-
-var (
-	log *core.LoggingHandler
-)
-
 func main() {
-	// Initialize logging
-	log = core.InitializeLogging()
-	log.SetLogLevel(core.DEBUG)
+	go shutdownWhenSignaled()
 
-	// Check DMPC was configured
-	log.Debugf("Checking DMPC install configuration")
-	checkSetup()
+	// Parse configuration and setup logging
+	config := doSetup()
 
-	// Get configuration structure
-	log.Debugf("Parsing configuration")
-	config := getConfig()
+	// Build user object from configuration files
+	_ = buildRootUserObject(config)
 
-	// Set log level from configuration
-	log.SetLogLevel(config.LogLevel)
+	// Start all subsystems
+	startDaemons(config)
 
-	// Get root user object from configuration
-	log.Debugf("Parsing root user object from configuration")
-	_ = config.getRootUserObject()
-
-	// Start users subsystem
-	log.Debugf("Starting users subsystem")
-	usersSubsystemConfig := config.getUsersSubsystemConfig()
-	users.StartServer(usersSubsystemConfig)
-
+	// Sleep forever (program is terminated by shutdown goroutine)
+	select {}
 }

@@ -37,7 +37,7 @@ func (config *Config) getRootUserObjectWithoutKeys() (*users.UserObject, error) 
 	return &userObj, nil
 }
 
-func (config *Config) getRootUserObject() *users.UserObject {
+func (config *Config) getRootUserObjectWithKeys() *users.UserObject {
 	// Get user object without keys
 	userObj, err := config.getRootUserObjectWithoutKeys()
 	if err != nil {
@@ -55,4 +55,10 @@ func (config *Config) getRootUserObject() *users.UserObject {
 	}
 
 	return userObj
+}
+
+func buildRootUserObject(config *Config) *users.UserObject {
+	// Get root user object from configuration
+	log.Debugf("Parsing root user object from configuration")
+	return config.getRootUserObjectWithKeys()
 }
