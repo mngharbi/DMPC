@@ -10,3 +10,8 @@ func startDaemons(config *Config) {
 	usersSubsystemConfig := config.getUsersSubsystemConfig()
 	users.StartServer(usersSubsystemConfig)
 }
+
+func shutdownDaemons() {
+	log.Debugf("Shutting down users subsystems")
+	users.ShutdownServer()
+}

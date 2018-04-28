@@ -1,7 +1,7 @@
 package main
 
 /*
-	Startup utilities
+	Shutdown utilities
 */
 
 import (
@@ -37,7 +37,7 @@ const (
 var signalMapping map[os.Signal]TerminationCause = map[os.Signal]TerminationCause{
 	os.Interrupt:    UserInterrupted,
 	syscall.SIGHUP:  SystemTerminated,
-	syscall.SIGINT:  SystemTerminated,
+	syscall.SIGINT:  UserInterrupted,
 	syscall.SIGTERM: SystemTerminated,
 	syscall.SIGQUIT: SystemTerminated,
 }
@@ -82,6 +82,9 @@ func shutdownWhenSignaled() {
 
 	// Wait until signal to terminate is received
 	listenForTermination(terminationChannel)
+
+	// Soft shutdown all subsystems
+	shutdownDaemons()
 
 	// Terminate program
 	os.Exit(1)
