@@ -54,7 +54,7 @@ const (
 func getRootDir() string {
 	usr, err := user.Current()
 	if err != nil {
-		core.Fatalf(err.Error())
+		log.Fatalf(err.Error())
 	}
 	return usr.HomeDir + "/"
 }
@@ -77,7 +77,7 @@ func getConfigFilename() string {
 func getConfig() *Config {
 	raw, err := ioutil.ReadFile(getConfigFilename())
 	if err != nil {
-		core.Fatalf(configurationNotFound)
+		log.Fatalf(configurationNotFound)
 		return nil
 	}
 

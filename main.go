@@ -4,24 +4,29 @@ import (
 	"github.com/mngharbi/DMPC/core"
 )
 
+var (
+	log *core.LoggingHandler
+)
+
 func main() {
-	// Set initial log level for startup
-	core.SetLogLevel(initialLogLevel)
+	// Initialize logging
+	log = core.InitializeLogging()
+	log.SetLogLevel(core.DEBUG)
 
 	// Check DMPC was configured
-	core.Debugf("Checking DMPC install configuration")
+	log.Debugf("Checking DMPC install configuration")
 	checkSetup()
 
 	// Get configuration structure
-	core.Debugf("Parsing configuration")
+	log.Debugf("Parsing configuration")
 	config := getConfig()
 
 	// Set log level from configuration
-	core.SetLogLevel(config.LogLevel)
+	log.SetLogLevel(config.LogLevel)
 
 	// Get root user object
-	core.Debugf("Parsing root user object")
-	userObject := config.getRootUserObject()
+	log.Debugf("Parsing root user object")
+	_ = config.getRootUserObject()
 
 	return
 }

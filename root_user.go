@@ -6,7 +6,6 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/users"
 	"io/ioutil"
 )
@@ -42,17 +41,17 @@ func (config *Config) getRootUserObject() *users.UserObject {
 	// Get user object without keys
 	userObj, err := config.getRootUserObjectWithoutKeys()
 	if err != nil {
-		core.Fatalf(parseUserWithoutKeysError)
+		log.Fatalf(parseUserWithoutKeysError)
 	}
 
 	// Get public keys for root user from config
 	userObj.SignKey, err = config.getEncodedPublicSigningKey()
 	if err != nil {
-		core.Fatalf(parseSigningError)
+		log.Fatalf(parseSigningError)
 	}
 	userObj.EncKey, err = config.getEncodedPublicEncryptionKey()
 	if err != nil {
-		core.Fatalf(parseEncryptionError)
+		log.Fatalf(parseEncryptionError)
 	}
 
 	return userObj

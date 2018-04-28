@@ -26,6 +26,6 @@ const (
 // Checks if DMPC was set up
 func checkSetup() {
 	if _, err := os.Stat(getSetupFilename()); err != nil {
-		core.Fatalf(setupError)
+		log.Fatalf(setupError)
 	}
 }
