@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/users"
 )
 
 var (
@@ -24,9 +25,13 @@ func main() {
 	// Set log level from configuration
 	log.SetLogLevel(config.LogLevel)
 
-	// Get root user object
-	log.Debugf("Parsing root user object")
+	// Get root user object from configuration
+	log.Debugf("Parsing root user object from configuration")
 	_ = config.getRootUserObject()
 
-	return
+	// Start users subsystem
+	log.Debugf("Starting users subsystem")
+	usersSubsystemConfig := config.getUsersSubsystemConfig()
+	users.StartServer(usersSubsystemConfig)
+
 }

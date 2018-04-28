@@ -7,6 +7,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/users"
 	"io/ioutil"
 	"os/user"
 )
@@ -30,6 +31,9 @@ type Config struct {
 
 	// All customizable paths
 	Paths ConfigPaths `json:"paths"`
+
+	// Configuration for users subsystem
+	Users UserSubsystemConfig `json:"users"`
 }
 
 /*
@@ -84,4 +88,17 @@ func getConfig() *Config {
 	var config Config
 	json.Unmarshal(raw, &config)
 	return &config
+}
+
+/*
+	Server configuration
+*/
+type UserSubsystemConfig struct {
+	NumWorkers int `json:"numWorkers"`
+}
+
+func (config *Config) getUsersSubsystemConfig() users.Config {
+	return users.Config{
+		NumWorkers: config.Users.NumWorkers,
+	}
 }
