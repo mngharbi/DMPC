@@ -2,7 +2,7 @@ package main
 
 func main() {
 	// Setup listening on shutdown signals
-	terminationChannel, _ := setupShutdown()
+	terminationChannel, shutdownLambda := setupShutdown()
 	go shutdownWhenSignaled(terminationChannel)
 
 	// Parse configuration and setup logging
@@ -12,7 +12,7 @@ func main() {
 	_ = buildRootUserObject(config)
 
 	// Start all subsystems
-	startDaemons(config)
+	startDaemons(config, shutdownLambda)
 
 	// Sleep forever (program is terminated by shutdown goroutine)
 	select {}
