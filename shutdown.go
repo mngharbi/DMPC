@@ -76,10 +76,23 @@ func listenForTermination(terminationChannel chan TerminationCause) {
 	}
 }
 
-func shutdownWhenSignaled() {
-	// Make termination channel
-	terminationChannel := make(chan TerminationCause)
+/*
+	Generates shutdown functor to be passed to subsystems
+*/
+type ShutdownLambda func()
 
+func shutdownFunctor(terminationChannel chan TerminationCause) ShutdownLambda {
+	return func() {
+		terminationChannel <- FatalError
+	}
+}
+
+func setupShutdown() (chan TerminationCause, ShutdownLambda) {
+	terminationChannel := make(chan TerminationCause)
+	return terminationChannel, shutdownFunctor(terminationChannel)
+}
+
+func shutdownWhenSignaled(terminationChannel chan TerminationCause) {
 	// Wait until signal to terminate is received
 	listenForTermination(terminationChannel)
 

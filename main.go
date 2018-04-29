@@ -1,7 +1,9 @@
 package main
 
 func main() {
-	go shutdownWhenSignaled()
+	// Setup listening on shutdown signals
+	terminationChannel, _ := setupShutdown()
+	go shutdownWhenSignaled(terminationChannel)
 
 	// Parse configuration and setup logging
 	config := doSetup()
