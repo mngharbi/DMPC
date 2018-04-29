@@ -11,7 +11,8 @@ import (
 	Logging
 */
 var (
-	log *core.LoggingHandler
+	log             *core.LoggingHandler
+	shutdownProgram core.ShutdownLambda
 )
 
 /*
@@ -28,10 +29,15 @@ func provisionServerOnce() {
 	}
 }
 
-func StartServer(loggingHandler *core.LoggingHandler, conf Config) error {
+func StartServer(
+	conf Config,
+	loggingHandler *core.LoggingHandler,
+	shutdownLambda core.ShutdownLambda,
+) error {
 	provisionServerOnce()
 	if !serverSingleton.isInitialized {
 		log = loggingHandler
+		shutdownProgram = shutdownLambda
 		serverSingleton.isInitialized = true
 		serverHandler.ResetServer()
 		serverHandler.InitServer(&serverSingleton)

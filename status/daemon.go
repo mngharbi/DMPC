@@ -17,14 +17,21 @@ var (
 	Logging
 */
 var (
-	log *core.LoggingHandler
+	log             *core.LoggingHandler
+	shutdownProgram core.ShutdownLambda
 )
 
 /*
 	Logging
 */
-func StartServers(loggingHandler *core.LoggingHandler, statusConf StatusServerConfig, listenersConf ListenersServerConfig) error {
+func StartServers(
+	statusConf StatusServerConfig,
+	listenersConf ListenersServerConfig,
+	loggingHandler *core.LoggingHandler,
+	shutdownLambda core.ShutdownLambda,
+) error {
 	log = loggingHandler
+	shutdownProgram = shutdownLambda
 	serversStartWaitGroup.Add(2)
 	if err := startStatusServer(statusConf); err != nil {
 		serversStartWaitGroup = sync.WaitGroup{}

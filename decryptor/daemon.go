@@ -26,7 +26,8 @@ type ExecutorRequester func(bool, int, string, string, []byte) string
 	Logging
 */
 var (
-	log *core.LoggingHandler
+	log             *core.LoggingHandler
+	shutdownProgram core.ShutdownLambda
 )
 
 /*
@@ -45,13 +46,15 @@ func InitializeServer(
 	keyRequester KeyRequester,
 	executorRequester ExecutorRequester,
 	loggingHandler *core.LoggingHandler,
+	shutdownLambda core.ShutdownLambda,
 ) {
 	provisionServerOnce()
-	log = loggingHandler
 	serverSingleton.globalKey = globalKey
 	serverSingleton.usersSignKeyRequester = usersSignKeyRequester
 	serverSingleton.keyRequester = keyRequester
 	serverSingleton.executorRequester = executorRequester
+	log = loggingHandler
+	shutdownProgram = shutdownLambda
 	serverHandler.InitServer(&serverSingleton)
 }
 

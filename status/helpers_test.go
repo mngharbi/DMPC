@@ -68,7 +68,7 @@ func multipleWorkersListenersConfig() ListenersServerConfig {
 
 func startBothServersAndTest(t *testing.T, statusConf StatusServerConfig, listenersConf ListenersServerConfig, ignoreError bool) bool {
 	serversStartWaitGroup = sync.WaitGroup{}
-	if err := StartServers(log, statusConf, listenersConf); err != nil {
+	if err := StartServers(statusConf, listenersConf, log, shutdownProgram); err != nil {
 		if !ignoreError {
 			t.Errorf(err.Error())
 		}

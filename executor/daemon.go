@@ -34,7 +34,8 @@ type TicketGenerator func() status.Ticket
 	Logging
 */
 var (
-	log *core.LoggingHandler
+	log             *core.LoggingHandler
+	shutdownProgram core.ShutdownLambda
 )
 
 /*
@@ -53,13 +54,15 @@ func InitializeServer(
 	responseReporter ResponseReporter,
 	ticketGenerator TicketGenerator,
 	loggingHandler *core.LoggingHandler,
+	shutdownLambda core.ShutdownLambda,
 ) {
 	provisionServerOnce()
-	log = loggingHandler
 	serverSingleton.usersRequester = usersRequester
 	serverSingleton.usersRequesterUnverified = usersRequesterUnverified
 	serverSingleton.responseReporter = responseReporter
 	serverSingleton.ticketGenerator = ticketGenerator
+	log = loggingHandler
+	shutdownProgram = shutdownLambda
 	serverHandler.InitServer(&serverSingleton)
 }
 

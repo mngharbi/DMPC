@@ -68,7 +68,7 @@ func singleWorkerConfig() Config {
 
 func resetAndStartServer(t *testing.T, conf Config) bool {
 	serverSingleton = server{}
-	err := StartServer(log, conf)
+	err := StartServer(conf, log, shutdownProgram)
 	if err != nil {
 		t.Errorf(err.Error())
 		return false
