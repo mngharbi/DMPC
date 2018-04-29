@@ -5,6 +5,7 @@ package main
 */
 
 import (
+	"github.com/mngharbi/DMPC/core"
 	"os"
 	"os/signal"
 	"syscall"
@@ -79,15 +80,13 @@ func listenForTermination(terminationChannel chan TerminationCause) {
 /*
 	Generates shutdown functor to be passed to subsystems
 */
-type ShutdownLambda func()
-
-func shutdownFunctor(terminationChannel chan TerminationCause) ShutdownLambda {
+func shutdownFunctor(terminationChannel chan TerminationCause) core.ShutdownLambda {
 	return func() {
 		terminationChannel <- FatalError
 	}
 }
 
-func setupShutdown() (chan TerminationCause, ShutdownLambda) {
+func setupShutdown() (chan TerminationCause, core.ShutdownLambda) {
 	terminationChannel := make(chan TerminationCause)
 	return terminationChannel, shutdownFunctor(terminationChannel)
 }
