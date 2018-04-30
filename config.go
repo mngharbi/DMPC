@@ -7,6 +7,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 	"io/ioutil"
 	"os/user"
@@ -25,6 +26,9 @@ type ConfigPaths struct {
 	PublicSigningKeyPath     string `json:"publicSigningKeyPath"`
 	PrivateSigningKeyPath    string `json:"privateSigningKeyPath"`
 }
+type NumWorkersOnlyConfig struct {
+	NumWorkers int `json:"numWorkers"`
+}
 type Config struct {
 	// Log level setting
 	LogLevel core.LogLevel `json:"logLevel"`
@@ -33,7 +37,10 @@ type Config struct {
 	Paths ConfigPaths `json:"paths"`
 
 	// Configuration for users subsystem
-	Users UserSubsystemConfig `json:"users"`
+	Users NumWorkersOnlyConfig `json:"users"`
+
+	// Configuration for users subsystem
+	Status StatusSubsystemConfig `json:"status"`
 }
 
 /*
@@ -93,12 +100,22 @@ func getConfig() *Config {
 /*
 	Server configuration
 */
-type UserSubsystemConfig struct {
-	NumWorkers int `json:"numWorkers"`
-}
 
 func (config *Config) getUsersSubsystemConfig() users.Config {
 	return users.Config{
 		NumWorkers: config.Users.NumWorkers,
 	}
+}
+
+type StatusSubsystemConfig struct {
+	Update    NumWorkersOnlyConfig `json:"update"`
+	Listeners NumWorkersOnlyConfig `json:"listeners"`
+}
+
+func (config *Config) getStatusSubsystemConfig() (status.StatusServerConfig, status.ListenersServerConfig) {
+	return status.StatusServerConfig{
+			NumWorkers: config.Status.Update.NumWorkers,
+		}, status.ListenersServerConfig{
+			NumWorkers: config.Status.Listeners.NumWorkers,
+		}
 }
