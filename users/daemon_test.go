@@ -31,7 +31,7 @@ func TestMalformattedRequest(t *testing.T) {
 	}
 
 	requestBytes := []byte(`{invalid}`)
-	_, errs := MakeRequest(requestBytes)
+	_, errs := MakeRequest(generateGenericSigners(), requestBytes)
 	if len(errs) == 0 {
 		t.Error("Malformatted request should fail")
 	}

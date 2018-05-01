@@ -9,6 +9,19 @@ import (
 )
 
 /*
+	Error messages
+*/
+
+const (
+	unknownRequestTypeErrorMsg string = "Unknown request type"
+	signersMissingErrorMsg     string = "Signers missing"
+	issuerIdMissingErrorMsg    string = "Issuer id missing"
+	certifierIdMissingErrorMsg string = "Certifier id missing"
+	noFieldsUpdatedErrorMsg    string = "No fields updated"
+	noSubjectsErrorMsg         string = "No users requested"
+)
+
+/*
 	External structure of a user
 */
 type ChannelPermissionsObject struct {
@@ -50,12 +63,11 @@ const (
 )
 
 type UserRequest struct {
-	Type        int        `json:"type"`
-	IssuerId    string     `json:"issuerId"`
-	CertifierId string     `json:"certifierId"`
-	Fields      []string   `json:"fields"`
-	Data        UserObject `json:"data"`
-	Timestamp   time.Time  `json:"timestamp"`
+	Type      int        `json:"type"`
+	Fields    []string   `json:"fields"`
+	Data      UserObject `json:"data"`
+	Timestamp time.Time  `json:"timestamp"`
+	signers   *core.VerifiedSigners
 
 	// Private settings
 	skipPermissions bool
@@ -84,13 +96,12 @@ type UserResponse struct {
 */
 
 // Json -> *UserRequest
-func (rq *UserRequest) Decode(stream []byte) []error {
-	// Parse json
-	if err := json.Unmarshal(stream, rq); err != nil {
-		return []error{err}
-	}
+func (rq *UserRequest) Decode(stream []byte) error {
+	return json.Unmarshal(stream, rq)
+}
 
-	return rq.sanitizeAndCheckParams()
+func (rq *UserRequest) addSigners(signers *core.VerifiedSigners) {
+	rq.signers = signers
 }
 
 // Used to correct request and return errors if irreparable
@@ -99,13 +110,17 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 
 	// Verify type, issuer, and certifier
 	if !(CreateRequest <= rq.Type && rq.Type <= ReadRequest) {
-		res = append(res, errors.New("Unknown request type"))
+		res = append(res, errors.New(unknownRequestTypeErrorMsg))
 	}
-	if !rq.skipPermissions && len(rq.IssuerId) == 0 {
-		res = append(res, errors.New("Issuer id missing"))
-	}
-	if !rq.skipPermissions && len(rq.CertifierId) == 0 {
-		res = append(res, errors.New("Certifier id missing"))
+
+	if !rq.skipPermissions {
+		if rq.signers == nil {
+			res = append(res, errors.New(signersMissingErrorMsg))
+		} else if len(rq.signers.IssuerId) == 0 {
+			res = append(res, errors.New(issuerIdMissingErrorMsg))
+		} else if len(rq.signers.CertifierId) == 0 {
+			res = append(res, errors.New(certifierIdMissingErrorMsg))
+		}
 	}
 
 	switch rq.Type {
@@ -150,7 +165,7 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 		}
 
 		if len(rq.Fields) == 0 {
-			res = append(res, errors.New("No fields updated"))
+			res = append(res, errors.New(noFieldsUpdatedErrorMsg))
 		}
 
 	/*
@@ -159,7 +174,7 @@ func (rq *UserRequest) sanitizeAndCheckParams() []error {
 	*/
 	case ReadRequest:
 		if len(rq.Fields) == 0 {
-			res = append(res, errors.New("No users requested"))
+			res = append(res, errors.New(noSubjectsErrorMsg))
 		}
 	}
 

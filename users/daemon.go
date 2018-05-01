@@ -50,26 +50,29 @@ func ShutdownServer() {
 	serverHandler.ShutdownServer()
 }
 
-func MakeUnverifiedRequest(rawRequest []byte) (chan *UserResponse, []error) {
-	return makeEncodedRequest(rawRequest, true)
+func MakeUnverifiedRequest(signers *core.VerifiedSigners, rawRequest []byte) (chan *UserResponse, []error) {
+	return makeEncodedRequest(signers, rawRequest, true)
 }
 
-func MakeRequest(rawRequest []byte) (chan *UserResponse, []error) {
-	return makeEncodedRequest(rawRequest, false)
+func MakeRequest(signers *core.VerifiedSigners, rawRequest []byte) (chan *UserResponse, []error) {
+	return makeEncodedRequest(signers, rawRequest, false)
 }
 
-func MakeUnverifiedDecodedRequest(request *UserRequest) (chan *UserResponse, []error) {
-	request.skipPermissions = true
-	return makeRequest(request)
-}
-
-func makeEncodedRequest(rawRequest []byte, skipPermissions bool) (chan *UserResponse, []error) {
+func makeEncodedRequest(signers *core.VerifiedSigners, rawRequest []byte, skipPermissions bool) (chan *UserResponse, []error) {
 	// Build request object
 	rqPtr := &UserRequest{}
 	rqPtr.skipPermissions = skipPermissions
-	decodingErrors := rqPtr.Decode(rawRequest)
-	if len(decodingErrors) > 0 {
-		return nil, decodingErrors
+	decodingError := rqPtr.Decode(rawRequest)
+	if decodingError != nil {
+		return nil, []error{decodingError}
+	}
+
+	// Set issuer and certifier from arguments
+	rqPtr.addSigners(signers)
+
+	sanitizationErrors := rqPtr.sanitizeAndCheckParams()
+	if len(sanitizationErrors) != 0 {
+		return nil, sanitizationErrors
 	}
 
 	return makeRequest(rqPtr)
@@ -142,8 +145,8 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 	// Add need for read locks for issuer and certifier
 	if !rq.skipPermissions {
 		lockNeeds = []core.LockNeed{
-			core.LockNeed{false, rq.IssuerId},
-			core.LockNeed{false, rq.CertifierId},
+			core.LockNeed{false, rq.signers.IssuerId},
+			core.LockNeed{false, rq.signers.CertifierId},
 		}
 	}
 
@@ -169,10 +172,10 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 			continue
 		}
 
-		if userRecord.Id == rq.IssuerId {
+		if userRecord.Id == rq.signers.IssuerId {
 			issuerIndex = userRecordIndex
 		}
-		if userRecord.Id == rq.CertifierId {
+		if userRecord.Id == rq.signers.CertifierId {
 			certifierIndex = userRecordIndex
 		}
 		if userRecord.Id == rq.Data.Id {

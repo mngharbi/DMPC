@@ -68,10 +68,8 @@ func testRequest(reqType int, late bool) UserRequest {
 	}
 
 	return UserRequest{
-		Type:        reqType,
-		IssuerId:    "issuer",
-		CertifierId: "certifier",
-		Timestamp:   reqTime,
+		Type:      reqType,
+		Timestamp: reqTime,
 	}
 }
 

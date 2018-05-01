@@ -20,6 +20,17 @@ import (
 	General
 */
 
+func generateSigners(issuerId string, certifierId string) *core.VerifiedSigners {
+	return &core.VerifiedSigners{
+		IssuerId:    issuerId,
+		CertifierId: certifierId,
+	}
+}
+
+func generateGenericSigners() *core.VerifiedSigners {
+	return generateSigners("ISSUER_ID", "CERTIFIER_ID")
+}
+
 func getJanuaryDate(date int) time.Time {
 	return time.Date(2018, time.January, date, 0, 0, 0, 0, time.UTC)
 }
@@ -81,8 +92,6 @@ func resetAndStartServer(t *testing.T, conf Config) bool {
 	Creation requests
 */
 func generateUserCreateRequest(
-	issuerId string,
-	certifierId string,
 	userId string,
 	channelAddPermission bool,
 	userAddPermission bool,
@@ -114,8 +123,6 @@ func generateUserCreateRequest(
 
 	request = []byte(`{
 		"type": 0,
-		"issuerId": "` + issuerId + `",
-		"certifierId": "` + certifierId + `",
 		"fields": [],
 		` + generateJsonForTimePtr("timestamp", &defaultDate) + `
 		"data": {
@@ -177,8 +184,6 @@ func makeUserCreationRequest(
 ) (chan *UserResponse, *UserObject, []error) {
 	// Generate user payload and expected object
 	requestBytes, userObjectPtr := generateUserCreateRequest(
-		issuerId,
-		certifierId,
 		userId,
 		channelAddPermission,
 		userAddPermission,
@@ -193,7 +198,7 @@ func makeUserCreationRequest(
 	if skipVerification {
 		requestFunc = MakeUnverifiedRequest
 	}
-	channel, errs := requestFunc(requestBytes)
+	channel, errs := requestFunc(generateSigners(issuerId, certifierId), requestBytes)
 	return channel, userObjectPtr, errs
 }
 
@@ -365,8 +370,6 @@ func generateJsonForTimePtr(id string, timePtr *time.Time) (res string) {
 }
 
 func generateUserUpdateRequest(
-	issuerId string,
-	certifierId string,
 	fields []string,
 	timestamp time.Time,
 
@@ -448,8 +451,6 @@ func generateUserUpdateRequest(
 	return []byte(`{
 		"type": 1,
 		` + generateJsonForTimePtr("timestamp", &timestamp) + `
-		"issuerId": "` + issuerId + `",
-		"certifierId": "` + certifierId + `",
 		"fields": ` + fieldsJsonString + `,
 		` + dataStr + `
 	}`)
@@ -476,13 +477,12 @@ func makeUserUpdateRequest(
 	updatedAtPtr *time.Time,
 ) (chan *UserResponse, []error) {
 	requestBytes := generateUserUpdateRequest(
-		issuerId, certifierId, fields, timestamp,
-		idPtr, encKeyPtr, signKeyPtr,
+		fields, timestamp, idPtr, encKeyPtr, signKeyPtr,
 		channelAddPermissionPtr, userAddPermissionPtr, userRemovePermissionPtr,
 		userEncKeyUpdatePermissionPtr, userSignKeyUpdatePermissionPtr, userPermissionsUpdatePtr,
 		activePtr, createdAtPtr, disabledAtPtr, updatedAtPtr,
 	)
-	return MakeRequest(requestBytes)
+	return MakeRequest(generateSigners(issuerId, certifierId), requestBytes)
 }
 
 func makeAndGetUserUpdateRequest(
@@ -526,21 +526,19 @@ func makeAndGetUserUpdateRequest(
 	Read requests
 */
 
-func generateUserReadRequest(issuerId string, certifierId string, users []string) (request []byte) {
+func generateUserReadRequest(users []string) (request []byte) {
 	var usersJsonString string
 	usersJson, _ := json.Marshal(users)
 	usersJsonString = string(usersJson)
 	return []byte(`{
 		"type": 2,
-		"issuerId": "` + issuerId + `",
-		"certifierId": "` + certifierId + `",
 		"fields": ` + usersJsonString + `
 	}`)
 }
 
 func makeUserReadRequest(issuerId string, certifierId string, users []string) (chan *UserResponse, []error) {
-	requestBytes := generateUserReadRequest(issuerId, certifierId, users)
-	return MakeRequest(requestBytes)
+	requestBytes := generateUserReadRequest(users)
+	return MakeRequest(generateSigners(issuerId, certifierId), requestBytes)
 }
 
 func makeAndGetUserReadRequest(t *testing.T, issuerId string, certifierId string, users []string) (*UserResponse, bool, bool) {

@@ -1,3 +1,8 @@
+/*
+	Testing for user structure
+	(en/de)coding/decoding and verification
+	@TODO: Separate decoding and verification
+*/
 package users
 
 import (
@@ -25,8 +30,6 @@ func TestDecodeCreateRequest(t *testing.T) {
 
 	valid := []byte(`{
 		"type": 0,
-		"issuerId": "USER",
-		"certifierId": "ADMIN",
 		"fields": [],
 		"data": {
 			"id": "NEW_USER",
@@ -51,18 +54,25 @@ func TestDecodeCreateRequest(t *testing.T) {
 
 	var rq UserRequest
 	rq.skipPermissions = false
-	errs := rq.Decode(valid)
-
-	if len(errs) != 0 {
-		t.Errorf("Decoding Failed, errors: %v", errs)
+	err := rq.Decode(valid)
+	if err != nil {
+		t.Errorf("Decoding Failed, error: %v", err)
 		return
 	}
+
+	signers := generateGenericSigners()
+	rq.addSigners(signers)
+	errs := rq.sanitizeAndCheckParams()
+	if len(errs) != 0 {
+		t.Errorf("Sanitization failed, errors: %v", errs)
+		return
+	}
+
 	expectedTimestamp, _ := time.Parse(time.RFC3339, "2018-01-13T23:53:00Z")
 	expected := UserRequest{
-		Type:        CreateRequest,
-		IssuerId:    "USER",
-		CertifierId: "ADMIN",
-		Fields:      []string{},
+		Type:    CreateRequest,
+		Fields:  []string{},
+		signers: signers,
 		Data: UserObject{
 			Id:            "NEW_USER",
 			EncKey:        encKeyStringDecoded,
@@ -87,7 +97,7 @@ func TestDecodeCreateRequest(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(rq, expected) {
-		t.Errorf("Decoding produced different results:\n result: %v\n expected: %v\n", rq, expected)
+		t.Errorf("Decoding produced different results:\n result: %+v\n expected: %+v\n", rq, expected)
 	}
 
 }
@@ -104,8 +114,6 @@ func TestDecodeUpdateRequest(t *testing.T) {
 
 	valid := []byte(`{
 		"type": 1,
-		"issuerId": "USER",
-		"certifierId": "ADMIN",
 		"fields": ["encKey","signKey"],
 		"data": {
 			"id": "NEW_USER",
@@ -130,18 +138,25 @@ func TestDecodeUpdateRequest(t *testing.T) {
 
 	var rq UserRequest
 	rq.skipPermissions = false
-	errs := rq.Decode(valid)
-
-	if len(errs) != 0 {
-		t.Errorf("Decoding Failed, errors: %v", errs)
+	err := rq.Decode(valid)
+	if err != nil {
+		t.Errorf("Decoding Failed, error: %v", err)
 		return
 	}
+
+	signers := generateGenericSigners()
+	rq.addSigners(signers)
+	errs := rq.sanitizeAndCheckParams()
+	if len(errs) != 0 {
+		t.Errorf("Sanitization failed, errors: %v", errs)
+		return
+	}
+
 	expectedTimestamp, _ := time.Parse(time.RFC3339, "2018-01-13T23:53:00Z")
 	expected := UserRequest{
-		Type:        UpdateRequest,
-		IssuerId:    "USER",
-		CertifierId: "ADMIN",
-		Fields:      []string{"encKey", "signKey"},
+		Type:    UpdateRequest,
+		Fields:  []string{"encKey", "signKey"},
+		signers: signers,
 		Data: UserObject{
 			Id:            "NEW_USER",
 			EncKey:        encKeyStringDecoded,
@@ -171,11 +186,9 @@ func TestDecodeUpdateRequest(t *testing.T) {
 
 }
 
-func TestDecodeOneFieldUpdateRequest(t *testing.T) {
+func TestDecodeAndVerifyOneFieldUpdateRequest(t *testing.T) {
 	valid := []byte(`{
 		"type": 1,
-		"issuerId": "USER",
-		"certifierId": "ADMIN",
 		"fields": ["active"],
 		"data": {
 			"active": false
@@ -184,52 +197,69 @@ func TestDecodeOneFieldUpdateRequest(t *testing.T) {
 
 	var rq UserRequest
 	rq.skipPermissions = false
-	errs := rq.Decode(valid)
+	err := rq.Decode(valid)
+	if err != nil {
+		t.Errorf("Decoding Failed, error: %v", err)
+		return
+	}
 
+	signers := generateGenericSigners()
+	rq.addSigners(signers)
+	errs := rq.sanitizeAndCheckParams()
 	if len(errs) != 0 {
-		t.Errorf("Decoding with one modified value should be correct, errors: %v", errs)
+		t.Errorf("Sanitization failed, errors: %v", errs)
+		return
 	}
 }
 
-func TestDecodeEmptyUpdateRequest(t *testing.T) {
+func TestDecodeAndVerifyEmptyUpdateRequest(t *testing.T) {
 	valid := []byte(`{
 		"type": 1,
-		"issuerId": "USER",
-		"certifierId": "ADMIN",
 		"fields": []
 	}`)
 
 	var rq UserRequest
 	rq.skipPermissions = false
-	errs := rq.Decode(valid)
+	err := rq.Decode(valid)
+	if err != nil {
+		t.Errorf("Decoding Failed, error: %v", err)
+		return
+	}
 
-	if !(len(errs) == 1 && errs[0].Error() == "No fields updated") {
+	signers := generateGenericSigners()
+	rq.addSigners(signers)
+	errs := rq.sanitizeAndCheckParams()
+	if !(len(errs) == 1 && errs[0].Error() == noFieldsUpdatedErrorMsg) {
 		t.Errorf("Decoding update with no fields updated should fail with one error, errors: %v", errs)
 	}
 }
 
-func TestDecodeInvalidFieldsUpdateRequest(t *testing.T) {
+func TestDecodeAndVerifyInvalidFieldsUpdateRequest(t *testing.T) {
 	valid := []byte(`{
 		"type": 1,
-		"issuerId": "USER",
-		"certifierId": "ADMIN",
 		"fields": ["active","randomParam"]
 	}`)
 
 	var rq UserRequest
 	rq.skipPermissions = false
-	errs := rq.Decode(valid)
+	err := rq.Decode(valid)
+	if err != nil {
+		t.Errorf("Decoding Failed, error: %v", err)
+		return
+	}
 
+	signers := generateGenericSigners()
+	rq.addSigners(signers)
+	errs := rq.sanitizeAndCheckParams()
 	if len(errs) != 0 {
 		t.Errorf("Decoding Failed, errors: %v", errs)
 		return
 	}
 
 	expected := UserRequest{
-		Type:        UpdateRequest,
-		IssuerId:    "USER",
-		CertifierId: "ADMIN",
-		Fields:      []string{"active"},
+		Type:    UpdateRequest,
+		Fields:  []string{"active"},
+		signers: signers,
 	}
 
 	if !reflect.DeepEqual(rq, expected) {
@@ -237,55 +267,79 @@ func TestDecodeInvalidFieldsUpdateRequest(t *testing.T) {
 	}
 }
 
-func TestDecodeMissingIssuerUpdateRequest(t *testing.T) {
-	valid := []byte(`{
-		"type": 1,
-		"certifierId": "ADMIN",
-		"fields": ["active"]
-	}`)
-
+func TestDecodeAndVerifyNoSigners(t *testing.T) {
+	// Create valid user create request, and decode it
+	valid, _ := generateUserCreateRequest("user", false, false, false, false, false, false)
 	var rq UserRequest
-	rq.skipPermissions = false
-	errs := rq.Decode(valid)
-
-	if !(len(errs) == 1 && errs[0].Error() == "Issuer id missing") {
-		t.Errorf("Decoding update with missing issuer should fail with one error, errors: %v", errs)
+	err := rq.Decode(valid)
+	if err != nil {
+		t.Errorf("Decoding Failed, error: %v", err)
+		return
 	}
 
-	var rq2 UserRequest
-	rq2.skipPermissions = true
-	errs = rq2.Decode(valid)
+	/*
+		Without signers structure
+	*/
+	rq.addSigners(nil)
 
+	// Non verified
+	rq.skipPermissions = true
+	errs := rq.sanitizeAndCheckParams()
 	if len(errs) != 0 {
-		t.Errorf("Decoding update with missing issuer should not fail if checkPermissions is false, errors: %v", errs)
+		t.Errorf("No signers, non verified failed. Errors: %v", errs)
+	}
+
+	// Verified
+	rq.skipPermissions = false
+	errs = rq.sanitizeAndCheckParams()
+	if !(len(errs) == 1 && errs[0].Error() == signersMissingErrorMsg) {
+		t.Errorf("No signers, verified failed. Errors: %v", errs)
+	}
+
+	/*
+		No issuer
+	*/
+	signers := generateGenericSigners()
+	signers.IssuerId = ""
+	rq.addSigners(signers)
+
+	// Non verified
+	rq.skipPermissions = true
+	errs = rq.sanitizeAndCheckParams()
+	if len(errs) != 0 {
+		t.Errorf("No issuer, non verified failed. Errors: %v", errs)
+	}
+
+	// Verified
+	rq.skipPermissions = false
+	errs = rq.sanitizeAndCheckParams()
+	if !(len(errs) == 1 && errs[0].Error() == issuerIdMissingErrorMsg) {
+		t.Errorf("No issuer, verified failed. Errors: %v", errs)
+	}
+
+	/*
+		No certifier
+	*/
+	signers = generateGenericSigners()
+	signers.CertifierId = ""
+	rq.addSigners(signers)
+
+	// Non verified
+	rq.skipPermissions = true
+	errs = rq.sanitizeAndCheckParams()
+	if len(errs) != 0 {
+		t.Errorf("No certifier, non verified failed. Errors: %v", errs)
+	}
+
+	// Verified
+	rq.skipPermissions = false
+	errs = rq.sanitizeAndCheckParams()
+	if !(len(errs) == 1 && errs[0].Error() == certifierIdMissingErrorMsg) {
+		t.Errorf("No certifier, verified failed. Errors: %v", errs)
 	}
 }
 
-func TestDecodeMissingCertifierUpdateRequest(t *testing.T) {
-	valid := []byte(`{
-		"type": 1,
-		"issuerId": "USER",
-		"fields": ["active"]
-	}`)
-
-	var rq UserRequest
-	rq.skipPermissions = false
-	errs := rq.Decode(valid)
-
-	if !(len(errs) == 1 && errs[0].Error() == "Certifier id missing") {
-		t.Errorf("Decoding update with missing certifier should fail with one error, errors: %v", errs)
-	}
-
-	var rq2 UserRequest
-	rq2.skipPermissions = true
-	errs = rq2.Decode(valid)
-
-	if len(errs) != 0 {
-		t.Errorf("Decoding update with missing certifier should not fail if skipPermissions is false, errors: %v", errs)
-	}
-}
-
-func TestDecodeEncode(t *testing.T) {
+func TestDecodeAndVerifyEncode(t *testing.T) {
 	encKey := core.GeneratePublicKey()
 	encKeyStringEncoded := jsonPemEncodeKey(encKey)
 	var encKeyStringDecoded string
@@ -297,8 +351,6 @@ func TestDecodeEncode(t *testing.T) {
 
 	requestBaseStr := `
 		"type": 0,
-		"issuerId": "USER",
-		"certifierId": "ADMIN",
 		"fields": [],
 		"timestamp": "2018-01-13T23:53:00Z",
 	`
@@ -327,8 +379,15 @@ func TestDecodeEncode(t *testing.T) {
 
 	var rq UserRequest
 	rq.skipPermissions = false
-	errs := rq.Decode(valid)
+	err := rq.Decode(valid)
+	if err != nil {
+		t.Errorf("Decoding Failed, error: %v", err)
+		return
+	}
 
+	signers := generateGenericSigners()
+	rq.addSigners(signers)
+	errs := rq.sanitizeAndCheckParams()
 	if len(errs) != 0 {
 		t.Errorf("Decoding Failed, errors: %v", errs)
 		return
@@ -348,10 +407,16 @@ func TestDecodeEncode(t *testing.T) {
 	}`)
 
 	var secondRq UserRequest
-	secondDecodeErrs := secondRq.Decode(reEncodedString)
+	err = secondRq.Decode(reEncodedString)
+	if err != nil {
+		t.Errorf("Decoding Failed, error: %v", err)
+		return
+	}
 
-	if len(secondDecodeErrs) != 0 {
-		t.Errorf("Re-encoded json failed while decoding, errors: %v", secondDecodeErrs)
+	secondRq.addSigners(signers)
+	errs = secondRq.sanitizeAndCheckParams()
+	if len(errs) != 0 {
+		t.Errorf("Re-encoded json failed while decoding, errors: %v", errs)
 		return
 	}
 
