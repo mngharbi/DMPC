@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/status"
 )
 
@@ -17,8 +18,7 @@ const (
 type executorRequest struct {
 	isVerified  bool
 	requestType int
-	issuerId    string
-	certifierId string
+	signers     *core.VerifiedSigners
 	ticket      status.Ticket
 	request     []byte
 }

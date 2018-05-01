@@ -2,6 +2,7 @@ package executor
 
 import (
 	"errors"
+	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 	"math/rand"
@@ -32,12 +33,11 @@ func sendUserResponseAfterRandomDelay(channel chan *users.UserResponse, response
 
 func createDummyUsersRequesterFunctor(responseCodeReturned int, errsReturned []error, closeChannel bool) (UsersRequester, chan userRequesterCall) {
 	callsChannel := make(chan userRequesterCall, 0)
-	requester := func(issuerId string, certifierId string, request []byte) (chan *users.UserResponse, []error) {
+	requester := func(signers *core.VerifiedSigners, request []byte) (chan *users.UserResponse, []error) {
 		go (func() {
 			callsChannel <- userRequesterCall{
-				issuerId:    issuerId,
-				certifierId: certifierId,
-				request:     request,
+				signers: signers,
+				request: request,
 			}
 		})()
 		if errsReturned != nil {
@@ -78,9 +78,8 @@ type dummyStatusRegistry struct {
 }
 
 type userRequesterCall struct {
-	issuerId    string
-	certifierId string
-	request     []byte
+	signers *core.VerifiedSigners
+	request []byte
 }
 
 var responseReporterError error = errors.New("Response reporter error")
@@ -131,7 +130,7 @@ func TestInvalidRequestType(t *testing.T) {
 		return
 	}
 
-	_, err := MakeRequest(false, UsersRequest-1, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	_, err := MakeRequest(false, UsersRequest-1, generateGenericSigners(), []byte{})
 	if err != invalidRequestTypeError {
 		t.Error("Request with invalid type should be rejected.")
 	}
@@ -148,7 +147,7 @@ func TestReponseReporterQueueError(t *testing.T) {
 		return
 	}
 
-	ticketId, err := MakeRequest(false, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	ticketId, err := MakeRequest(false, UsersRequest, generateGenericSigners(), []byte{})
 	if err != responseReporterError {
 		t.Error("Request should fail with response reporter error while queueing.")
 	}
@@ -171,7 +170,7 @@ func TestRequestWhileNotRunning(t *testing.T) {
 
 	ShutdownServer()
 
-	ticketId, err := MakeRequest(false, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	ticketId, err := MakeRequest(false, UsersRequest, generateGenericSigners(), []byte{})
 	if err == nil {
 		t.Error("Request should fail if made while server is down.")
 	}
@@ -203,7 +202,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 		return
 	}
 
-	ticketId, err := MakeRequest(isVerified, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	ticketId, err := MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{})
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -230,7 +229,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketId, err = MakeRequest(isVerified, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	ticketId, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{})
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -257,7 +256,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketId, err = MakeRequest(isVerified, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	ticketId, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{})
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -284,7 +283,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketId, err = MakeRequest(isVerified, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", []byte{})
+	ticketId, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{})
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -319,7 +318,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 		go (func() {
 			waitForRandomDuration()
 			payload := []byte(strconv.Itoa(copyI))
-			_, err = MakeRequest(isVerified, UsersRequest, "ISSUER_ID", "CERTIFIER_ID", payload)
+			_, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), payload)
 			wg.Done()
 		})()
 	}
@@ -330,8 +329,8 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	checksum := 0
 	for i := 1; i <= 10; i++ {
 		callLog := <-callsChannel
-		if callLog.issuerId != "ISSUER_ID" ||
-			callLog.certifierId != "CERTIFIER_ID" {
+		if callLog.signers.IssuerId != genericIssuerId ||
+			callLog.signers.CertifierId != genericCertifierId {
 			t.Error("Unexpected call made to users subsystem.")
 			return
 		} else {

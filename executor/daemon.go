@@ -26,7 +26,7 @@ type Config struct {
 /*
 	Types of lambdas to call other subsystems
 */
-type UsersRequester func(string, string, []byte) (chan *users.UserResponse, []error)
+type UsersRequester func(*core.VerifiedSigners, []byte) (chan *users.UserResponse, []error)
 type ResponseReporter func(status.Ticket, status.StatusCode, status.FailReasonCode, []byte, []error) error
 type TicketGenerator func() status.Ticket
 
@@ -83,8 +83,7 @@ func (sv *server) reportRejection(ticketId status.Ticket, reason status.FailReas
 func MakeRequest(
 	isVerified bool,
 	requestType int,
-	issuerId string,
-	certifierId string,
+	signers *core.VerifiedSigners,
 	request []byte,
 ) (status.Ticket, error) {
 	// Check type
@@ -103,8 +102,7 @@ func MakeRequest(
 	_, err = serverHandler.MakeRequest(&executorRequest{
 		isVerified:  isVerified,
 		requestType: requestType,
-		issuerId:    issuerId,
-		certifierId: certifierId,
+		signers:     signers,
 		ticket:      ticketId,
 		request:     request,
 	})
@@ -154,8 +152,8 @@ func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.
 			usersRequester = sv.usersRequesterUnverified
 		}
 
-		// Make the request to users subsytem
-		channel, errs := usersRequester(wrappedRequest.issuerId, wrappedRequest.certifierId, wrappedRequest.request)
+		// Make the request to users subsystem
+		channel, errs := usersRequester(wrappedRequest.signers, wrappedRequest.request)
 		if errs != nil {
 			sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, errs)
 			return
