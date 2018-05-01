@@ -300,3 +300,11 @@ func (op *PermanentEncryptedOperation) Decrypt(
 
 	return payloadBytes, nil
 }
+
+/*
+	Defines the set of signers that were verified
+*/
+type VerifiedSigners struct {
+	IssuerId string
+	CertifierId string
+}
