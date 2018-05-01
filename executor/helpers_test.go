@@ -13,17 +13,17 @@ import (
 	General
 */
 
+const (
+	genericIssuerId    string = "ISSUER_ID"
+	genericCertifierId string = "CERTIFIER_ID"
+)
+
 func generateSigners(issuerId string, certifierId string) *core.VerifiedSigners {
 	return &core.VerifiedSigners{
 		IssuerId:    issuerId,
 		CertifierId: certifierId,
 	}
 }
-
-const (
-	genericIssuerId    string = "ISSUER_ID"
-	genericCertifierId string = "CERTIFIER_ID"
-)
 
 func generateGenericSigners() *core.VerifiedSigners {
 	return generateSigners(genericIssuerId, genericCertifierId)
