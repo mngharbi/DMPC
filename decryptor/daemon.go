@@ -20,7 +20,7 @@ type decryptorRequest struct {
 */
 type UsersSignKeyRequester func([]string) ([]*rsa.PublicKey, error)
 type KeyRequester func(string) []byte
-type ExecutorRequester func(bool, int, string, string, []byte) string
+type ExecutorRequester func(bool, int, *core.VerifiedSigners, []byte) string
 
 /*
 	Logging
@@ -152,11 +152,14 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	}
 
 	// Send raw bytes and metadata to executor
+	signers := &core.VerifiedSigners{
+		IssuerId:    permanentEncrypted.Issue.Id,
+		CertifierId: permanentEncrypted.Certification.Id,
+	}
 	ticketId := sv.executorRequester(
 		decryptorWrapped.isVerified,
 		permanentEncrypted.Meta.RequestType,
-		permanentEncrypted.Issue.Id,
-		permanentEncrypted.Certification.Id,
+		signers,
 		plaintextBytes,
 	)
 

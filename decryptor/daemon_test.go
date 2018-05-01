@@ -1,144 +1,11 @@
 package decryptor
 
 import (
-	"crypto/rand"
 	"crypto/rsa"
-	"errors"
 	"github.com/mngharbi/DMPC/core"
 	"reflect"
-	"sync"
 	"testing"
 )
-
-/*
-	Test helpers
-*/
-
-func generateRandomBytes(nbBytes int) (bytes []byte) {
-	bytes = make([]byte, nbBytes)
-	rand.Read(bytes)
-	return
-}
-
-func generateValidEncryptedOperation(
-	keyId string,
-	key []byte,
-	payload []byte,
-	issuerId string,
-	certifierId string,
-	globalKey *rsa.PrivateKey,
-) ([]byte, *rsa.PrivateKey, *rsa.PrivateKey) {
-	permanentEncryption, issuerKey, certifierKey := core.GeneratePermanentEncryptedOperationWithEncryption(
-		keyId,
-		key,
-		generateRandomBytes(core.SymmetricNonceSize),
-		1,
-		payload,
-		issuerId,
-		func(b []byte) ([]byte, bool) { return b, false },
-		certifierId,
-		func(b []byte) ([]byte, bool) { return b, false },
-	)
-
-	permanentEncryptionEncoded, _ := permanentEncryption.Encode()
-	temporaryEncryption, _ := core.GenerateTemporaryEncryptedOperationWithEncryption(
-		permanentEncryptionEncoded,
-		[]byte(core.CorrectChallenge),
-		func(map[string]string) {},
-		globalKey,
-	)
-
-	temporaryEncryptionEncoded, _ := temporaryEncryption.Encode()
-
-	return temporaryEncryptionEncoded, issuerKey, certifierKey
-}
-
-/*
-	Dummy subsystem lambdas
-*/
-
-func createDummyUsersSignKeyRequesterFunctor(collection map[string]*rsa.PrivateKey, success bool) UsersSignKeyRequester {
-	notFoundError := errors.New("Could not find signing key.")
-	return func(keysIds []string) ([]*rsa.PublicKey, error) {
-		res := []*rsa.PublicKey{}
-		for _, keyId := range keysIds {
-			privateKey, ok := collection[keyId]
-			if !ok {
-				return nil, notFoundError
-			}
-			res = append(res, &(privateKey.PublicKey))
-		}
-		if !success {
-			return nil, notFoundError
-		}
-		return res, nil
-	}
-}
-
-func createDummyKeyRequesterFunctor(collection map[string][]byte) KeyRequester {
-	return func(keyId string) []byte {
-		return collection[keyId]
-	}
-}
-
-type dummyExecutorEntry struct {
-	isVerified    bool
-	requestNumber int
-	issuerId      string
-	certifierId   string
-	payload       []byte
-}
-
-type dummyExecutorRegistry struct {
-	data map[string]dummyExecutorEntry
-	lock *sync.Mutex
-}
-
-func (reg *dummyExecutorRegistry) getEntry(id string) dummyExecutorEntry {
-	reg.lock.Lock()
-	entryCopy := reg.data[id]
-	reg.lock.Unlock()
-	return entryCopy
-}
-
-func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, ExecutorRequester) {
-	reg := dummyExecutorRegistry{
-		data: map[string]dummyExecutorEntry{},
-		lock: &sync.Mutex{},
-	}
-	requester := func(isVerified bool, requestNumber int, issuerId string, certifierId string, payload []byte) string {
-		reg.lock.Lock()
-		ticketCopy := core.GenerateUniqueId()
-		reg.data[ticketCopy] = dummyExecutorEntry{
-			isVerified:    isVerified,
-			requestNumber: requestNumber,
-			issuerId:      issuerId,
-			certifierId:   certifierId,
-			payload:       payload,
-		}
-		reg.lock.Unlock()
-		return ticketCopy
-	}
-	return &reg, requester
-}
-
-/*
-	Collections
-*/
-
-func getSignKeyCollection() map[string]*rsa.PrivateKey {
-	return map[string]*rsa.PrivateKey{
-		"ISSUER_KEY":    core.GeneratePrivateKey(),
-		"CERTIFIER_KEY": core.GeneratePrivateKey(),
-	}
-}
-
-func getKeysCollection() map[string][]byte {
-	return map[string][]byte{
-		"KEY_1": generateRandomBytes(core.SymmetricKeySize),
-		"KEY_2": generateRandomBytes(core.SymmetricKeySize),
-	}
-}
 
 /*
 	General tests
@@ -162,17 +29,17 @@ func TestValidNonEncrypted(t *testing.T) {
 	// Create non encrypted payload
 	payload := []byte("PAYLOAD")
 	hashedPayload := core.Hash(payload)
-	issuerSignature, _ := core.Sign(signKeyCollection["ISSUER_KEY"], hashedPayload[:])
-	certifierSignature, _ := core.Sign(signKeyCollection["CERTIFIER_KEY"], hashedPayload[:])
+	issuerSignature, _ := core.Sign(signKeyCollection[genericIssuerId], hashedPayload[:])
+	certifierSignature, _ := core.Sign(signKeyCollection[genericCertifierId], hashedPayload[:])
 	permanentEncryption := core.GeneratePermanentEncryptedOperation(
 		false,
 		"NO_KEY",
 		[]byte{},
 		false,
-		"ISSUER_KEY",
+		genericIssuerId,
 		issuerSignature,
 		false,
-		"CERTIFIER_KEY",
+		genericCertifierId,
 		certifierSignature,
 		false,
 		1,
@@ -205,8 +72,7 @@ func TestValidNonEncrypted(t *testing.T) {
 	executorEntryExpected := dummyExecutorEntry{
 		isVerified:    true,
 		requestNumber: 1,
-		issuerId:      "ISSUER_KEY",
-		certifierId:   "CERTIFIER_KEY",
+		signers:       generateGenericSigners(),
 		payload:       payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
@@ -228,17 +94,17 @@ func TestValidTemporaryEncryptedOnly(t *testing.T) {
 	// Create non encrypted payload
 	payload := []byte("PAYLOAD")
 	hashedPayload := core.Hash(payload)
-	issuerSignature, _ := core.Sign(signKeyCollection["ISSUER_KEY"], hashedPayload[:])
-	certifierSignature, _ := core.Sign(signKeyCollection["CERTIFIER_KEY"], hashedPayload[:])
+	issuerSignature, _ := core.Sign(signKeyCollection[genericIssuerId], hashedPayload[:])
+	certifierSignature, _ := core.Sign(signKeyCollection[genericCertifierId], hashedPayload[:])
 	permanentEncryption := core.GeneratePermanentEncryptedOperation(
 		false,
 		"NO_KEY",
 		[]byte{},
 		false,
-		"ISSUER_KEY",
+		genericIssuerId,
 		issuerSignature,
 		false,
-		"CERTIFIER_KEY",
+		genericCertifierId,
 		certifierSignature,
 		false,
 		1,
@@ -269,8 +135,7 @@ func TestValidTemporaryEncryptedOnly(t *testing.T) {
 	executorEntryExpected := dummyExecutorEntry{
 		isVerified:    true,
 		requestNumber: 1,
-		issuerId:      "ISSUER_KEY",
-		certifierId:   "CERTIFIER_KEY",
+		signers:       generateGenericSigners(),
 		payload:       payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
@@ -288,20 +153,20 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 	// Create non encrypted payload
 	payload := []byte("PAYLOAD")
 	permanentEncryption, issuerKey, certifierKey := core.GeneratePermanentEncryptedOperationWithEncryption(
-		"KEY_1",
-		keyCollection["KEY_1"],
+		keyId1,
+		keyCollection[keyId1],
 		generateRandomBytes(core.SymmetricNonceSize),
 		1,
 		payload,
-		"ISSUER_KEY",
+		genericIssuerId,
 		func(b []byte) ([]byte, bool) { return b, false },
-		"CERTIFIER_KEY",
+		genericCertifierId,
 		func(b []byte) ([]byte, bool) { return b, false },
 	)
 
 	signKeyCollection := map[string]*rsa.PrivateKey{
-		"ISSUER_KEY":    issuerKey,
-		"CERTIFIER_KEY": certifierKey,
+		genericIssuerId:    issuerKey,
+		genericCertifierId: certifierKey,
 	}
 
 	// Start server
@@ -335,8 +200,7 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 	executorEntryExpected := dummyExecutorEntry{
 		isVerified:    true,
 		requestNumber: 1,
-		issuerId:      "ISSUER_KEY",
-		certifierId:   "CERTIFIER_KEY",
+		signers:       generateGenericSigners(),
 		payload:       payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
@@ -355,17 +219,17 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 	payload := []byte("PAYLOAD")
 	globalKey := core.GeneratePrivateKey()
 	temporaryEncryptionEncoded, issuerKey, certifierKey := generateValidEncryptedOperation(
-		"KEY_1",
-		keyCollection["KEY_1"],
+		keyId1,
+		keyCollection[keyId1],
 		payload,
-		"ISSUER_KEY",
-		"CERTIFIER_KEY",
+		genericIssuerId,
+		genericCertifierId,
 		globalKey,
 	)
 
 	signKeyCollection := map[string]*rsa.PrivateKey{
-		"ISSUER_KEY":    issuerKey,
-		"CERTIFIER_KEY": certifierKey,
+		genericIssuerId:    issuerKey,
+		genericCertifierId: certifierKey,
 	}
 
 	// Start server
@@ -388,8 +252,7 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 	executorEntryExpected := dummyExecutorEntry{
 		isVerified:    true,
 		requestNumber: 1,
-		issuerId:      "ISSUER_KEY",
-		certifierId:   "CERTIFIER_KEY",
+		signers:       generateGenericSigners(),
 		payload:       payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
@@ -406,11 +269,11 @@ func TestInvalidOperationEncoding(t *testing.T) {
 	payload := []byte("PAYLOAD")
 	globalKey := core.GeneratePrivateKey()
 	temporaryEncryptionEncoded, issuerKey, certifierKey := generateValidEncryptedOperation(
-		"KEY_1",
-		keyCollection["KEY_1"],
+		keyId1,
+		keyCollection[keyId1],
 		payload,
-		"ISSUER_KEY",
-		"CERTIFIER_KEY",
+		genericIssuerId,
+		genericCertifierId,
 		globalKey,
 	)
 
@@ -421,8 +284,8 @@ func TestInvalidOperationEncoding(t *testing.T) {
 	}
 
 	signKeyCollection := map[string]*rsa.PrivateKey{
-		"ISSUER_KEY":    issuerKey,
-		"CERTIFIER_KEY": certifierKey,
+		genericIssuerId:    issuerKey,
+		genericCertifierId: certifierKey,
 	}
 
 	_, executorRequester := createDummyExecutorRequesterFunctor()
@@ -453,11 +316,11 @@ func TestInvalidOperationEncoding(t *testing.T) {
 	// Encrypt request with the wrong key
 	differentKey := core.GeneratePrivateKey()
 	temporaryEncryptionEncodedWrongKey, _, _ := generateValidEncryptedOperation(
-		"KEY_1",
-		keyCollection["KEY_1"],
+		keyId1,
+		keyCollection[keyId1],
 		payload,
-		"ISSUER_KEY",
-		"CERTIFIER_KEY",
+		genericIssuerId,
+		genericCertifierId,
 		differentKey,
 	)
 	decryptorResp, ok = makeRequestAndGetResult(t, temporaryEncryptionEncodedWrongKey)
@@ -488,11 +351,11 @@ func TestInvalidOperationEncoding(t *testing.T) {
 
 	// Use inexistent signing key
 	temporaryEncryptionEncodedNoSignKey, _, _ := generateValidEncryptedOperation(
-		"KEY_1",
-		keyCollection["KEY_1"],
+		keyId1,
+		keyCollection[keyId1],
 		payload,
-		"NOT_EXISTENT",
-		"CERTIFIER_KEY",
+		"NON_EXISTENT",
+		genericCertifierId,
 		globalKey,
 	)
 	decryptorResp, ok = makeRequestAndGetResult(t, temporaryEncryptionEncodedNoSignKey)
@@ -506,11 +369,11 @@ func TestInvalidOperationEncoding(t *testing.T) {
 
 	// Use wrong permanent encryption key
 	temporaryEncryptionEncodedWrongPermanentKey, _, _ := generateValidEncryptedOperation(
-		"KEY_2",
-		keyCollection["KEY_1"],
+		keyId2,
+		keyCollection[keyId1],
 		payload,
-		"NOT_EXISTENT",
-		"CERTIFIER_KEY",
+		"NON_EXISTENT",
+		genericCertifierId,
 		globalKey,
 	)
 	decryptorResp, ok = makeRequestAndGetResult(t, temporaryEncryptionEncodedWrongPermanentKey)
