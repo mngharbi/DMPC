@@ -305,6 +305,6 @@ func (op *PermanentEncryptedOperation) Decrypt(
 	Defines the set of signers that were verified
 */
 type VerifiedSigners struct {
-	IssuerId string
+	IssuerId    string
 	CertifierId string
 }

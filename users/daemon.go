@@ -8,6 +8,11 @@ import (
 )
 
 /*
+	Lambda to send a request and signers to users subsystem
+*/
+type Requester func(*core.VerifiedSigners, []byte) (chan *UserResponse, []error)
+
+/*
 	Logging
 */
 var (

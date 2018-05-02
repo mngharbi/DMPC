@@ -7,8 +7,12 @@ import (
 /*
 	Ticket definition
 */
-
 type Ticket string
+
+/*
+	Function to generate a new ticket
+*/
+type TicketGenerator func() Ticket
 
 /*
 	Generates a new ticket through the core package utility

@@ -9,6 +9,7 @@ import (
 	"crypto/rsa"
 	"errors"
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/executor"
 	"sync"
 	"testing"
 )
@@ -21,9 +22,9 @@ func resetAndStartServer(
 	t *testing.T,
 	conf Config,
 	globalKey *rsa.PrivateKey,
-	usersSignKeyRequester UsersSignKeyRequester,
-	keyRequester KeyRequester,
-	executorRequester ExecutorRequester,
+	usersSignKeyRequester core.UsersSignKeyRequester,
+	keyRequester core.KeyRequester,
+	executorRequester executor.Requester,
 ) bool {
 	serverSingleton = server{}
 	InitializeServer(globalKey, usersSignKeyRequester, keyRequester, executorRequester, log, shutdownProgram)
@@ -107,7 +108,7 @@ func generateValidEncryptedOperation(
 	Dummy subsystem lambdas
 */
 
-func createDummyUsersSignKeyRequesterFunctor(collection map[string]*rsa.PrivateKey, success bool) UsersSignKeyRequester {
+func createDummyUsersSignKeyRequesterFunctor(collection map[string]*rsa.PrivateKey, success bool) core.UsersSignKeyRequester {
 	notFoundError := errors.New("Could not find signing key.")
 	return func(keysIds []string) ([]*rsa.PublicKey, error) {
 		res := []*rsa.PublicKey{}
@@ -125,7 +126,7 @@ func createDummyUsersSignKeyRequesterFunctor(collection map[string]*rsa.PrivateK
 	}
 }
 
-func createDummyKeyRequesterFunctor(collection map[string][]byte) KeyRequester {
+func createDummyKeyRequesterFunctor(collection map[string][]byte) core.KeyRequester {
 	return func(keyId string) []byte {
 		return collection[keyId]
 	}
@@ -150,7 +151,7 @@ func (reg *dummyExecutorRegistry) getEntry(id string) dummyExecutorEntry {
 	return entryCopy
 }
 
-func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, ExecutorRequester) {
+func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, executor.Requester) {
 	reg := dummyExecutorRegistry{
 		data: map[string]dummyExecutorEntry{},
 		lock: &sync.Mutex{},

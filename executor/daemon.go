@@ -9,6 +9,11 @@ import (
 )
 
 /*
+	Function to send in a decrypted request into the executor and returns a ticket
+*/
+type Requester func(bool, int, *core.VerifiedSigners, []byte) string
+
+/*
 	Errors
 */
 
@@ -22,13 +27,6 @@ var subsystemChannelClosed error = errors.New("Corresponding subsystem shutdown 
 type Config struct {
 	NumWorkers int
 }
-
-/*
-	Types of lambdas to call other subsystems
-*/
-type UsersRequester func(*core.VerifiedSigners, []byte) (chan *users.UserResponse, []error)
-type ResponseReporter func(status.Ticket, status.StatusCode, status.FailReasonCode, []byte, []error) error
-type TicketGenerator func() status.Ticket
 
 /*
 	Logging
@@ -49,10 +47,10 @@ func provisionServerOnce() {
 }
 
 func InitializeServer(
-	usersRequester UsersRequester,
-	usersRequesterUnverified UsersRequester,
-	responseReporter ResponseReporter,
-	ticketGenerator TicketGenerator,
+	usersRequester users.Requester,
+	usersRequesterUnverified users.Requester,
+	responseReporter status.Reporter,
+	ticketGenerator status.TicketGenerator,
 	loggingHandler *core.LoggingHandler,
 	shutdownLambda core.ShutdownLambda,
 ) {
@@ -125,10 +123,10 @@ var (
 
 type server struct {
 	// Requester lambdas
-	usersRequester           UsersRequester
-	usersRequesterUnverified UsersRequester
-	responseReporter         ResponseReporter
-	ticketGenerator          TicketGenerator
+	usersRequester           users.Requester
+	usersRequesterUnverified users.Requester
+	responseReporter         status.Reporter
+	ticketGenerator          status.TicketGenerator
 }
 
 func (sv *server) Start(_ gofarm.Config, _ bool) error { return nil }
@@ -145,7 +143,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.
 		sv.responseReporter(wrappedRequest.ticket, status.RunningStatus, status.NoReason, nil, nil)
 
 		// Determine lambda to use based on whether the request is verified or not
-		var usersRequester UsersRequester
+		var usersRequester users.Requester
 		if wrappedRequest.isVerified {
 			usersRequester = sv.usersRequester
 		} else {

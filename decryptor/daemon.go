@@ -3,6 +3,7 @@ package decryptor
 import (
 	"crypto/rsa"
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/executor"
 	"github.com/mngharbi/gofarm"
 )
 
@@ -14,13 +15,6 @@ type decryptorRequest struct {
 	isVerified bool
 	rawRequest []byte
 }
-
-/*
-	Types of lambdas to call other subsystems
-*/
-type UsersSignKeyRequester func([]string) ([]*rsa.PublicKey, error)
-type KeyRequester func(string) []byte
-type ExecutorRequester func(bool, int, *core.VerifiedSigners, []byte) string
 
 /*
 	Logging
@@ -42,9 +36,9 @@ func provisionServerOnce() {
 
 func InitializeServer(
 	globalKey *rsa.PrivateKey,
-	usersSignKeyRequester UsersSignKeyRequester,
-	keyRequester KeyRequester,
-	executorRequester ExecutorRequester,
+	usersSignKeyRequester core.UsersSignKeyRequester,
+	keyRequester core.KeyRequester,
+	executorRequester executor.Requester,
 	loggingHandler *core.LoggingHandler,
 	shutdownLambda core.ShutdownLambda,
 ) {
@@ -102,9 +96,9 @@ type server struct {
 	globalKey *rsa.PrivateKey
 
 	// Requester lambdas
-	usersSignKeyRequester UsersSignKeyRequester
-	keyRequester          KeyRequester
-	executorRequester     ExecutorRequester
+	usersSignKeyRequester core.UsersSignKeyRequester
+	keyRequester          core.KeyRequester
+	executorRequester     executor.Requester
 }
 
 func (sv *server) Start(_ gofarm.Config, _ bool) error { return nil }

@@ -6,6 +6,11 @@ import (
 )
 
 /*
+	Function to make a status update
+*/
+type Reporter func(Ticket, StatusCode, FailReasonCode, []byte, []error) error
+
+/*
 	Server API
 */
 
