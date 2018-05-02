@@ -7,6 +7,7 @@ const (
 	Success = iota
 	TemporaryDecryptionError
 	PermanentDecryptionError
+	ExecutorError
 )
 
 type DecryptorResponse struct {

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/executor"
+	"github.com/mngharbi/DMPC/status"
 	"sync"
 	"testing"
 )
@@ -156,7 +157,7 @@ func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, executor.Req
 		data: map[string]dummyExecutorEntry{},
 		lock: &sync.Mutex{},
 	}
-	requester := func(isVerified bool, requestNumber int, signers *core.VerifiedSigners, payload []byte) string {
+	requester := func(isVerified bool, requestNumber int, signers *core.VerifiedSigners, payload []byte) (status.Ticket, error) {
 		reg.lock.Lock()
 		ticketCopy := core.GenerateUniqueId()
 		reg.data[ticketCopy] = dummyExecutorEntry{
@@ -166,7 +167,7 @@ func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, executor.Req
 			payload:       payload,
 		}
 		reg.lock.Unlock()
-		return ticketCopy
+		return status.Ticket(ticketCopy), nil
 	}
 	return &reg, requester
 }

@@ -150,14 +150,18 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 		IssuerId:    permanentEncrypted.Issue.Id,
 		CertifierId: permanentEncrypted.Certification.Id,
 	}
-	ticketId := sv.executorRequester(
+	ticketId, err := sv.executorRequester(
 		decryptorWrapped.isVerified,
 		permanentEncrypted.Meta.RequestType,
 		signers,
 		plaintextBytes,
 	)
+	if err != nil {
+		return failRequest(ExecutorError)
+	}
 
-	return successRequest(ticketId)
+	// @TODO: Change type to status.Ticket
+	return successRequest(string(ticketId))
 }
 
 func failRequest(errorType int) *gofarm.Response {
