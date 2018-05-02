@@ -7,6 +7,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/executor"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 	"io/ioutil"
@@ -41,6 +42,9 @@ type Config struct {
 
 	// Configuration for users subsystem
 	Status StatusSubsystemConfig `json:"status"`
+
+	// Configuration for executor subsystem
+	Executor NumWorkersOnlyConfig `json:"executor"`
 }
 
 /*
@@ -118,4 +122,10 @@ func (config *Config) getStatusSubsystemConfig() (status.StatusServerConfig, sta
 		}, status.ListenersServerConfig{
 			NumWorkers: config.Status.Listeners.NumWorkers,
 		}
+}
+
+func (config *Config) getExecutorSubsystemConfig() executor.Config {
+	return executor.Config{
+		NumWorkers: config.Executor.NumWorkers,
+	}
 }
