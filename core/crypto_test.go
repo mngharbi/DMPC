@@ -324,7 +324,7 @@ func TestPermanentValidOperation(t *testing.T) {
 	permanentKey := generateRandomBytes(SymmetricKeySize)
 	permanentNonce := generateRandomBytes(SymmetricNonceSize)
 	requestPayload := []byte("REQUEST_PAYLOAD")
-	encryptedInnerOperation, issuerKey, certifierKey := GeneratePermanentEncryptedOperationWithEncryption(
+	encryptedInnerOperation, _, _ := GeneratePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
 		permanentKey,
 		permanentNonce,
@@ -338,8 +338,6 @@ func TestPermanentValidOperation(t *testing.T) {
 
 	decryptedDecodedPayload, err := encryptedInnerOperation.Decrypt(
 		func(string) []byte { return permanentKey },
-		&issuerKey.PublicKey,
-		&certifierKey.PublicKey,
 	)
 	if err != nil ||
 		!reflect.DeepEqual(decryptedDecodedPayload, requestPayload) {
@@ -368,8 +366,6 @@ func TestPermanentInvalidPayload(t *testing.T) {
 
 	_, err := encryptedInnerOperation.Decrypt(
 		func(string) []byte { return generateRandomBytes(SymmetricKeySize) },
-		nil,
-		nil,
 	)
 	if err != payloadDecodeError {
 		t.Errorf("Permanent decryption should fail with invalid base64 payload. found=%+v, expected=%v")
@@ -397,8 +393,6 @@ func TestPermanentInvalidNonce(t *testing.T) {
 
 	_, err := encryptedInnerOperation.Decrypt(
 		func(string) []byte { return generateRandomBytes(SymmetricKeySize) },
-		nil,
-		nil,
 	)
 	if err != invalidNonceError {
 		t.Errorf("Permanent decryption should fail with invalid base64 nonce.")
@@ -424,8 +418,6 @@ func TestPermanentInvalidNonce(t *testing.T) {
 
 	_, err = encryptedInnerOperation.Decrypt(
 		func(string) []byte { return generateRandomBytes(SymmetricKeySize) },
-		nil,
-		nil,
 	)
 	if err != invalidNonceError {
 		t.Errorf("Permanent decryption should fail with invalid nonce length.")
@@ -454,8 +446,6 @@ func TestPermanentNotFoundKey(t *testing.T) {
 	// Decrypt with function that returns no key
 	_, err := encryptedInnerOperation.Decrypt(
 		func(string) []byte { return nil },
-		nil,
-		nil,
 	)
 	if err != keyNotFoundError {
 		t.Errorf("Permanent decryption should fail with no key found.")
@@ -480,13 +470,19 @@ func TestPermanentInvalidIssuerSignature(t *testing.T) {
 		dummyByteToByteTransformer,
 	)
 
-	_, err := encryptedInnerOperation.Decrypt(
+	payload, err := encryptedInnerOperation.Decrypt(
 		func(string) []byte { return permanentKey },
+	)
+	if err != nil {
+		t.Errorf("Permanent decryption should not fail with invalid base64 issuer signature. err=%v", err)
+	}
+	err = encryptedInnerOperation.Verify(
 		&issuerKey.PublicKey,
 		&certifierKey.PublicKey,
+		payload,
 	)
 	if err != invalidSignatureEncodingError {
-		t.Errorf("Permanent decryption should fail with invalid base64 issuer signature. err=%v", err)
+		t.Errorf("Verify should fail with invalid base64 issuer signature. err=%v", err)
 	}
 
 	// Make permanent opration without corresponding issuer signature
@@ -502,10 +498,16 @@ func TestPermanentInvalidIssuerSignature(t *testing.T) {
 		dummyByteToByteTransformer,
 	)
 
-	_, err = encryptedInnerOperation.Decrypt(
+	payload, err = encryptedInnerOperation.Decrypt(
 		func(string) []byte { return permanentKey },
+	)
+	if err != nil {
+		t.Errorf("Permanent decryption should not fail with invalid issuer signature.")
+	}
+	err = encryptedInnerOperation.Verify(
 		&issuerKey.PublicKey,
 		&certifierKey.PublicKey,
+		payload,
 	)
 	if err != invalidIssuerSignatureError {
 		t.Errorf("Permanent decryption should fail with invalid issuer signature.")
@@ -529,13 +531,19 @@ func TestPermanentInvalidCertifierSignature(t *testing.T) {
 		func([]byte) ([]byte, bool) { return []byte(invalidBase64string), true },
 	)
 
-	_, err := encryptedInnerOperation.Decrypt(
+	payload, err := encryptedInnerOperation.Decrypt(
 		func(string) []byte { return permanentKey },
+	)
+	if err != nil {
+		t.Errorf("Permanent decryption should not fail with invalid base64 certifier signature. err=%v", err)
+	}
+	err = encryptedInnerOperation.Verify(
 		&issuerKey.PublicKey,
 		&certifierKey.PublicKey,
+		payload,
 	)
 	if err != invalidSignatureEncodingError {
-		t.Errorf("Permanent decryption should fail with invalid base64 certifier signature. err=%v", err)
+		t.Errorf("Verify should fail with invalid base64 certifier signature. err=%v", err)
 	}
 
 	// Make permanent opration without corresponding certifier signature
@@ -551,12 +559,18 @@ func TestPermanentInvalidCertifierSignature(t *testing.T) {
 		func([]byte) ([]byte, bool) { return []byte(validBase64string), true },
 	)
 
-	_, err = encryptedInnerOperation.Decrypt(
+	payload, err = encryptedInnerOperation.Decrypt(
 		func(string) []byte { return permanentKey },
+	)
+	if err != nil {
+		t.Errorf("Permanent decryption should  notfail with invalid certifier signature.")
+	}
+	err = encryptedInnerOperation.Verify(
 		&issuerKey.PublicKey,
 		&certifierKey.PublicKey,
+		payload,
 	)
 	if err != invalidCertifierSignatureError {
-		t.Errorf("Permanent decryption should fail with invalid certifier signature.")
+		t.Errorf("Verify should fail with invalid base64 certifier signature. err=%v", err)
 	}
 }

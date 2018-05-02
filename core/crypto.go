@@ -234,8 +234,6 @@ func (op *TemporaryEncryptedOperation) Decrypt(asymKey *rsa.PrivateKey) (*Perman
 */
 func (op *PermanentEncryptedOperation) Decrypt(
 	getKeyById func(string) []byte,
-	issuerSigningKey *rsa.PublicKey,
-	certifierSigningKey *rsa.PublicKey,
 ) ([]byte, error) {
 	// Base64 decode payload
 	payloadBytes, err := Base64DecodeString(op.Payload)
@@ -270,35 +268,42 @@ func (op *PermanentEncryptedOperation) Decrypt(
 		)
 	}
 
-	// Decode and verify issuer signature
-	issuerSignature, err := Base64DecodeString(op.Issue.Signature)
-	if err != nil {
-		return nil, invalidSignatureEncodingError
-	}
-	issuerVerified := Verify(
-		issuerSigningKey,
-		Hash(payloadBytes),
-		issuerSignature,
-	)
-	if !issuerVerified {
-		return nil, invalidIssuerSignatureError
-	}
-
-	// Decode and verify certifier signature
-	certifierSignature, err := Base64DecodeString(op.Certification.Signature)
-	if err != nil {
-		return nil, invalidSignatureEncodingError
-	}
-	certifierVerified := Verify(
-		certifierSigningKey,
-		Hash(payloadBytes),
-		certifierSignature,
-	)
-	if !certifierVerified {
-		return nil, invalidCertifierSignatureError
-	}
-
 	return payloadBytes, nil
+}
+
+/*
+	Signature verification
+*/
+func (op *PermanentEncryptedOperation) Verify(
+	issuerSigningKey *rsa.PublicKey,
+	certifierSigningKey *rsa.PublicKey,
+	payload []byte,
+) (verified error) {
+	verified = decodeAndVerifySignature(issuerSigningKey, op.Issue.Signature, payload, invalidIssuerSignatureError)
+	if verified != nil {
+		return
+	}
+	verified = decodeAndVerifySignature(certifierSigningKey, op.Certification.Signature, payload, invalidCertifierSignatureError)
+	return
+}
+func decodeAndVerifySignature(
+	signingKey *rsa.PublicKey,
+	signatureEncoded string,
+	payload []byte,
+	invalidSignatureError error,
+) error {
+	// Decode signature
+	var signature []byte
+	var err error
+	if signature, err = Base64DecodeString(signatureEncoded); err != nil {
+		return invalidSignatureEncodingError
+	}
+
+	// Verify signature
+	if verified := Verify(signingKey, Hash(payload), signature); !verified {
+		return invalidSignatureError
+	}
+	return nil
 }
 
 /*
