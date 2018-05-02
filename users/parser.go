@@ -205,6 +205,19 @@ func (rq *UserRequest) sanitizeFieldsUpdated() {
 }
 
 /*
+	User request encoding
+*/
+func (usr *UserRequest) Encode() ([]byte, error) {
+	jsonStream, err := json.Marshal(usr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonStream, nil
+}
+
+/*
 	User object encoding
 */
 func (usr *UserObject) Encode() ([]byte, error) {

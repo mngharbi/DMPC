@@ -9,7 +9,19 @@ import (
 	"errors"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/memstore"
+	"time"
 )
+
+/*
+	Make creation record
+*/
+func GenerateCreateRequest(userObject *UserObject, timestamp time.Time) *UserRequest {
+	return &UserRequest{
+		Type:      CreateRequest,
+		Data:      *userObject,
+		Timestamp: timestamp,
+	}
+}
 
 /*
 	Gets signing keys by user ids

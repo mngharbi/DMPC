@@ -35,6 +35,7 @@ type PermanentAuthenticationFields struct {
 	Signature string `json:"signature"`
 }
 type PermanentMetaFields struct {
+	// @TODO: Change to its own type
 	RequestType int `json:"requestType"`
 }
 type PermanentEncryptedOperation struct {

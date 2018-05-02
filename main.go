@@ -9,10 +9,13 @@ func main() {
 	config := doSetup()
 
 	// Build user object from configuration files
-	_ = buildRootUserObject(config)
+	rootUserOperation := buildRootUserOperation(config)
 
 	// Start all subsystems
 	startDaemons(config, shutdownLambda)
+
+	// Make root user request
+	_ = createRootUser(rootUserOperation)
 
 	// Sleep forever (program is terminated by shutdown goroutine)
 	select {}

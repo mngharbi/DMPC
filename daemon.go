@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/mngharbi/DMPC/core"
-	"github.com/mngharbi/DMPC/executor"
 	"github.com/mngharbi/DMPC/decryptor"
+	"github.com/mngharbi/DMPC/executor"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 )
@@ -43,7 +43,7 @@ func startDaemons(config *Config, shutdownLambda core.ShutdownLambda) {
 		users.GetSigningKeysById,
 
 		// @TODO: Replace with actual closure when keys subsystem is implemented
-		(func(string) []byte{ return nil }),
+		(func(string) []byte { return nil }),
 
 		executor.MakeRequest,
 		log,
