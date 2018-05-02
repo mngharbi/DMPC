@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/executor"
+	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 )
@@ -30,9 +31,32 @@ func startDaemons(config *Config, shutdownLambda core.ShutdownLambda) {
 	)
 	executorSubsystemConfig := config.getExecutorSubsystemConfig()
 	executor.StartServer(executorSubsystemConfig)
+
+	// Start decryptor subsystem
+	log.Debugf("Starting decryptor subsystem")
+	privateEncryptionKey, err := config.getPrivateEncryptionKey()
+	if err != nil {
+		log.Fatalf("Unable to access private encryption key. Error: %v", err.Error())
+	}
+	decryptor.InitializeServer(
+		privateEncryptionKey,
+		users.GetSigningKeysById,
+
+		// @TODO: Replace with actual closure when keys subsystem is implemented
+		(func(string) []byte{ return nil }),
+
+		executor.MakeRequest,
+		log,
+		shutdownLambda,
+	)
+	decryptorSubsystemConfig := config.getDecryptorSubsystemConfig()
+	decryptor.StartServer(decryptorSubsystemConfig)
 }
 
 func shutdownDaemons() {
+	log.Debugf("Shutting down decryptor subsystem")
+	decryptor.ShutdownServer()
+
 	log.Debugf("Shutting down users subsystem")
 	users.ShutdownServer()
 

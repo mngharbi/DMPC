@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/executor"
+	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 	"io/ioutil"
@@ -45,6 +46,9 @@ type Config struct {
 
 	// Configuration for executor subsystem
 	Executor NumWorkersOnlyConfig `json:"executor"`
+
+	// Configuration for decryptor subsystem
+	Decryptor NumWorkersOnlyConfig `json:"decryptor"`
 }
 
 /*
@@ -127,5 +131,11 @@ func (config *Config) getStatusSubsystemConfig() (status.StatusServerConfig, sta
 func (config *Config) getExecutorSubsystemConfig() executor.Config {
 	return executor.Config{
 		NumWorkers: config.Executor.NumWorkers,
+	}
+}
+
+func (config *Config) getDecryptorSubsystemConfig() decryptor.Config {
+	return decryptor.Config{
+		NumWorkers: config.Decryptor.NumWorkers,
 	}
 }
