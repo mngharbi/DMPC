@@ -11,7 +11,7 @@ import (
 /*
 	Function to send in a decrypted request into the executor and returns a ticket
 */
-type Requester func(bool, int, *core.VerifiedSigners, []byte) string
+type Requester func(bool, int, *core.VerifiedSigners, []byte) (status.Ticket, error)
 
 /*
 	Errors
