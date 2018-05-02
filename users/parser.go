@@ -62,6 +62,7 @@ const (
 	ReadRequest
 )
 
+// @TODO: Change Type to enumerated type
 type UserRequest struct {
 	Type      int        `json:"type"`
 	Fields    []string   `json:"fields"`

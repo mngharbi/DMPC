@@ -75,15 +75,16 @@ func makeEncodedRequest(signers *core.VerifiedSigners, rawRequest []byte, skipPe
 	// Set issuer and certifier from arguments
 	rqPtr.addSigners(signers)
 
+	return makeRequest(rqPtr)
+}
+
+func makeRequest(rqPtr *UserRequest) (chan *UserResponse, []error) {
+	// Sanitize request
 	sanitizationErrors := rqPtr.sanitizeAndCheckParams()
 	if len(sanitizationErrors) != 0 {
 		return nil, sanitizationErrors
 	}
 
-	return makeRequest(rqPtr)
-}
-
-func makeRequest(rqPtr *UserRequest) (chan *UserResponse, []error) {
 	// Make request to server
 	nativeResponseChannel, err := serverHandler.MakeRequest(rqPtr)
 	if err != nil {
@@ -177,10 +178,10 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 			continue
 		}
 
-		if userRecord.Id == rq.signers.IssuerId {
+		if rq.signers != nil && userRecord.Id == rq.signers.IssuerId {
 			issuerIndex = userRecordIndex
 		}
-		if userRecord.Id == rq.signers.CertifierId {
+		if rq.signers != nil && userRecord.Id == rq.signers.CertifierId {
 			certifierIndex = userRecordIndex
 		}
 		if userRecord.Id == rq.Data.Id {

@@ -389,6 +389,7 @@ func TestEncKeyUpdateRequest(t *testing.T) {
 	// Expect changes to enc key and updated at
 	expectedAfterUpdates := *originalUserObjectPtr
 	expectedAfterUpdates.EncKey = encKeyString
+	expectedAfterUpdates.encKeyObject = publicKey
 	expectedAfterUpdates.UpdatedAt = getJanuaryDate(30)
 	if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(expectedAfterUpdates, serverResponsePtr.Data[0]) {
 		t.Errorf("Recent encKey update should succeed but and affect key and timestamps.\n expected=%+v\n result=%+v", expectedAfterUpdates, serverResponsePtr.Data[0])
@@ -485,6 +486,7 @@ func TestSignKeyUpdateRequest(t *testing.T) {
 	// Expect changes to sign key and updated at
 	expectedAfterUpdates := *originalUserObjectPtr
 	expectedAfterUpdates.SignKey = signKeyString
+	expectedAfterUpdates.signKeyObject = publicKey
 	expectedAfterUpdates.UpdatedAt = getJanuaryDate(30)
 	if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(expectedAfterUpdates, serverResponsePtr.Data[0]) {
 		t.Errorf("Recent signKey update should succeed but and affect key and timestamps.\n expected=%+v\n result=%+v", expectedAfterUpdates, serverResponsePtr.Data[0])

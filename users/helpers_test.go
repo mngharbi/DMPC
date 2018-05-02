@@ -146,9 +146,11 @@ func generateUserCreateRequest(
 	}`)
 
 	object = &UserObject{
-		Id:      userId,
-		EncKey:  encKeyStringDecoded,
-		SignKey: signKeyStringDecoded,
+		Id:            userId,
+		EncKey:        encKeyStringDecoded,
+		encKeyObject:  encKey,
+		SignKey:       signKeyStringDecoded,
+		signKeyObject: signKey,
 		Permissions: PermissionsObject{
 			Channel: ChannelPermissionsObject{
 				Add: channelAddPermission,
