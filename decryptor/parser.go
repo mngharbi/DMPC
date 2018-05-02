@@ -7,6 +7,7 @@ const (
 	Success = iota
 	TemporaryDecryptionError
 	PermanentDecryptionError
+	VerificationError
 	ExecutorError
 )
 

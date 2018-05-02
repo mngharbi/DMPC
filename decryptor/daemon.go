@@ -128,28 +128,38 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 		return failRequest(TemporaryDecryptionError)
 	}
 
-	// Get signing keys from users subsystem
-	keys, err := sv.usersSignKeyRequester([]string{
-		permanentEncrypted.Issue.Id,
-		permanentEncrypted.Certification.Id,
-	})
+	// Permanent decryption
+	plaintextBytes, err := permanentEncrypted.Decrypt(sv.keyRequester)
 	if err != nil {
 		return failRequest(PermanentDecryptionError)
 	}
-	issuerSignKey := keys[0]
-	certifierSignKey := keys[1]
 
-	// Permanent decryption
-	plaintextBytes, err := permanentEncrypted.Decrypt(sv.keyRequester, issuerSignKey, certifierSignKey)
-	if err != nil {
-		return failRequest(PermanentDecryptionError)
+	// Get signing keys from users subsystem
+	if decryptorWrapped.isVerified {
+		keys, err := sv.usersSignKeyRequester([]string{
+			permanentEncrypted.Issue.Id,
+			permanentEncrypted.Certification.Id,
+		})
+		if err != nil {
+			return failRequest(VerificationError)
+		}
+		issuerSignKey := keys[0]
+		certifierSignKey := keys[1]
+		if verification := permanentEncrypted.Verify(issuerSignKey, certifierSignKey, plaintextBytes); verification != nil {
+			return failRequest(VerificationError)
+		}
+	}
+
+	// Build signers structure
+	var signers *core.VerifiedSigners
+	if decryptorWrapped.isVerified {
+		signers = &core.VerifiedSigners{
+			IssuerId:    permanentEncrypted.Issue.Id,
+			CertifierId: permanentEncrypted.Certification.Id,
+		}
 	}
 
 	// Send raw bytes and metadata to executor
-	signers := &core.VerifiedSigners{
-		IssuerId:    permanentEncrypted.Issue.Id,
-		CertifierId: permanentEncrypted.Certification.Id,
-	}
 	ticketId, err := sv.executorRequester(
 		decryptorWrapped.isVerified,
 		permanentEncrypted.Meta.RequestType,

@@ -362,8 +362,8 @@ func TestInvalidOperationEncoding(t *testing.T) {
 	if !ok {
 		return
 	}
-	if decryptorResp.Result != PermanentDecryptionError {
-		t.Errorf("Decryptor request should fail if singing key does not exist.")
+	if decryptorResp.Result != VerificationError {
+		t.Errorf("Decryptor request should fail if signing key does not exist.")
 		return
 	}
 
@@ -380,7 +380,7 @@ func TestInvalidOperationEncoding(t *testing.T) {
 	if !ok {
 		return
 	}
-	if decryptorResp.Result != PermanentDecryptionError {
+	if decryptorResp.Result != VerificationError {
 		t.Errorf("Decryptor request should fail if permanent encrypted payload can't be decrypted.")
 		return
 	}
