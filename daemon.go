@@ -4,6 +4,7 @@ import (
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
+	"github.com/mngharbi/DMPC/pipeline"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 )
@@ -51,9 +52,17 @@ func startDaemons(config *Config, shutdownLambda core.ShutdownLambda) {
 	)
 	decryptorSubsystemConfig := config.getDecryptorSubsystemConfig()
 	decryptor.StartServer(decryptorSubsystemConfig)
+
+	// Start pipeline subsystem (websocket server)
+	log.Debugf("Starting pipeline subsystem")
+	pipelineSubsystemConfig := config.getPipelineSubsystemConfig()
+	pipeline.StartServer(pipelineSubsystemConfig, decryptor.MakeRequest, log)
 }
 
 func shutdownDaemons() {
+	log.Debugf("Shutting down pipeline subsystem")
+	pipeline.ShutdownServer()
+
 	log.Debugf("Shutting down decryptor subsystem")
 	decryptor.ShutdownServer()
 

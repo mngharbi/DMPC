@@ -9,6 +9,7 @@ import (
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
+	"github.com/mngharbi/DMPC/pipeline"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 	"io/ioutil"
@@ -49,6 +50,9 @@ type Config struct {
 
 	// Configuration for decryptor subsystem
 	Decryptor NumWorkersOnlyConfig `json:"decryptor"`
+
+	// Configuration for pipeline subsystem (websocket)
+	Pipeline PipelineSubsystemConfig `json:"pipeline"`
 }
 
 /*
@@ -137,5 +141,19 @@ func (config *Config) getExecutorSubsystemConfig() executor.Config {
 func (config *Config) getDecryptorSubsystemConfig() decryptor.Config {
 	return decryptor.Config{
 		NumWorkers: config.Decryptor.NumWorkers,
+	}
+}
+
+type PipelineSubsystemConfig struct {
+	CheckOrigin bool   `json:"checkOrigin"`
+	Hostname    string `json:"hostname"`
+	Port        int    `json:"port"`
+}
+
+func (config *Config) getPipelineSubsystemConfig() pipeline.Config {
+	return pipeline.Config{
+		CheckOrigin: config.Pipeline.CheckOrigin,
+		Hostname:    config.Pipeline.Hostname,
+		Port:        config.Pipeline.Port,
 	}
 }
