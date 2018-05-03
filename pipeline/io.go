@@ -33,7 +33,7 @@ func (c *Conversation) reader() {
 					if nativeResp != nil {
 						resp := (*nativeResp).(*decryptor.DecryptorResponse)
 						if resp.Result == decryptor.Success {
-							c.outgoingQueue <- status.Ticket(resp.Ticket)
+							c.outgoingQueue <- resp.Ticket
 						} else {
 							closeConnectionForInvalidData(c.socket)
 						}

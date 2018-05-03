@@ -1,5 +1,9 @@
 package decryptor
 
+import (
+	"github.com/mngharbi/DMPC/status"
+)
+
 /*
 	Request response structure
 */
@@ -12,6 +16,6 @@ const (
 )
 
 type DecryptorResponse struct {
-	Result int    `json:"result"`
-	Ticket string `json:"ticket"`
+	Result int           `json:"result"`
+	Ticket status.Ticket `json:"ticket"`
 }

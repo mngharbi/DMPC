@@ -117,7 +117,7 @@ func createRootUser(operation *core.TemporaryEncryptedOperation) {
 
 	// Wait until ticket status is success
 	log.Debugf("Adding listener on user creation ticket")
-	updateChannel, err := status.AddListener(status.Ticket(rootUserResp.Ticket))
+	updateChannel, err := status.AddListener(rootUserResp.Ticket)
 	if err != nil {
 		log.Fatalf(listenOnRootUserRequestError)
 	}

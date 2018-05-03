@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/executor"
+	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/gofarm"
 )
 
@@ -177,7 +178,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	}
 
 	// Send raw bytes and metadata to executor
-	ticketId, err := sv.executorRequester(
+	ticket, err := sv.executorRequester(
 		decryptorWrapped.isVerified,
 		permanentEncrypted.Meta.RequestType,
 		signers,
@@ -187,8 +188,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 		return failRequest(ExecutorError)
 	}
 
-	// @TODO: Change type to status.Ticket
-	return successRequest(string(ticketId))
+	return successRequest(ticket)
 }
 
 func failRequest(errorType int) *gofarm.Response {
@@ -200,10 +200,10 @@ func failRequest(errorType int) *gofarm.Response {
 	return &nativeResp
 }
 
-func successRequest(ticketId string) *gofarm.Response {
+func successRequest(ticket status.Ticket) *gofarm.Response {
 	decryptorRespPtr := &DecryptorResponse{
 		Result: Success,
-		Ticket: ticketId,
+		Ticket: ticket,
 	}
 
 	var nativeResp gofarm.Response = decryptorRespPtr

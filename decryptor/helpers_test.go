@@ -141,11 +141,11 @@ type dummyExecutorEntry struct {
 }
 
 type dummyExecutorRegistry struct {
-	data map[string]dummyExecutorEntry
+	data map[status.Ticket]dummyExecutorEntry
 	lock *sync.Mutex
 }
 
-func (reg *dummyExecutorRegistry) getEntry(id string) dummyExecutorEntry {
+func (reg *dummyExecutorRegistry) getEntry(id status.Ticket) dummyExecutorEntry {
 	reg.lock.Lock()
 	entryCopy := reg.data[id]
 	reg.lock.Unlock()
@@ -154,12 +154,12 @@ func (reg *dummyExecutorRegistry) getEntry(id string) dummyExecutorEntry {
 
 func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, executor.Requester) {
 	reg := dummyExecutorRegistry{
-		data: map[string]dummyExecutorEntry{},
+		data: map[status.Ticket]dummyExecutorEntry{},
 		lock: &sync.Mutex{},
 	}
 	requester := func(isVerified bool, requestNumber int, signers *core.VerifiedSigners, payload []byte) (status.Ticket, error) {
 		reg.lock.Lock()
-		ticketCopy := core.GenerateUniqueId()
+		ticketCopy := status.RequestNewTicket()
 		reg.data[ticketCopy] = dummyExecutorEntry{
 			isVerified:    isVerified,
 			requestNumber: requestNumber,
@@ -167,7 +167,7 @@ func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, executor.Req
 			payload:       payload,
 		}
 		reg.lock.Unlock()
-		return status.Ticket(ticketCopy), nil
+		return ticketCopy, nil
 	}
 	return &reg, requester
 }

@@ -25,7 +25,7 @@ func generateDecryptorRequester(formatSuccess bool, responseSuccess bool) decryp
 			}
 			var resp gofarm.Response = &decryptor.DecryptorResponse{
 				Result: result,
-				Ticket: string(status.RequestNewTicket()),
+				Ticket: status.RequestNewTicket(),
 			}
 			channel = make(chan *gofarm.Response, 1)
 			channel <- &resp
