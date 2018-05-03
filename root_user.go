@@ -9,6 +9,7 @@ import (
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
+	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 	"io/ioutil"
 	"time"
@@ -22,6 +23,9 @@ const (
 	parseEncryptionError         string = "Invalid signing key file"
 	parseSigningError            string = "Invalid encryption key file"
 	encodeRootUserOperationError string = "Unable to encode root user operation"
+	createRootUserRequestError   string = "Error making root user creation request"
+	listenOnRootUserRequestError string = "Error setting up listener on root user creation request"
+	createRootUserFailedError    string = "User creation request failed"
 )
 
 /*
@@ -95,19 +99,36 @@ func buildRootUserOperation(config *Config) *core.TemporaryEncryptedOperation {
 	)
 }
 
-func createRootUser(operation *core.TemporaryEncryptedOperation) string {
-	operationEncoded, err := operation.Encode()
-	if err != nil {
-		log.Fatalf("Error encoding temporary encrypted operation for root user.")
+func createRootUser(operation *core.TemporaryEncryptedOperation) {
+	// Make unverified request
+	log.Debugf("Requesting to add root user")
+	rootUserChannel, errs := decryptor.MakeUnverifiedRequest(operation)
+	if len(errs) != 0 {
+		log.Fatalf(createRootUserRequestError)
 	}
-	rootUserChannel, errs := decryptor.MakeUnverifiedRequest(operationEncoded)
-	if errs != nil {
-		log.Fatalf("Error making root user creation request.")
-	}
+
+	// Wait for decryptor to return ticket
+	log.Debugf("Root user request made. Waiting for ticket")
 	rootUserNativeResp := <-rootUserChannel
 	rootUserResp := (*rootUserNativeResp).(*decryptor.DecryptorResponse)
 	if rootUserResp.Result != decryptor.Success {
-		log.Fatalf("Error making root user creation request.")
+		log.Fatalf(createRootUserRequestError)
 	}
-	return rootUserResp.Ticket
+
+	// Wait until ticket status is success
+	log.Debugf("Adding listener on user creation ticket")
+	updateChannel, err := status.AddListener(status.Ticket(rootUserResp.Ticket))
+	if err != nil {
+		log.Fatalf(listenOnRootUserRequestError)
+	}
+
+	log.Debugf("Waiting for user creation to be executed")
+	var statusUpdate *status.StatusRecord
+	for statusUpdate = range updateChannel {
+	}
+	if statusUpdate.Status != status.SuccessStatus {
+		log.Fatalf(createRootUserFailedError)
+	}
+
+	log.Debugf("Root user successfully created")
 }

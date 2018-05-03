@@ -15,7 +15,7 @@ func main() {
 	startDaemons(config, shutdownLambda)
 
 	// Make root user request
-	_ = createRootUser(rootUserOperation)
+	createRootUser(rootUserOperation)
 
 	// Sleep forever (program is terminated by shutdown goroutine)
 	select {}
