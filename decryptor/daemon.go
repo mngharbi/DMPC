@@ -10,7 +10,7 @@ import (
 /*
 	Function to accept a structured request
 */
-type Requester func(*core.TemporaryEncryptedOperation, bool) (chan *gofarm.Response, []error)
+type Requester func(*core.TemporaryEncryptedOperation) (chan *gofarm.Response, []error)
 
 /*
 	Logging
