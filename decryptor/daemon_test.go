@@ -277,8 +277,7 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		globalKey,
 	)
 
-	_, errs := MakeRequest(temporaryEncryptionEncoded)
-
+	_, errs := MakeEncodedRequest(temporaryEncryptionEncoded)
 	if len(errs) == 0 {
 		t.Errorf("Decryptor should not work while server is not running.")
 	}
@@ -293,23 +292,10 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		return
 	}
 
-	// Make empty request
-	decryptorResp, ok := makeRequestAndGetResult(t, []byte{})
-	if !ok {
-		return
-	}
-	if decryptorResp.Result != TemporaryDecryptionError {
-		t.Errorf("Decryptor request should fail if empty")
-		return
-	}
-
 	// Make request with invalid json structure
-	decryptorResp, ok = makeRequestAndGetResult(t, []byte("{"))
-	if !ok {
-		return
-	}
-	if decryptorResp.Result != TemporaryDecryptionError {
-		t.Errorf("Decryptor request should fail if request is not encoded propoerly.")
+	_, errs = MakeEncodedRequest([]byte("{"))
+	if len(errs) == 0 {
+		t.Errorf("Decryptor request should not run if request is not encoded propoerly.")
 		return
 	}
 
@@ -323,7 +309,7 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		genericCertifierId,
 		differentKey,
 	)
-	decryptorResp, ok = makeRequestAndGetResult(t, temporaryEncryptionEncodedWrongKey)
+	decryptorResp, ok := makeRequestAndGetResult(t, temporaryEncryptionEncodedWrongKey)
 	if !ok {
 		return
 	}

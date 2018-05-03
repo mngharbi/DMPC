@@ -41,7 +41,7 @@ func makeRequestAndGetResult(
 	t *testing.T,
 	requestBytes []byte,
 ) (*DecryptorResponse, bool) {
-	channel, errs := MakeRequest(requestBytes)
+	channel, errs := MakeEncodedRequest(requestBytes)
 	if len(errs) != 0 {
 		t.Errorf("Decryptor should pass along request.")
 		return nil, false

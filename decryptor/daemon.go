@@ -7,14 +7,10 @@ import (
 	"github.com/mngharbi/gofarm"
 )
 
-type Config struct {
-	NumWorkers int
-}
-
-type decryptorRequest struct {
-	isVerified bool
-	rawRequest []byte
-}
+/*
+	Function to accept a structured request
+*/
+type Requester func(*core.TemporaryEncryptedOperation, bool) (chan *gofarm.Response, []error)
 
 /*
 	Logging
@@ -25,8 +21,21 @@ var (
 )
 
 /*
+	Server configuration
+*/
+
+type Config struct {
+	NumWorkers int
+}
+
+/*
 	Server API
 */
+
+type decryptorRequest struct {
+	isVerified bool
+	operation  *core.TemporaryEncryptedOperation
+}
 
 func provisionServerOnce() {
 	if serverHandler == nil {
@@ -62,18 +71,37 @@ func ShutdownServer() {
 	serverHandler.ShutdownServer()
 }
 
-func MakeUnverifiedRequest(rawRequest []byte) (chan *gofarm.Response, []error) {
-	return makeRequest(rawRequest, true)
+func MakeUnverifiedEncodedRequest(encodedRequest []byte) (chan *gofarm.Response, []error) {
+	return makeEncodedRequest(encodedRequest, true)
 }
 
-func MakeRequest(rawRequest []byte) (chan *gofarm.Response, []error) {
-	return makeRequest(rawRequest, false)
+func MakeEncodedRequest(encodedRequest []byte) (chan *gofarm.Response, []error) {
+	return makeEncodedRequest(encodedRequest, false)
 }
 
-func makeRequest(rawRequest []byte, skipPermissions bool) (chan *gofarm.Response, []error) {
+func makeEncodedRequest(encodedRequest []byte, skipPermissions bool) (chan *gofarm.Response, []error) {
+	// Decode payload
+	temporaryEncrypted := &core.TemporaryEncryptedOperation{}
+	err := temporaryEncrypted.Decode(encodedRequest)
+	if err != nil {
+		return nil, []error{err}
+	}
+
+	return makeRequest(temporaryEncrypted, skipPermissions)
+}
+
+func MakeUnverifiedRequest(temporaryEncrypted *core.TemporaryEncryptedOperation) (chan *gofarm.Response, []error) {
+	return makeRequest(temporaryEncrypted, true)
+}
+
+func MakeRequest(temporaryEncrypted *core.TemporaryEncryptedOperation) (chan *gofarm.Response, []error) {
+	return makeRequest(temporaryEncrypted, false)
+}
+
+func makeRequest(temporaryEncrypted *core.TemporaryEncryptedOperation, skipPermissions bool) (chan *gofarm.Response, []error) {
 	nativeResponseChannel, err := serverHandler.MakeRequest(&decryptorRequest{
 		isVerified: !skipPermissions,
-		rawRequest: rawRequest,
+		operation:  temporaryEncrypted,
 	})
 	if err != nil {
 		return nil, []error{err}
@@ -108,19 +136,8 @@ func (sv *server) Shutdown() error { return nil }
 func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	decryptorWrapped := (*nativeRequest).(*decryptorRequest)
 
-	if len(decryptorWrapped.rawRequest) == 0 {
-		return failRequest(TemporaryDecryptionError)
-	}
-
-	// Decode payload
-	temporaryEncrypted := &core.TemporaryEncryptedOperation{}
-	err := temporaryEncrypted.Decode(decryptorWrapped.rawRequest)
-	if err != nil {
-		return failRequest(TemporaryDecryptionError)
-	}
-
 	// Temporary decryption
-	permanentEncrypted, err := temporaryEncrypted.Decrypt(sv.globalKey)
+	permanentEncrypted, err := decryptorWrapped.operation.Decrypt(sv.globalKey)
 	if err != nil {
 		return failRequest(TemporaryDecryptionError)
 	}
