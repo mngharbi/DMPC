@@ -1,4 +1,4 @@
-package main
+package daemon
 
 /*
 	Utilities for getting the root user from config
