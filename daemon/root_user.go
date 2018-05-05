@@ -1,17 +1,16 @@
 package daemon
 
 /*
-	Utilities for getting the root user from config
+	Utilities for getting the root user from conf
 */
 
 import (
-	"encoding/json"
+	"github.com/mngharbi/DMPC/config"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
-	"io/ioutil"
 	"time"
 )
 
@@ -19,9 +18,6 @@ import (
    Error messages
 */
 const (
-	parseUserWithoutKeysError    string = "Could not find user object file"
-	parseEncryptionError         string = "Invalid signing key file"
-	parseSigningError            string = "Invalid encryption key file"
 	encodeRootUserOperationError string = "Unable to encode root user operation"
 	createRootUserRequestError   string = "Error making root user creation request"
 	listenOnRootUserRequestError string = "Error setting up listener on root user creation request"
@@ -31,45 +27,10 @@ const (
 /*
    Utilities
 */
-func (config *Config) getRootUserFilePath() string {
-	return config.Paths.RootUserFilePath
-}
-
-func (config *Config) getRootUserObjectWithoutKeys() (*users.UserObject, error) {
-	raw, err := ioutil.ReadFile(config.getRootUserFilePath())
-	if err != nil {
-		return nil, err
-	}
-
-	var userObj users.UserObject
-	json.Unmarshal(raw, &userObj)
-	return &userObj, nil
-}
-
-func (config *Config) getRootUserObjectWithKeys() *users.UserObject {
-	// Get user object without keys
-	userObj, err := config.getRootUserObjectWithoutKeys()
-	if err != nil {
-		log.Fatalf(parseUserWithoutKeysError)
-	}
-
-	// Get public keys for root user from config
-	userObj.SignKey, err = config.getEncodedPublicSigningKey()
-	if err != nil {
-		log.Fatalf(parseSigningError)
-	}
-	userObj.EncKey, err = config.getEncodedPublicEncryptionKey()
-	if err != nil {
-		log.Fatalf(parseEncryptionError)
-	}
-
-	return userObj
-}
-
-func buildRootUserOperation(config *Config) *core.TemporaryEncryptedOperation {
-	// Get root user object from configuration
-	log.Debugf("Parsing root user object from configuration")
-	rootUserObject := config.getRootUserObjectWithKeys()
+func buildRootUserOperation(conf *config.Config) *core.TemporaryEncryptedOperation {
+	// Get root user object from confuration
+	log.Debugf("Parsing root user object from confuration")
+	rootUserObject := conf.GetRootUserObject()
 
 	// Build user request
 	encodedCreateRequest, err := users.GenerateCreateRequest(rootUserObject, time.Now()).Encode()

@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"github.com/mngharbi/DMPC/config"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
@@ -9,15 +10,15 @@ import (
 	"github.com/mngharbi/DMPC/users"
 )
 
-func startDaemons(config *Config, shutdownLambda core.ShutdownLambda) {
+func startDaemons(conf *config.Config, shutdownLambda core.ShutdownLambda) {
 	// Start users subsystem
 	log.Debugf("Starting users subsystem")
-	usersSubsystemConfig := config.getUsersSubsystemConfig()
+	usersSubsystemConfig := conf.GetUsersSubsystemConfig()
 	users.StartServer(usersSubsystemConfig, log, shutdownLambda)
 
 	// Start status systems (status update and listeners servers)
 	log.Debugf("Starting status subsystem")
-	statusUpdateConfig, statusListenersConfig := config.getStatusSubsystemConfig()
+	statusUpdateConfig, statusListenersConfig := conf.GetStatusSubsystemConfig()
 	status.StartServers(statusUpdateConfig, statusListenersConfig, log, shutdownLambda)
 
 	// Start executor subsystem
@@ -30,12 +31,12 @@ func startDaemons(config *Config, shutdownLambda core.ShutdownLambda) {
 		log,
 		shutdownLambda,
 	)
-	executorSubsystemConfig := config.getExecutorSubsystemConfig()
+	executorSubsystemConfig := conf.GetExecutorSubsystemConfig()
 	executor.StartServer(executorSubsystemConfig)
 
 	// Start decryptor subsystem
 	log.Debugf("Starting decryptor subsystem")
-	privateEncryptionKey, err := config.getPrivateEncryptionKey()
+	privateEncryptionKey, err := conf.GetPrivateEncryptionKey()
 	if err != nil {
 		log.Fatalf("Unable to access private encryption key. Error: %v", err.Error())
 	}
@@ -50,12 +51,12 @@ func startDaemons(config *Config, shutdownLambda core.ShutdownLambda) {
 		log,
 		shutdownLambda,
 	)
-	decryptorSubsystemConfig := config.getDecryptorSubsystemConfig()
+	decryptorSubsystemConfig := conf.GetDecryptorSubsystemConfig()
 	decryptor.StartServer(decryptorSubsystemConfig)
 
 	// Start pipeline subsystem (websocket server)
 	log.Debugf("Starting pipeline subsystem")
-	pipelineSubsystemConfig := config.getPipelineSubsystemConfig()
+	pipelineSubsystemConfig := conf.GetPipelineSubsystemConfig()
 	pipeline.StartServer(pipelineSubsystemConfig, decryptor.MakeRequest, log)
 }
 
@@ -81,14 +82,14 @@ func Start() {
 	terminationChannel, shutdownLambda := setupShutdown()
 	go shutdownWhenSignaled(terminationChannel)
 
-	// Parse configuration and setup logging
-	config := doSetup()
+	// Parse confuration and setup logging
+	conf := doSetup()
 
-	// Build user object from configuration files
-	rootUserOperation := buildRootUserOperation(config)
+	// Build user object from confuration files
+	rootUserOperation := buildRootUserOperation(conf)
 
 	// Start all subsystems
-	startDaemons(config, shutdownLambda)
+	startDaemons(conf, shutdownLambda)
 
 	// Make root user request
 	createRootUser(rootUserOperation)
