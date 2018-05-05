@@ -15,6 +15,11 @@ func buildDaemonConfig() *Config {
 	return &confCopy
 }
 
+func ensureCleanState() {
+	DeleteDmpcDir()
+	MakeDmpcDir()
+}
+
 /*
 	Install interaction
 */
@@ -131,7 +136,7 @@ func Install() {
 	}
 
 	// Ensure everything is in a clean state
-	DeleteDmpcDir()
+	ensureCleanState()
 
 	// Prompt for configuration
 	conf := buildDaemonConfig()

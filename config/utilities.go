@@ -36,6 +36,13 @@ func DeleteDmpcDir() {
 }
 
 /*
+	Makes base directory
+*/
+func MakeDmpcDir() {
+	os.MkdirAll(GetInstallRoot(), os.ModePerm)
+}
+
+/*
 	Checking install state
 */
 func IsFunctional() bool {
