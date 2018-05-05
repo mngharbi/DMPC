@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/mngharbi/DMPC/config"
 	"github.com/mngharbi/DMPC/daemon"
 	"github.com/urfave/cli"
 	"log"
@@ -25,6 +26,15 @@ func main() {
 	app.UsageText = ""
 
 	app.Commands = []cli.Command{
+		{
+			Name:    "install",
+			Aliases: []string{"i"},
+			Usage:   "Configure DMPC",
+			Action: func(c *cli.Context) error {
+				config.Install()
+				return nil
+			},
+		},
 		{
 			Name:    "server",
 			Aliases: []string{"s"},

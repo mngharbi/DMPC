@@ -122,7 +122,7 @@ func saveConfig(conf *Config) {
 /*
 	Main install function
 */
-func main() {
+func Install() {
 	// Check previous install
 	if IsInstalled() {
 		if !getCliWantToReinstall() {
