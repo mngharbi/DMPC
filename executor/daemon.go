@@ -84,6 +84,8 @@ func MakeRequest(
 	signers *core.VerifiedSigners,
 	request []byte,
 ) (status.Ticket, error) {
+	log.Debugf(receivedRequestLogMsg)
+
 	// Check type
 	if !isValidRequestType(requestType) {
 		return "", invalidRequestTypeError
@@ -129,11 +131,18 @@ type server struct {
 	ticketGenerator          status.TicketGenerator
 }
 
-func (sv *server) Start(_ gofarm.Config, _ bool) error { return nil }
+func (sv *server) Start(_ gofarm.Config, _ bool) error {
+	log.Debugf(daemonStartLogMsg)
+	return nil
+}
 
-func (sv *server) Shutdown() error { return nil }
+func (sv *server) Shutdown() error {
+	log.Debugf(daemonShutdownLogMsg)
+	return nil
+}
 
 func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.Response) {
+	log.Debugf(runningRequestLogMsg)
 	dummyResponsePtr = nil
 
 	wrappedRequest := (*nativeRequest).(*executorRequest)

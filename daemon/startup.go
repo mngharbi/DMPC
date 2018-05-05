@@ -20,7 +20,7 @@ var (
 	Error messages
 */
 const (
-	setupError string = "DMPC not properly configured"
+	setupErrorMsg string = "DMPC not properly configured"
 )
 
 /*
@@ -31,9 +31,9 @@ const (
 )
 
 // Checks if DMPC was set up
-func checkSetup() {
+func checkInstall() {
 	if !config.IsFunctional() {
-		log.Fatalf(setupError)
+		log.Fatalf(setupErrorMsg)
 	}
 }
 
@@ -44,11 +44,11 @@ func doSetup() (conf *config.Config) {
 	log.SetLogLevel(core.DEBUG)
 
 	// Check DMPC was configured
-	log.Debugf("Checking DMPC install configuration")
-	checkSetup()
+	log.Debugf(checkingInstallLogMsg)
+	checkInstall()
 
 	// Get configuration structure
-	log.Debugf("Parsing configuration")
+	log.Debugf(parsingConfigurationLogMsg)
 	conf = config.GetConfig()
 
 	// Set log level from configuration

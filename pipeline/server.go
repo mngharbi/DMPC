@@ -38,6 +38,7 @@ func (sv *server) reset(config Config, requester decryptor.Requester) {
 
 		// Upgrade HTTP requests to websockets and start conversation
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			log.Debugf(connectionRequestedLogMsg)
 			socket, _ := upgrader.Upgrade(w, r, nil)
 			NewConversation(socket)
 		})
@@ -56,7 +57,7 @@ func (sv *server) reset(config Config, requester decryptor.Requester) {
 	var err error
 	sv.listener, err = net.Listen("tcp", addrString)
 	if err != nil {
-		log.Fatalf("Pipeline server could not start listening on %v. Error: %v", addrString, err)
+		log.Fatalf(serverCannotListenErrorMsg, addrString, err)
 	}
 
 	// Mark as running
@@ -71,7 +72,9 @@ func (sv *server) reset(config Config, requester decryptor.Requester) {
 */
 func (sv *server) start(config Config, requester decryptor.Requester) {
 	if !sv.isRunning {
+		log.Debugf(startLogMsg)
 		sv.reset(config, requester)
+		log.Infof(startListeningInfoMsg, config.Port)
 	}
 }
 
@@ -80,10 +83,12 @@ func (sv *server) start(config Config, requester decryptor.Requester) {
 */
 func (sv *server) shutdown() {
 	if sv.isRunning {
+		log.Debugf(shutdownLogMsg)
 		sv.isRunning = false
 		sv.requester = nil
 		sv.handler.Shutdown(nil)
 		sv.listener.Close()
+		log.Infof(shutdownInfoMsg)
 	}
 }
 

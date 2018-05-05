@@ -42,6 +42,8 @@ func shutdownStatusServer() {
 }
 
 func UpdateStatus(ticket Ticket, status StatusCode, failReason FailReasonCode, payload []byte, errs []error) error {
+	log.Debugf(updateReceivedRequestLogMsg)
+
 	statusRecord := &StatusRecord{
 		Id:         ticket,
 		Status:     status,
@@ -82,10 +84,14 @@ func (sv *statusServer) Start(_ gofarm.Config, isFirstStart bool) error {
 	if isFirstStart {
 		statusStore = memstore.New(getStatusIndexes())
 	}
+	log.Debugf(updateDaemonStartLogMsg)
 	return nil
 }
 
-func (sv *statusServer) Shutdown() error { return nil }
+func (sv *statusServer) Shutdown() error {
+	log.Debugf(updateDaemonShutdownLogMsg)
+	return nil
+}
 
 func doStatusUpdate(currentRecord *StatusRecord, changedRecord *StatusRecord) {
 	// Update record
@@ -123,6 +129,8 @@ func doStatusUpdate(currentRecord *StatusRecord, changedRecord *StatusRecord) {
 }
 
 func (sv *statusServer) Work(rq *gofarm.Request) (dummyReturnVal *gofarm.Response) {
+	log.Debugf(updateRunningRequestLogMsg)
+
 	dummyReturnVal = nil
 
 	changedRecord := (*rq).(*StatusRecord)

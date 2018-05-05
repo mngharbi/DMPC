@@ -23,6 +23,7 @@ func (c *Conversation) reader() {
 		if err := c.socket.ReadJSON(&temporaryEncryptedOperation); err == io.EOF {
 			return
 		} else if err != nil {
+			log.Debugf(invalidOperationLogMsg)
 			closeConnectionForInvalidData(c.socket)
 			return
 		} else {

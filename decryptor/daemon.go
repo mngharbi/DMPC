@@ -100,6 +100,7 @@ func MakeRequest(temporaryEncrypted *core.TemporaryEncryptedOperation) (chan *go
 }
 
 func makeRequest(temporaryEncrypted *core.TemporaryEncryptedOperation, skipPermissions bool) (chan *gofarm.Response, []error) {
+	log.Debugf(receivedRequestLogMsg)
 	nativeResponseChannel, err := serverHandler.MakeRequest(&decryptorRequest{
 		isVerified: !skipPermissions,
 		operation:  temporaryEncrypted,
@@ -130,11 +131,18 @@ type server struct {
 	executorRequester     executor.Requester
 }
 
-func (sv *server) Start(_ gofarm.Config, _ bool) error { return nil }
+func (sv *server) Start(_ gofarm.Config, _ bool) error {
+	log.Debugf(daemonStartLogMsg)
+	return nil
+}
 
-func (sv *server) Shutdown() error { return nil }
+func (sv *server) Shutdown() error {
+	log.Debugf(daemonShutdownLogMsg)
+	return nil
+}
 
 func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
+	log.Debugf(runningRequestLogMsg)
 	decryptorWrapped := (*nativeRequest).(*decryptorRequest)
 
 	// Temporary decryption
@@ -192,6 +200,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 }
 
 func failRequest(errorType int) *gofarm.Response {
+	log.Infof(failRequestLogMsg)
 	decryptorRespPtr := &DecryptorResponse{
 		Result: errorType,
 	}
@@ -201,6 +210,7 @@ func failRequest(errorType int) *gofarm.Response {
 }
 
 func successRequest(ticket status.Ticket) *gofarm.Response {
+	log.Debugf(successRequestLogMsg)
 	decryptorRespPtr := &DecryptorResponse{
 		Result: Success,
 		Ticket: ticket,

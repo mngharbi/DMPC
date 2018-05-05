@@ -31,7 +31,7 @@ func sendUserResponseAfterRandomDelay(channel chan *users.UserResponse, response
 	channel <- UserResponsePtr
 }
 
-func createDummyUsersRequesterFunctor(responseCodeReturned int, errsReturned []error, closeChannel bool) (UsersRequester, chan userRequesterCall) {
+func createDummyUsersRequesterFunctor(responseCodeReturned int, errsReturned []error, closeChannel bool) (users.Requester, chan userRequesterCall) {
 	callsChannel := make(chan userRequesterCall, 0)
 	requester := func(signers *core.VerifiedSigners, request []byte) (chan *users.UserResponse, []error) {
 		go (func() {
@@ -54,7 +54,7 @@ func createDummyUsersRequesterFunctor(responseCodeReturned int, errsReturned []e
 	return requester, callsChannel
 }
 
-func createDummyTicketGeneratorFunctor() TicketGenerator {
+func createDummyTicketGeneratorFunctor() status.TicketGenerator {
 	lock := &sync.Mutex{}
 	generator := func() status.Ticket {
 		lock.Lock()
@@ -84,7 +84,7 @@ type userRequesterCall struct {
 
 var responseReporterError error = errors.New("Response reporter error")
 
-func createDummyResposeReporterFunctor(success bool) (ResponseReporter, *dummyStatusRegistry) {
+func createDummyResposeReporterFunctor(success bool) (status.Reporter, *dummyStatusRegistry) {
 	reg := dummyStatusRegistry{
 		ticketLogs: map[status.Ticket][]dummyStatusEntry{},
 		lock:       &sync.Mutex{},
@@ -188,7 +188,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	usersRequesterDummy, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
 	responseReporter, reg := createDummyResposeReporterFunctor(true)
 	ticketGenerator := createDummyTicketGeneratorFunctor()
-	var usersRequester, usersRequesterVerified UsersRequester
+	var usersRequester, usersRequesterVerified users.Requester
 
 	// Test with request rejected directly from users requester
 	requestError := errors.New("Request Failed.")

@@ -6,6 +6,8 @@ package executor
 
 import (
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/status"
+	"github.com/mngharbi/DMPC/users"
 	"testing"
 )
 
@@ -36,10 +38,10 @@ func generateGenericSigners() *core.VerifiedSigners {
 func resetAndStartServer(
 	t *testing.T,
 	conf Config,
-	usersRequester UsersRequester,
-	usersRequesterUnverified UsersRequester,
-	responseReporter ResponseReporter,
-	ticketGenerator TicketGenerator,
+	usersRequester users.Requester,
+	usersRequesterUnverified users.Requester,
+	responseReporter status.Reporter,
+	ticketGenerator status.TicketGenerator,
 ) bool {
 	serverSingleton = server{}
 	InitializeServer(usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator, log, shutdownProgram)

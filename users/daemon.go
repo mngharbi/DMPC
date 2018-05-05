@@ -56,10 +56,12 @@ func ShutdownServer() {
 }
 
 func MakeUnverifiedRequest(signers *core.VerifiedSigners, rawRequest []byte) (chan *UserResponse, []error) {
+	log.Debugf(receivedRequestLogMsg)
 	return makeEncodedRequest(signers, rawRequest, true)
 }
 
 func MakeRequest(signers *core.VerifiedSigners, rawRequest []byte) (chan *UserResponse, []error) {
+	log.Debugf(receivedRequestLogMsg)
 	return makeEncodedRequest(signers, rawRequest, false)
 }
 
@@ -134,12 +136,18 @@ func (sv *server) Start(_ gofarm.Config, isFirstStart bool) error {
 	if isFirstStart {
 		sv.store = memstore.New(getIndexes())
 	}
+	log.Debugf(daemonStartLogMsg)
 	return nil
 }
 
-func (sv *server) Shutdown() error { return nil }
+func (sv *server) Shutdown() error {
+	log.Debugf(daemonShutdownLogMsg)
+	return nil
+}
 
 func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
+	log.Debugf(runningRequestLogMsg)
+
 	rq := (*request).(*UserRequest)
 
 	/*
@@ -302,6 +310,7 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 }
 
 func failRequest(responseCode int) *gofarm.Response {
+	log.Debugf(failRequestLogMsg)
 	userRespPtr := &UserResponse{
 		Result: responseCode,
 		Data:   []UserObject{},
@@ -311,6 +320,7 @@ func failRequest(responseCode int) *gofarm.Response {
 }
 
 func successRequest(responseData []*UserObject) *gofarm.Response {
+	log.Debugf(successRequestLogMsg)
 	var objectDataCopy []UserObject
 	for _, objectPtr := range responseData {
 		objectDataCopy = append(objectDataCopy, *objectPtr)

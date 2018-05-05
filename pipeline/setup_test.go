@@ -12,7 +12,7 @@ import (
 
 func TestMain(m *testing.M) {
 	log = core.InitializeLogging()
-	log.SetLogLevel(core.DEBUG)
+	log.SetLogLevel(core.WARN)
 	retCode := m.Run()
 	os.Exit(retCode)
 }

@@ -43,6 +43,7 @@ func shutdownListenersServer() {
 }
 
 func AddListener(ticket Ticket) (UpdateChannel, error) {
+	log.Debugf(listenersReceivedRequestLogMsg)
 	// Pass request to server to add it
 	listeningRequest := &listeningRequest{
 		ticket:  ticket,
@@ -77,10 +78,14 @@ func (sv *listenersServer) Start(_ gofarm.Config, isFirstStart bool) error {
 	if isFirstStart {
 		listenersStore = memstore.New(getListenersIndexes())
 	}
+	log.Debugf(listenersDaemonStartLogMsg)
 	return nil
 }
 
-func (sv *listenersServer) Shutdown() error { return nil }
+func (sv *listenersServer) Shutdown() error {
+	log.Debugf(listenersDaemonShutdownLogMsg)
+	return nil
+}
 
 func doListenerServerWork(statusRecord *StatusRecord, channel UpdateChannel) {
 	// If status is done, we only need to put the last status
@@ -106,6 +111,8 @@ func doListenerServerWork(statusRecord *StatusRecord, channel UpdateChannel) {
 }
 
 func (sv *listenersServer) Work(rq *gofarm.Request) (dummyReturnVal *gofarm.Response) {
+	log.Debugf(listenersRunningRequestLogMsg)
+
 	dummyReturnVal = nil
 	listeningRequest := (*rq).(*listeningRequest)
 
