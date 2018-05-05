@@ -130,6 +130,10 @@ func saveConfig(conf *Config) {
 	}
 }
 
+func informSuccess() {
+	cliWrite("DMPC successfully configured\n")
+}
+
 /*
 	Main install function
 */
@@ -167,4 +171,6 @@ func Install() {
 	}
 
 	saveConfig(conf)
+
+	informSuccess()
 }
