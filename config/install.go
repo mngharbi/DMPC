@@ -107,7 +107,7 @@ func generateAndSaveKeys(isEncryption bool) (string, string) {
 	}
 
 	// Return paths
-	return GetInstallPath(KeysDir, baseFilename), GetInstallPath(KeysDir, publicFilename)
+	return GetInstallPath(KeysDir, publicFilename), GetInstallPath(KeysDir, baseFilename)
 }
 
 func generateAndSaveEncryptionKeys() (string, string) {
