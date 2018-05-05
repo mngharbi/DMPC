@@ -41,5 +41,5 @@ func ReadFile(paths ...string) ([]byte, error) {
 	Write to file (creates if file doesn't exist)
 */
 func WriteFile(data []byte, paths ...string) error {
-	return ioutil.WriteFile(GetInstallPath(paths...), data, os.ModeAppend)
+	return ioutil.WriteFile(GetInstallPath(paths...), data, os.ModePerm)
 }
