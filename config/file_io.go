@@ -43,3 +43,10 @@ func ReadFile(paths ...string) ([]byte, error) {
 func WriteFile(data []byte, paths ...string) error {
 	return ioutil.WriteFile(GetInstallPath(paths...), data, os.ModePerm)
 }
+
+/*
+	Makes directory
+*/
+func MkdirAll(paths ...string) {
+	os.MkdirAll(GetInstallPath(paths...), os.ModePerm)
+}

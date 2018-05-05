@@ -86,6 +86,10 @@ func generateAndSaveKeys(isEncryption bool) (string, string) {
 		baseFilename = EncryptionKeyFilename
 	}
 
+	// Make directory containing keys
+	MkdirAll(KeysDir)
+
+	// Save private key to file
 	priv := core.GeneratePrivateKey()
 	privString := core.PrivateAsymKeyToString(priv)
 	if err := WriteFile([]byte(privString), KeysDir, baseFilename); err != nil {
@@ -93,6 +97,7 @@ func generateAndSaveKeys(isEncryption bool) (string, string) {
 		log.Fatalf("Failed to save private key file. err=%v", err)
 	}
 
+	// Save public key to file
 	public := &priv.PublicKey
 	publicString := core.PublicAsymKeyToString(public)
 	publicFilename := baseFilename + PublicKeySuffix
@@ -101,6 +106,7 @@ func generateAndSaveKeys(isEncryption bool) (string, string) {
 		log.Fatalf("Failed to save public key file. err=%v", err)
 	}
 
+	// Return paths
 	return GetInstallPath(KeysDir, baseFilename), GetInstallPath(KeysDir, publicFilename)
 }
 

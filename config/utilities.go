@@ -39,7 +39,7 @@ func DeleteDmpcDir() {
 	Makes base directory
 */
 func MakeDmpcDir() {
-	os.MkdirAll(GetInstallRoot(), os.ModePerm)
+	MkdirAll()
 }
 
 /*
