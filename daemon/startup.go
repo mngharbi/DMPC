@@ -41,7 +41,7 @@ func checkInstall() {
 func doSetup() (conf *config.Config) {
 	// Initialize logging
 	log = core.InitializeLogging()
-	log.SetLogLevel(core.DEBUG)
+	log.SetLogLevel(core.INFO)
 
 	// Check DMPC was configured
 	log.Debugf(checkingInstallLogMsg)
