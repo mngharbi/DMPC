@@ -6,15 +6,19 @@ import (
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/status"
 	"io"
+	"sync"
 )
 
 type Conversation struct {
 	socket        *websocket.Conn
 	outgoingQueue chan status.Ticket
+	lock *sync.Mutex
 }
 
-func closeConnectionForInvalidData(socket *websocket.Conn) {
-	socket.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseUnsupportedData, ""))
+func closeConnectionForInvalidData(c *Conversation) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.socket.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseUnsupportedData, ""))
 }
 
 func (c *Conversation) reader() {
@@ -24,7 +28,7 @@ func (c *Conversation) reader() {
 			return
 		} else if err != nil {
 			log.Debugf(invalidOperationLogMsg)
-			closeConnectionForInvalidData(c.socket)
+			closeConnectionForInvalidData(c)
 			return
 		} else {
 			// Wait for ticket and push to outgoing queue in another goroutine
@@ -36,12 +40,12 @@ func (c *Conversation) reader() {
 						if resp.Result == decryptor.Success {
 							c.outgoingQueue <- resp.Ticket
 						} else {
-							closeConnectionForInvalidData(c.socket)
+							closeConnectionForInvalidData(c)
 						}
 					}
 				}()
 			} else {
-				closeConnectionForInvalidData(c.socket)
+				closeConnectionForInvalidData(c)
 			}
 		}
 	}
@@ -49,8 +53,11 @@ func (c *Conversation) reader() {
 
 func (c *Conversation) writer() {
 	for ticket := range c.outgoingQueue {
-		if err := c.socket.WriteJSON(string(ticket)); err != nil {
-			closeConnectionForInvalidData(c.socket)
+		c.lock.Lock()
+		err := c.socket.WriteJSON(string(ticket))
+		c.lock.Unlock()
+		if err != nil {
+			closeConnectionForInvalidData(c)
 			return
 		}
 	}
@@ -60,6 +67,7 @@ func NewConversation(socket *websocket.Conn) {
 	c := &Conversation{
 		socket:        socket,
 		outgoingQueue: make(chan status.Ticket),
+		lock: &sync.Mutex{},
 	}
 
 	go c.reader()

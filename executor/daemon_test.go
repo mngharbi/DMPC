@@ -318,7 +318,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 		go (func() {
 			waitForRandomDuration()
 			payload := []byte(strconv.Itoa(copyI))
-			_, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), payload)
+			_, _ = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), payload)
 			wg.Done()
 		})()
 	}
