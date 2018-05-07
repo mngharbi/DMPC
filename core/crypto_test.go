@@ -368,7 +368,7 @@ func TestPermanentInvalidPayload(t *testing.T) {
 		func(string) []byte { return generateRandomBytes(SymmetricKeySize) },
 	)
 	if err != payloadDecodeError {
-		t.Errorf("Permanent decryption should fail with invalid base64 payload. found=%+v, expected=%v")
+		t.Errorf("Permanent decryption should fail with invalid base64 payload.")
 		return
 	}
 }
