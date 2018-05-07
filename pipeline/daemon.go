@@ -33,7 +33,9 @@ func passOperation(operation *core.TemporaryEncryptedOperation) (channel chan *g
 */
 
 func StartServer(config Config, requester decryptor.Requester, loggingHandler *core.LoggingHandler) {
-	log = loggingHandler
+	if log == nil {
+		log = loggingHandler
+	}
 	serverLock.Lock()
 	serverSingleton.start(config, requester)
 	serverLock.Unlock()
