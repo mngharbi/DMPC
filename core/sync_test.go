@@ -386,7 +386,7 @@ func TestNoUnlock(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(unlocked, expectedUnlocked) || !reflect.DeepEqual(initialMap, expectedMap) {
-		t.Error("No unlocking failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
+		t.Errorf("No unlocking failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
 	}
 }
 
@@ -514,7 +514,7 @@ func TestDuplicateReadUnlock(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(unlocked, expectedUnlocked) || !reflect.DeepEqual(initialMap, expectedMap) {
-		t.Error("Duplicate read unlocking failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
+		t.Errorf("Duplicate read unlocking failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
 	}
 }
 
@@ -545,7 +545,7 @@ func TestOverwritingReadUnlock(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(unlocked, expectedUnlocked) || !reflect.DeepEqual(initialMap, expectedMap) {
-		t.Error("Overwriting write unlock, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
+		t.Errorf("Overwriting write unlock, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
 	}
 }
 
@@ -576,7 +576,7 @@ func TestOverwritingReadAfterWriteUnlock(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(unlocked, expectedUnlocked) || !reflect.DeepEqual(initialMap, expectedMap) {
-		t.Error("Overwriting read unlock failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
+		t.Errorf("Overwriting read unlock failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
 	}
 }
 
