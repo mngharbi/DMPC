@@ -11,7 +11,7 @@ import (
 /*
 	Function to send in a decrypted request into the executor and returns a ticket
 */
-type Requester func(bool, int, *core.VerifiedSigners, []byte) (status.Ticket, error)
+type Requester func(bool, core.RequestType, *core.VerifiedSigners, []byte) (status.Ticket, error)
 
 /*
 	Errors
@@ -80,7 +80,7 @@ func (sv *server) reportRejection(ticketId status.Ticket, reason status.FailReas
 
 func MakeRequest(
 	isVerified bool,
-	requestType int,
+	requestType core.RequestType,
 	signers *core.VerifiedSigners,
 	request []byte,
 ) (status.Ticket, error) {
@@ -148,7 +148,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.
 	wrappedRequest := (*nativeRequest).(*executorRequest)
 
 	switch wrappedRequest.requestType {
-	case UsersRequest:
+	case core.UsersRequestType:
 		sv.responseReporter(wrappedRequest.ticket, status.RunningStatus, status.NoReason, nil, nil)
 
 		// Determine lambda to use based on whether the request is verified or not

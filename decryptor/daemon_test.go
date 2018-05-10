@@ -42,7 +42,7 @@ func TestValidNonEncrypted(t *testing.T) {
 		genericCertifierId,
 		certifierSignature,
 		false,
-		1,
+		core.UsersRequestType,
 		payload,
 		false,
 	)
@@ -70,10 +70,10 @@ func TestValidNonEncrypted(t *testing.T) {
 	// Check entry with the ticket number
 	executorEntry := reg.getEntry(decryptorResp.Ticket)
 	executorEntryExpected := dummyExecutorEntry{
-		isVerified:    true,
-		requestNumber: 1,
-		signers:       generateGenericSigners(),
-		payload:       payload,
+		isVerified:  true,
+		requestType: core.UsersRequestType,
+		signers:     generateGenericSigners(),
+		payload:     payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
 		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)
@@ -107,7 +107,7 @@ func TestValidTransactionEncryptedOnly(t *testing.T) {
 		genericCertifierId,
 		certifierSignature,
 		false,
-		1,
+		core.UsersRequestType,
 		payload,
 		false,
 	)
@@ -133,10 +133,10 @@ func TestValidTransactionEncryptedOnly(t *testing.T) {
 	// Check entry with the ticket number
 	executorEntry := reg.getEntry(decryptorResp.Ticket)
 	executorEntryExpected := dummyExecutorEntry{
-		isVerified:    true,
-		requestNumber: 1,
-		signers:       generateGenericSigners(),
-		payload:       payload,
+		isVerified:  true,
+		requestType: core.UsersRequestType,
+		signers:     generateGenericSigners(),
+		payload:     payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
 		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)
@@ -156,7 +156,7 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 		keyId1,
 		keyCollection[keyId1],
 		generateRandomBytes(core.SymmetricNonceSize),
-		1,
+		core.UsersRequestType,
 		payload,
 		genericIssuerId,
 		func(b []byte) ([]byte, bool) { return b, false },
@@ -198,10 +198,10 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 	// Check entry with the ticket number
 	executorEntry := reg.getEntry(decryptorResp.Ticket)
 	executorEntryExpected := dummyExecutorEntry{
-		isVerified:    true,
-		requestNumber: 1,
-		signers:       generateGenericSigners(),
-		payload:       payload,
+		isVerified:  true,
+		requestType: core.UsersRequestType,
+		signers:     generateGenericSigners(),
+		payload:     payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
 		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)
@@ -250,10 +250,10 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 	// Check entry with the ticket number
 	executorEntry := reg.getEntry(decryptorResp.Ticket)
 	executorEntryExpected := dummyExecutorEntry{
-		isVerified:    true,
-		requestNumber: 1,
-		signers:       generateGenericSigners(),
-		payload:       payload,
+		isVerified:  true,
+		requestType: core.UsersRequestType,
+		signers:     generateGenericSigners(),
+		payload:     payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
 		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)

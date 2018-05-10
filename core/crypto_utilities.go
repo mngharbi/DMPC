@@ -189,7 +189,7 @@ func GeneratePermanentEncryptedOperation(
 	certifierId string,
 	certifierSignature []byte,
 	certifierSignatureEncoded bool,
-	requestType int,
+	requestType RequestType,
 	payload []byte,
 	payloadEncoded bool,
 ) *PermanentEncryptedOperation {
@@ -237,7 +237,7 @@ func GeneratePermanentEncryptedOperationWithEncryption(
 	keyId string,
 	permanentKey []byte,
 	permanentNonce []byte,
-	requestType int,
+	requestType RequestType,
 	plainPayload []byte,
 	issuerId string,
 	modifyIssuerSignature func([]byte) ([]byte, bool),

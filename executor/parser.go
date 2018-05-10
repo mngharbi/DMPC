@@ -17,7 +17,7 @@ const (
 */
 type executorRequest struct {
 	isVerified  bool
-	requestType int
+	requestType core.RequestType
 	signers     *core.VerifiedSigners
 	ticket      status.Ticket
 	request     []byte
@@ -26,6 +26,6 @@ type executorRequest struct {
 /*
 	Utilities
 */
-func isValidRequestType(requestType int) bool {
-	return UsersRequest <= requestType && requestType <= UsersRequest
+func isValidRequestType(requestType core.RequestType) bool {
+	return core.UsersRequestType <= requestType && requestType <= core.UsersRequestType
 }

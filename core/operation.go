@@ -25,6 +25,13 @@ type Transaction struct {
 /*
 	Structure of an operation before permanent encryption
 */
+type RequestType int
+
+const (
+	UsersRequestType RequestType = iota
+	AddMessageType
+)
+
 type PermanentEncryptionFields struct {
 	Encrypted bool   `json:"encrypted"`
 	KeyId     string `json:"keyId"`
@@ -35,8 +42,7 @@ type PermanentAuthenticationFields struct {
 	Signature string `json:"signature"`
 }
 type PermanentMetaFields struct {
-	// @TODO: Change to its own type
-	RequestType int `json:"requestType"`
+	RequestType RequestType `json:"requestType"`
 }
 type PermanentEncryptedOperation struct {
 	Encryption PermanentEncryptionFields `json:"encryption"`

@@ -84,7 +84,7 @@ func generateValidEncryptedOperation(
 		keyId,
 		key,
 		generateRandomBytes(core.SymmetricNonceSize),
-		1,
+		core.UsersRequestType,
 		payload,
 		issuerId,
 		func(b []byte) ([]byte, bool) { return b, false },
@@ -134,10 +134,10 @@ func createDummyKeyRequesterFunctor(collection map[string][]byte) core.KeyReques
 }
 
 type dummyExecutorEntry struct {
-	isVerified    bool
-	requestNumber int
-	signers       *core.VerifiedSigners
-	payload       []byte
+	isVerified  bool
+	requestType core.RequestType
+	signers     *core.VerifiedSigners
+	payload     []byte
 }
 
 type dummyExecutorRegistry struct {
@@ -157,14 +157,14 @@ func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, executor.Req
 		data: map[status.Ticket]dummyExecutorEntry{},
 		lock: &sync.Mutex{},
 	}
-	requester := func(isVerified bool, requestNumber int, signers *core.VerifiedSigners, payload []byte) (status.Ticket, error) {
+	requester := func(isVerified bool, requestType core.RequestType, signers *core.VerifiedSigners, payload []byte) (status.Ticket, error) {
 		reg.lock.Lock()
 		ticketCopy := status.RequestNewTicket()
 		reg.data[ticketCopy] = dummyExecutorEntry{
-			isVerified:    isVerified,
-			requestNumber: requestNumber,
-			signers:       signers,
-			payload:       payload,
+			isVerified:  isVerified,
+			requestType: requestType,
+			signers:     signers,
+			payload:     payload,
 		}
 		reg.lock.Unlock()
 		return ticketCopy, nil
