@@ -23,6 +23,27 @@ type Transaction struct {
 }
 
 /*
+	Decodes a transaction
+*/
+func (op *Transaction) Decode(stream []byte) error {
+	// Try to decode json into raw operation
+	if err := json.Unmarshal(stream, &op); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/*
+	Encodes a transaction
+*/
+func (op *Transaction) Encode() ([]byte, error) {
+	jsonStream, _ := json.Marshal(op)
+
+	return jsonStream, nil
+}
+
+/*
 	Structure of an operation before permanent encryption
 */
 type RequestType int
@@ -43,6 +64,7 @@ type PermanentAuthenticationFields struct {
 }
 type PermanentMetaFields struct {
 	RequestType RequestType `json:"requestType"`
+	Buffered    bool
 }
 type PermanentEncryptedOperation struct {
 	Encryption PermanentEncryptionFields `json:"encryption"`
@@ -56,21 +78,16 @@ type PermanentEncryptedOperation struct {
 	Payload string `json:"payload"`
 }
 
-func (op *Transaction) Decode(stream []byte) error {
-	// Try to decode json into raw operation
-	if err := json.Unmarshal(stream, &op); err != nil {
-		return err
-	}
-
-	return nil
+/*
+	Determines if the request should be dropped if decryption/signature verification fails
+*/
+func (op *PermanentEncryptedOperation) ShouldDrop() bool {
+	return !(op.Meta.RequestType == AddMessageType && !op.Meta.Buffered)
 }
 
-func (op *Transaction) Encode() ([]byte, error) {
-	jsonStream, _ := json.Marshal(op)
-
-	return jsonStream, nil
-}
-
+/*
+	Decodes an operation
+*/
 func (op *PermanentEncryptedOperation) Decode(stream []byte) error {
 	// Try to decode json into raw operation
 	if err := json.Unmarshal(stream, &op); err != nil {
@@ -80,6 +97,9 @@ func (op *PermanentEncryptedOperation) Decode(stream []byte) error {
 	return nil
 }
 
+/*
+	Encodes an operation
+*/
 func (op *PermanentEncryptedOperation) Encode() ([]byte, error) {
 	jsonStream, _ := json.Marshal(op)
 

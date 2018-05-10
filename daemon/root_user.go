@@ -63,7 +63,7 @@ func buildRootUserOperation(conf *config.Config) *core.Transaction {
 func createRootUser(transaction *core.Transaction) {
 	// Make unverified request
 	log.Debugf("Requesting to add root user")
-	rootUserChannel, errs := decryptor.MakeUnverifiedRequest(transaction)
+	rootUserChannel, errs := decryptor.MakeUnverifiedTransactionRequest(transaction)
 	if len(errs) != 0 {
 		log.Fatalf(createRootUserRequestError)
 	}

@@ -11,7 +11,7 @@ import (
 /*
 	Function to send in a decrypted request into the executor and returns a ticket
 */
-type Requester func(bool, core.RequestType, *core.VerifiedSigners, []byte) (status.Ticket, error)
+type Requester func(bool, core.RequestType, *core.VerifiedSigners, []byte, *core.PermanentEncryptedOperation) (status.Ticket, error)
 
 /*
 	Errors
@@ -83,6 +83,7 @@ func MakeRequest(
 	requestType core.RequestType,
 	signers *core.VerifiedSigners,
 	request []byte,
+	failedOperation *core.PermanentEncryptedOperation,
 ) (status.Ticket, error) {
 	log.Debugf(receivedRequestLogMsg)
 
@@ -100,11 +101,12 @@ func MakeRequest(
 
 	// Make request
 	_, err = serverHandler.MakeRequest(&executorRequest{
-		isVerified:  isVerified,
-		requestType: requestType,
-		signers:     signers,
-		ticket:      ticketId,
-		request:     request,
+		isVerified:      isVerified,
+		requestType:     requestType,
+		signers:         signers,
+		ticket:          ticketId,
+		request:         request,
+		failedOperation: failedOperation,
 	})
 	if err != nil {
 		serverSingleton.reportRejection(ticketId, status.RejectedReason, []error{err})

@@ -219,3 +219,24 @@ func TestPermDecodeEncodeCycle(t *testing.T) {
 		t.Error("Re-encoding should produce same value")
 	}
 }
+
+func TestOperationDrop(t *testing.T) {
+	op := &PermanentEncryptedOperation{}
+	op.Meta.RequestType = UsersRequestType
+	op.Meta.Buffered = false
+	if !op.ShouldDrop() {
+		t.Error("Anything except messages should be dropped if decryption failed")
+	}
+
+	op.Meta.RequestType = AddMessageType
+	op.Meta.Buffered = false
+	if op.ShouldDrop() {
+		t.Error("Messages should not be dropped the first time decryption fails")
+	}
+
+	op.Meta.RequestType = AddMessageType
+	op.Meta.Buffered = true
+	if !op.ShouldDrop() {
+		t.Error("Messages should be dropped if decryption fails after buffering")
+	}
+}

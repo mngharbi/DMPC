@@ -37,11 +37,24 @@ func resetAndStartServer(
 	return true
 }
 
-func makeRequestAndGetResult(
+func makeTransactionRequestAndGetResult(
 	t *testing.T,
 	requestBytes []byte,
 ) (*DecryptorResponse, bool) {
-	channel, errs := MakeEncodedRequest(requestBytes)
+	channel, errs := MakeEncodedTransactionRequest(requestBytes)
+	if len(errs) != 0 {
+		t.Errorf("Decryptor should pass along request.")
+		return nil, false
+	}
+	nativeRespPtr := <-channel
+	return (*nativeRespPtr).(*DecryptorResponse), true
+}
+
+func makeOperationRequestAndGetResult(
+	t *testing.T,
+	operation *core.PermanentEncryptedOperation,
+) (*DecryptorResponse, bool) {
+	channel, errs := MakeOperationRequest(operation)
 	if len(errs) != 0 {
 		t.Errorf("Decryptor should pass along request.")
 		return nil, false
@@ -134,10 +147,11 @@ func createDummyKeyRequesterFunctor(collection map[string][]byte) core.KeyReques
 }
 
 type dummyExecutorEntry struct {
-	isVerified  bool
-	requestType core.RequestType
-	signers     *core.VerifiedSigners
-	payload     []byte
+	isVerified      bool
+	requestType     core.RequestType
+	signers         *core.VerifiedSigners
+	payload         []byte
+	failedOperation *core.PermanentEncryptedOperation
 }
 
 type dummyExecutorRegistry struct {
@@ -157,14 +171,15 @@ func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, executor.Req
 		data: map[status.Ticket]dummyExecutorEntry{},
 		lock: &sync.Mutex{},
 	}
-	requester := func(isVerified bool, requestType core.RequestType, signers *core.VerifiedSigners, payload []byte) (status.Ticket, error) {
+	requester := func(isVerified bool, requestType core.RequestType, signers *core.VerifiedSigners, payload []byte, failedOperation *core.PermanentEncryptedOperation) (status.Ticket, error) {
 		reg.lock.Lock()
 		ticketCopy := status.RequestNewTicket()
 		reg.data[ticketCopy] = dummyExecutorEntry{
-			isVerified:  isVerified,
-			requestType: requestType,
-			signers:     signers,
-			payload:     payload,
+			isVerified:      isVerified,
+			requestType:     requestType,
+			signers:         signers,
+			payload:         payload,
+			failedOperation: failedOperation,
 		}
 		reg.lock.Unlock()
 		return ticketCopy, nil

@@ -16,16 +16,17 @@ const (
 	Internal request structure
 */
 type executorRequest struct {
-	isVerified  bool
-	requestType core.RequestType
-	signers     *core.VerifiedSigners
-	ticket      status.Ticket
-	request     []byte
+	isVerified      bool
+	requestType     core.RequestType
+	signers         *core.VerifiedSigners
+	ticket          status.Ticket
+	request         []byte
+	failedOperation *core.PermanentEncryptedOperation
 }
 
 /*
 	Utilities
 */
 func isValidRequestType(requestType core.RequestType) bool {
-	return core.UsersRequestType <= requestType && requestType <= core.UsersRequestType
+	return core.UsersRequestType <= requestType && requestType <= core.AddMessageType
 }

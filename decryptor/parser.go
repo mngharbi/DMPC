@@ -16,6 +16,7 @@ const (
 )
 
 type DecryptorResponse struct {
+	// @TODO: Result should be typed
 	Result int           `json:"result"`
 	Ticket status.Ticket `json:"ticket"`
 }

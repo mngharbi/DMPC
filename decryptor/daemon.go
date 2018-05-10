@@ -34,8 +34,9 @@ type Config struct {
 */
 
 type decryptorRequest struct {
-	isVerified bool
-	operation  *core.Transaction
+	isVerified  bool
+	transaction *core.Transaction
+	operation   *core.PermanentEncryptedOperation
 }
 
 func provisionServerOnce() {
@@ -72,15 +73,18 @@ func ShutdownServer() {
 	serverHandler.ShutdownServer()
 }
 
-func MakeUnverifiedEncodedRequest(encodedRequest []byte) (chan *gofarm.Response, []error) {
-	return makeEncodedRequest(encodedRequest, true)
+/*
+	Transaction requests
+*/
+func MakeUnverifiedEncodedTransactionRequest(encodedRequest []byte) (chan *gofarm.Response, []error) {
+	return makeEncodedTransactionRequest(encodedRequest, true)
 }
 
-func MakeEncodedRequest(encodedRequest []byte) (chan *gofarm.Response, []error) {
-	return makeEncodedRequest(encodedRequest, false)
+func MakeEncodedTransactionRequest(encodedRequest []byte) (chan *gofarm.Response, []error) {
+	return makeEncodedTransactionRequest(encodedRequest, false)
 }
 
-func makeEncodedRequest(encodedRequest []byte, skipPermissions bool) (chan *gofarm.Response, []error) {
+func makeEncodedTransactionRequest(encodedRequest []byte, skipPermissions bool) (chan *gofarm.Response, []error) {
 	// Decode payload
 	transaction := &core.Transaction{}
 	err := transaction.Decode(encodedRequest)
@@ -88,22 +92,38 @@ func makeEncodedRequest(encodedRequest []byte, skipPermissions bool) (chan *gofa
 		return nil, []error{err}
 	}
 
-	return makeRequest(transaction, skipPermissions)
+	return makeTransactionRequest(transaction, skipPermissions)
 }
 
-func MakeUnverifiedRequest(transaction *core.Transaction) (chan *gofarm.Response, []error) {
-	return makeRequest(transaction, true)
+func MakeUnverifiedTransactionRequest(transaction *core.Transaction) (chan *gofarm.Response, []error) {
+	return makeTransactionRequest(transaction, true)
 }
 
-func MakeRequest(transaction *core.Transaction) (chan *gofarm.Response, []error) {
-	return makeRequest(transaction, false)
+func MakeTransactionRequest(transaction *core.Transaction) (chan *gofarm.Response, []error) {
+	return makeTransactionRequest(transaction, false)
 }
 
-func makeRequest(transaction *core.Transaction, skipPermissions bool) (chan *gofarm.Response, []error) {
+func makeTransactionRequest(transaction *core.Transaction, skipPermissions bool) (chan *gofarm.Response, []error) {
 	log.Debugf(receivedRequestLogMsg)
 	nativeResponseChannel, err := serverHandler.MakeRequest(&decryptorRequest{
-		isVerified: !skipPermissions,
-		operation:  transaction,
+		isVerified:  !skipPermissions,
+		transaction: transaction,
+	})
+	if err != nil {
+		return nil, []error{err}
+	}
+
+	return nativeResponseChannel, nil
+}
+
+/*
+	Operation requests
+*/
+func MakeOperationRequest(operation *core.PermanentEncryptedOperation) (chan *gofarm.Response, []error) {
+	log.Debugf(receivedRequestLogMsg)
+	nativeResponseChannel, err := serverHandler.MakeRequest(&decryptorRequest{
+		isVerified: true,
+		operation:  operation,
 	})
 	if err != nil {
 		return nil, []error{err}
@@ -141,48 +161,85 @@ func (sv *server) Shutdown() error {
 	return nil
 }
 
+func decryptTransaction(transaction *core.Transaction, globalKey *rsa.PrivateKey) (*core.PermanentEncryptedOperation, bool) {
+	permanentEncrypted, err := transaction.Decrypt(globalKey)
+	if err != nil {
+		return nil, false
+	}
+	if len(permanentEncrypted.Payload) == 0 {
+		return nil, false
+	}
+	return permanentEncrypted, true
+}
+
+func decryptOperation(operation *core.PermanentEncryptedOperation, keyRequester core.KeyRequester) ([]byte, bool) {
+	payload, err := operation.Decrypt(keyRequester)
+	return payload, err == nil
+}
+
+func verifyPayload(operation *core.PermanentEncryptedOperation, payload []byte, usersSignKeyRequester core.UsersSignKeyRequester) bool {
+	keys, err := usersSignKeyRequester([]string{
+		operation.Issue.Id,
+		operation.Certification.Id,
+	})
+	if err != nil {
+		return false
+	}
+	issuerSignKey := keys[0]
+	certifierSignKey := keys[1]
+	verification := operation.Verify(issuerSignKey, certifierSignKey, payload)
+	return verification == nil
+}
+
 func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	log.Debugf(runningRequestLogMsg)
 	decryptorWrapped := (*nativeRequest).(*decryptorRequest)
 
-	// Transaction decryption
-	permanentEncrypted, err := decryptorWrapped.operation.Decrypt(sv.globalKey)
-	if err != nil {
-		return failRequest(TransactionDecryptionError)
-	}
-	if len(permanentEncrypted.Payload) == 0 {
-		return failRequest(TransactionDecryptionError)
+	var permanentEncrypted *core.PermanentEncryptedOperation = decryptorWrapped.operation
+
+	// Decrypt transaction if any
+	if permanentEncrypted == nil {
+		var success bool
+		if permanentEncrypted, success = decryptTransaction(decryptorWrapped.transaction, sv.globalKey); !success {
+			return failRequest(TransactionDecryptionError)
+		}
 	}
 
-	// Permanent decryption
-	plaintextBytes, err := permanentEncrypted.Decrypt(sv.keyRequester)
-	if err != nil {
+	// Operation decryption
+	plaintextBytes, decryptionSuccess := decryptOperation(permanentEncrypted, sv.keyRequester)
+
+	// Determine if we should fail
+	droppable := permanentEncrypted.ShouldDrop()
+	if !decryptionSuccess && droppable {
 		return failRequest(PermanentDecryptionError)
 	}
 
-	// Get signing keys from users subsystem
-	if decryptorWrapped.isVerified {
-		keys, err := sv.usersSignKeyRequester([]string{
-			permanentEncrypted.Issue.Id,
-			permanentEncrypted.Certification.Id,
-		})
-		if err != nil {
+	// Verify signatures if not skipping verification
+	var signers *core.VerifiedSigners
+	var verificationSuccess bool
+	if decryptorWrapped.isVerified && decryptionSuccess {
+		verificationSuccess = verifyPayload(permanentEncrypted, plaintextBytes, sv.usersSignKeyRequester)
+
+		// Only drop request if it's droppable (otherwise skip verification)
+		if !verificationSuccess && droppable {
 			return failRequest(VerificationError)
 		}
-		issuerSignKey := keys[0]
-		certifierSignKey := keys[1]
-		if verification := permanentEncrypted.Verify(issuerSignKey, certifierSignKey, plaintextBytes); verification != nil {
-			return failRequest(VerificationError)
+
+		// Build signers structure
+		if verificationSuccess {
+			signers = &core.VerifiedSigners{
+				IssuerId:    permanentEncrypted.Issue.Id,
+				CertifierId: permanentEncrypted.Certification.Id,
+			}
 		}
 	}
 
-	// Build signers structure
-	var signers *core.VerifiedSigners
-	if decryptorWrapped.isVerified {
-		signers = &core.VerifiedSigners{
-			IssuerId:    permanentEncrypted.Issue.Id,
-			CertifierId: permanentEncrypted.Certification.Id,
-		}
+	// If anything failed, mark for buffering
+	var failedEncryptedOperation *core.PermanentEncryptedOperation
+	if !decryptionSuccess || !verificationSuccess {
+		failedEncryptedOperation = permanentEncrypted
+		plaintextBytes = nil
+		failedEncryptedOperation.Meta.Buffered = true
 	}
 
 	// Send raw bytes and metadata to executor
@@ -191,6 +248,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 		permanentEncrypted.Meta.RequestType,
 		signers,
 		plaintextBytes,
+		failedEncryptedOperation,
 	)
 	if err != nil {
 		return failRequest(ExecutorError)

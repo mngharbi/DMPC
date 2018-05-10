@@ -130,7 +130,7 @@ func TestInvalidRequestType(t *testing.T) {
 		return
 	}
 
-	_, err := MakeRequest(false, UsersRequest-1, generateGenericSigners(), []byte{})
+	_, err := MakeRequest(false, UsersRequest-1, generateGenericSigners(), []byte{}, nil)
 	if err != invalidRequestTypeError {
 		t.Error("Request with invalid type should be rejected.")
 	}
@@ -147,7 +147,7 @@ func TestReponseReporterQueueError(t *testing.T) {
 		return
 	}
 
-	ticketId, err := MakeRequest(false, UsersRequest, generateGenericSigners(), []byte{})
+	ticketId, err := MakeRequest(false, UsersRequest, generateGenericSigners(), []byte{}, nil)
 	if err != responseReporterError {
 		t.Error("Request should fail with response reporter error while queueing.")
 	}
@@ -170,7 +170,7 @@ func TestRequestWhileNotRunning(t *testing.T) {
 
 	ShutdownServer()
 
-	ticketId, err := MakeRequest(false, UsersRequest, generateGenericSigners(), []byte{})
+	ticketId, err := MakeRequest(false, UsersRequest, generateGenericSigners(), []byte{}, nil)
 	if err == nil {
 		t.Error("Request should fail if made while server is down.")
 	}
@@ -202,7 +202,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 		return
 	}
 
-	ticketId, err := MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{})
+	ticketId, err := MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{}, nil)
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -229,7 +229,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketId, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{})
+	ticketId, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{}, nil)
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -256,7 +256,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketId, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{})
+	ticketId, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{}, nil)
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -283,7 +283,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketId, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{})
+	ticketId, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{}, nil)
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -318,7 +318,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 		go (func() {
 			waitForRandomDuration()
 			payload := []byte(strconv.Itoa(copyI))
-			_, _ = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), payload)
+			_, _ = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), payload, nil)
 			wg.Done()
 		})()
 	}
