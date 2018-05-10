@@ -9,7 +9,7 @@ import (
 */
 const (
 	Success = iota
-	TemporaryDecryptionError
+	TransactionDecryptionError
 	PermanentDecryptionError
 	VerificationError
 	ExecutorError

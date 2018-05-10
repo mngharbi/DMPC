@@ -6,9 +6,9 @@ import (
 )
 
 /*
-	Temporary encrypted operation parsing
+	Transaction parsing
 */
-func TestTempDecodeValid(t *testing.T) {
+func TestTransactionDecodeValid(t *testing.T) {
 	valid := []byte(`{
 		"version": 0.1,
 
@@ -23,7 +23,7 @@ func TestTempDecodeValid(t *testing.T) {
 		"payload": "BASE64_CIPHER"
 	}`)
 
-	var rawOp TemporaryEncryptedOperation
+	var rawOp Transaction
 	err := rawOp.Decode(valid)
 
 	if err != nil {
@@ -38,7 +38,7 @@ func TestTempDecodeValid(t *testing.T) {
 		rawOp.Encryption.Challenges != nil &&
 		rawOp.Encryption.Challenges["CIPHER"] == "CHALLENGE_CIPHER" &&
 		rawOp.Encryption.Nonce == "NO_ONCE") {
-		t.Error("Temporary encryption fields not decoded properly")
+		t.Error("Transaction encryption fields not decoded properly")
 	}
 
 	if rawOp.Payload != "BASE64_CIPHER" {
@@ -46,7 +46,7 @@ func TestTempDecodeValid(t *testing.T) {
 	}
 }
 
-func TestTempDecodeMalformedRawOperation(t *testing.T) {
+func TestTransactionDecodeMalformedRawOperation(t *testing.T) {
 	malformed := []byte(`{
 		"version": 0.1,
 
@@ -55,7 +55,7 @@ func TestTempDecodeMalformedRawOperation(t *testing.T) {
 		}
 	}`)
 
-	var rawOp TemporaryEncryptedOperation
+	var rawOp Transaction
 	err := rawOp.Decode(malformed)
 
 	if err == nil {
@@ -63,12 +63,12 @@ func TestTempDecodeMalformedRawOperation(t *testing.T) {
 	}
 }
 
-func TestTempDecodeMissingAttributes(t *testing.T) {
+func TestTransactionDecodeMissingAttributes(t *testing.T) {
 	valid := []byte(`{
 		"version": 0.1
 	}`)
 
-	var rawOp TemporaryEncryptedOperation
+	var rawOp Transaction
 	err := rawOp.Decode(valid)
 
 	if err != nil {
@@ -76,7 +76,7 @@ func TestTempDecodeMissingAttributes(t *testing.T) {
 	}
 }
 
-func TestTempDecodeEncodeCycle(t *testing.T) {
+func TestTransactionDecodeEncodeCycle(t *testing.T) {
 	valid := []byte(`{
 		"version": 0.1,
 
@@ -91,8 +91,8 @@ func TestTempDecodeEncodeCycle(t *testing.T) {
 		"payload": {}
 	}`)
 
-	var rawOp TemporaryEncryptedOperation
-	var rawOp2 TemporaryEncryptedOperation
+	var rawOp Transaction
+	var rawOp2 Transaction
 	rawOp.Decode(valid)
 	encoded, _ := rawOp.Encode()
 	rawOp2.Decode(encoded)

@@ -47,7 +47,7 @@ func TestValidNonEncrypted(t *testing.T) {
 		false,
 	)
 	permanentEncryptionEncoded, _ := permanentEncryption.Encode()
-	temporaryEncryption := core.GenerateTemporaryEncryptedOperation(
+	transaction := core.GenerateTransaction(
 		false,
 		map[string]string{},
 		[]byte{},
@@ -57,8 +57,8 @@ func TestValidNonEncrypted(t *testing.T) {
 	)
 
 	// Make request and get ticket number
-	temporaryEncryptionEncoded, _ := temporaryEncryption.Encode()
-	decryptorResp, ok := makeRequestAndGetResult(t, temporaryEncryptionEncoded)
+	transactionEncoded, _ := transaction.Encode()
+	decryptorResp, ok := makeRequestAndGetResult(t, transactionEncoded)
 	if !ok {
 		return
 	}
@@ -83,7 +83,7 @@ func TestValidNonEncrypted(t *testing.T) {
 	ShutdownServer()
 }
 
-func TestValidTemporaryEncryptedOnly(t *testing.T) {
+func TestValidTransactionEncryptedOnly(t *testing.T) {
 	reg, executorRequester := createDummyExecutorRequesterFunctor()
 	signKeyCollection := getSignKeyCollection()
 	globalKey := core.GeneratePrivateKey()
@@ -112,7 +112,7 @@ func TestValidTemporaryEncryptedOnly(t *testing.T) {
 		false,
 	)
 	permanentEncryptionEncoded, _ := permanentEncryption.Encode()
-	temporaryEncryption, _ := core.GenerateTemporaryEncryptedOperationWithEncryption(
+	transaction, _ := core.GenerateTransactionWithEncryption(
 		permanentEncryptionEncoded,
 		[]byte(core.CorrectChallenge),
 		func(map[string]string) {},
@@ -120,8 +120,8 @@ func TestValidTemporaryEncryptedOnly(t *testing.T) {
 	)
 
 	// Make request and get ticket number
-	temporaryEncryptionEncoded, _ := temporaryEncryption.Encode()
-	decryptorResp, ok := makeRequestAndGetResult(t, temporaryEncryptionEncoded)
+	transactionEncoded, _ := transaction.Encode()
+	decryptorResp, ok := makeRequestAndGetResult(t, transactionEncoded)
 	if !ok {
 		return
 	}
@@ -175,7 +175,7 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 	}
 
 	permanentEncryptionEncoded, _ := permanentEncryption.Encode()
-	temporaryEncryption := core.GenerateTemporaryEncryptedOperation(
+	transaction := core.GenerateTransaction(
 		false,
 		map[string]string{},
 		[]byte{},
@@ -185,8 +185,8 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 	)
 
 	// Make request and get ticket number
-	temporaryEncryptionEncoded, _ := temporaryEncryption.Encode()
-	decryptorResp, ok := makeRequestAndGetResult(t, temporaryEncryptionEncoded)
+	transactionEncoded, _ := transaction.Encode()
+	decryptorResp, ok := makeRequestAndGetResult(t, transactionEncoded)
 	if !ok {
 		return
 	}
@@ -218,7 +218,7 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 	// Create encrypted payload
 	payload := []byte("PAYLOAD")
 	globalKey := core.GeneratePrivateKey()
-	temporaryEncryptionEncoded, issuerKey, certifierKey := generateValidEncryptedOperation(
+	transactionEncoded, issuerKey, certifierKey := generateValidEncryptedOperation(
 		keyId1,
 		keyCollection[keyId1],
 		payload,
@@ -238,7 +238,7 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 	}
 
 	// Make request and get ticket number
-	decryptorResp, ok := makeRequestAndGetResult(t, temporaryEncryptionEncoded)
+	decryptorResp, ok := makeRequestAndGetResult(t, transactionEncoded)
 	if !ok {
 		return
 	}
@@ -268,7 +268,7 @@ func TestInvalidOperationEncoding(t *testing.T) {
 	keyCollection := getKeysCollection()
 	payload := []byte("PAYLOAD")
 	globalKey := core.GeneratePrivateKey()
-	temporaryEncryptionEncoded, issuerKey, certifierKey := generateValidEncryptedOperation(
+	transactionEncoded, issuerKey, certifierKey := generateValidEncryptedOperation(
 		keyId1,
 		keyCollection[keyId1],
 		payload,
@@ -277,7 +277,7 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		globalKey,
 	)
 
-	_, errs := MakeEncodedRequest(temporaryEncryptionEncoded)
+	_, errs := MakeEncodedRequest(transactionEncoded)
 	if len(errs) == 0 {
 		t.Errorf("Decryptor should not work while server is not running.")
 	}
@@ -295,13 +295,13 @@ func TestInvalidOperationEncoding(t *testing.T) {
 	// Make request with invalid json structure
 	_, errs = MakeEncodedRequest([]byte("{"))
 	if len(errs) == 0 {
-		t.Errorf("Decryptor request should not run if request is not encoded propoerly.")
+		t.Errorf("Decryptor request should not run if request is not encoded properly.")
 		return
 	}
 
 	// Encrypt request with the wrong key
 	differentKey := core.GeneratePrivateKey()
-	temporaryEncryptionEncodedWrongKey, _, _ := generateValidEncryptedOperation(
+	transactionEncodedWrongKey, _, _ := generateValidEncryptedOperation(
 		keyId1,
 		keyCollection[keyId1],
 		payload,
@@ -309,34 +309,34 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		genericCertifierId,
 		differentKey,
 	)
-	decryptorResp, ok := makeRequestAndGetResult(t, temporaryEncryptionEncodedWrongKey)
+	decryptorResp, ok := makeRequestAndGetResult(t, transactionEncodedWrongKey)
 	if !ok {
 		return
 	}
-	if decryptorResp.Result != TemporaryDecryptionError {
-		t.Errorf("Decryptor request should fail if request is not temporarily encrypted with the right key.")
+	if decryptorResp.Result != TransactionDecryptionError {
+		t.Errorf("Decryptor request should fail if transaction is not encrypted with the right key.")
 		return
 	}
 
 	// Test empty decrypted permanent payload
-	temporaryEncryptionNoPayload, _ := core.GenerateTemporaryEncryptedOperationWithEncryption(
+	transactionNoPayload, _ := core.GenerateTransactionWithEncryption(
 		[]byte{},
 		[]byte(core.CorrectChallenge),
 		func(map[string]string) {},
 		globalKey,
 	)
-	temporaryEncryptionNoPayloadEncoded, _ := temporaryEncryptionNoPayload.Encode()
-	decryptorResp, ok = makeRequestAndGetResult(t, temporaryEncryptionNoPayloadEncoded)
+	transactionNoPayloadEncoded, _ := transactionNoPayload.Encode()
+	decryptorResp, ok = makeRequestAndGetResult(t, transactionNoPayloadEncoded)
 	if !ok {
 		return
 	}
-	if decryptorResp.Result != TemporaryDecryptionError {
-		t.Errorf("Decryptor request should fail if temporary encrypted payload is empty.")
+	if decryptorResp.Result != TransactionDecryptionError {
+		t.Errorf("Decryptor request should fail if transaction payload is empty.")
 		return
 	}
 
 	// Use inexistent signing key
-	temporaryEncryptionEncodedNoSignKey, _, _ := generateValidEncryptedOperation(
+	transactionEncodedNoSignKey, _, _ := generateValidEncryptedOperation(
 		keyId1,
 		keyCollection[keyId1],
 		payload,
@@ -344,7 +344,7 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		genericCertifierId,
 		globalKey,
 	)
-	decryptorResp, ok = makeRequestAndGetResult(t, temporaryEncryptionEncodedNoSignKey)
+	decryptorResp, ok = makeRequestAndGetResult(t, transactionEncodedNoSignKey)
 	if !ok {
 		return
 	}
@@ -354,7 +354,7 @@ func TestInvalidOperationEncoding(t *testing.T) {
 	}
 
 	// Use wrong permanent encryption key
-	temporaryEncryptionEncodedWrongPermanentKey, _, _ := generateValidEncryptedOperation(
+	transactionEncodedWrongPermanentKey, _, _ := generateValidEncryptedOperation(
 		keyId2,
 		keyCollection[keyId1],
 		payload,
@@ -362,7 +362,7 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		genericCertifierId,
 		globalKey,
 	)
-	decryptorResp, ok = makeRequestAndGetResult(t, temporaryEncryptionEncodedWrongPermanentKey)
+	decryptorResp, ok = makeRequestAndGetResult(t, transactionEncodedWrongPermanentKey)
 	if !ok {
 		return
 	}

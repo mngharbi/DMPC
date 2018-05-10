@@ -17,10 +17,10 @@ func dummyByteToByteTransformer(str []byte) ([]byte, bool) {
 }
 
 /*
-	Temporary decryption
+	Transaction decryption
 */
 
-func TestTemporaryValidOperation(t *testing.T) {
+func TestValidTransaction(t *testing.T) {
 	// Make valid encrypted operation
 	encryptedInnerOperation, _, _ := GeneratePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
@@ -34,7 +34,7 @@ func TestTemporaryValidOperation(t *testing.T) {
 		dummyByteToByteTransformer,
 	)
 	innerOperationJson, _ := encryptedInnerOperation.Encode()
-	temporaryEncryptedOperation, recipientKey := GenerateTemporaryEncryptedOperationWithEncryption(
+	transaction, recipientKey := GenerateTransactionWithEncryption(
 		innerOperationJson,
 		[]byte(CorrectChallenge),
 		func(challenges map[string]string) {
@@ -43,19 +43,19 @@ func TestTemporaryValidOperation(t *testing.T) {
 		nil,
 	)
 
-	decryptedTemporaryEncryptedOperation, err := temporaryEncryptedOperation.Decrypt(recipientKey)
+	decryptedTransaction, err := transaction.Decrypt(recipientKey)
 	if err != nil ||
-		!reflect.DeepEqual(encryptedInnerOperation, decryptedTemporaryEncryptedOperation) {
-		t.Errorf("Temporary decryption failed.")
+		!reflect.DeepEqual(encryptedInnerOperation, decryptedTransaction) {
+		t.Errorf("Transaction decryption failed.")
 		t.Errorf("encryptedInnerOperation=%v", encryptedInnerOperation)
-		t.Errorf("decryptedTemporaryEncryptedOperation=%v", decryptedTemporaryEncryptedOperation)
+		t.Errorf("decryptedTransaction=%v", decryptedTransaction)
 		t.Errorf("err=%v", err)
 	}
 }
 
-func TestTemporaryInavlidPayloadEncoding(t *testing.T) {
+func TestInavlidTransactionPayloadEncoding(t *testing.T) {
 	// Use invalid base64 string for payload
-	temporaryEncryptedOperation := GenerateTemporaryEncryptedOperation(
+	transaction := GenerateTransaction(
 		false,
 		map[string]string{},
 		[]byte("PLAINTEXT"),
@@ -64,15 +64,15 @@ func TestTemporaryInavlidPayloadEncoding(t *testing.T) {
 		true,
 	)
 
-	_, err := temporaryEncryptedOperation.Decrypt(GeneratePrivateKey())
+	_, err := transaction.Decrypt(GeneratePrivateKey())
 	if err != payloadDecodeError {
-		t.Errorf("Temporary decryption should fail with invalid payload encoding. err=%v", err)
+		t.Errorf("Transaction decryption should fail with invalid payload encoding. err=%v", err)
 	}
 }
 
-func TestTemporaryInavlidPayloadStructure(t *testing.T) {
+func TestInavlidTransactionPayloadStructure(t *testing.T) {
 	// Use invalid payload structure
-	temporaryEncryptedOperation := GenerateTemporaryEncryptedOperation(
+	transaction := GenerateTransaction(
 		false,
 		map[string]string{},
 		[]byte("PLAINTEXT"),
@@ -81,13 +81,13 @@ func TestTemporaryInavlidPayloadStructure(t *testing.T) {
 		false,
 	)
 
-	_, err := temporaryEncryptedOperation.Decrypt(GeneratePrivateKey())
+	_, err := transaction.Decrypt(GeneratePrivateKey())
 	if err != invalidPayloadError {
-		t.Errorf("Temporary decryption should fail with invalid payload structure. err=%v", err)
+		t.Errorf("Transaction decryption should fail with invalid payload structure. err=%v", err)
 	}
 }
 
-func TestTemporaryInavlidNonce(t *testing.T) {
+func TestInavlidTransactionNonce(t *testing.T) {
 	// Make valid encrypted operation
 	encryptedInnerOperation, _, _ := GeneratePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
@@ -103,7 +103,7 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 	innerOperationJson, _ := encryptedInnerOperation.Encode()
 
 	// Use invalid base64 string for nonce
-	temporaryEncryptedOperation := GenerateTemporaryEncryptedOperation(
+	transaction := GenerateTransaction(
 		true,
 		map[string]string{},
 		[]byte(invalidBase64string),
@@ -112,14 +112,14 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 		false,
 	)
 
-	_, err := temporaryEncryptedOperation.Decrypt(GeneratePrivateKey())
+	_, err := transaction.Decrypt(GeneratePrivateKey())
 	if err != invalidNonceError {
-		t.Errorf("Temporary decryption should fail with invalid nonce encoding. err=%v", err)
+		t.Errorf("Transaction decryption should fail with invalid nonce encoding. err=%v", err)
 		return
 	}
 
 	// Use nonce with invalid length
-	temporaryEncryptedOperation = GenerateTemporaryEncryptedOperation(
+	transaction = GenerateTransaction(
 		true,
 		map[string]string{},
 		generateRandomBytes(1+SymmetricNonceSize),
@@ -128,14 +128,14 @@ func TestTemporaryInavlidNonce(t *testing.T) {
 		false,
 	)
 
-	_, err = temporaryEncryptedOperation.Decrypt(GeneratePrivateKey())
+	_, err = transaction.Decrypt(GeneratePrivateKey())
 	if err != invalidNonceError {
-		t.Errorf("Temporary decryption should fail with invalid nonce length. err=%v", err)
+		t.Errorf("Transaction decryption should fail with invalid nonce length. err=%v", err)
 		return
 	}
 }
 
-func TestTemporaryInavlidChallenges(t *testing.T) {
+func TestInavlidTransactionChallenges(t *testing.T) {
 	// Make valid encrypted operation
 	encryptedInnerOperation, _, _ := GeneratePermanentEncryptedOperationWithEncryption(
 		"KEY_ID",
@@ -156,7 +156,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	challenges := map[string]string{
 		invalidBase64string: invalidBase64string,
 	}
-	temporaryEncryptedOperation := GenerateTemporaryEncryptedOperation(
+	transaction := GenerateTransaction(
 		true,
 		challenges,
 		generateRandomBytes(SymmetricNonceSize),
@@ -164,9 +164,9 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 		innerOperationJson,
 		false,
 	)
-	_, err := temporaryEncryptedOperation.Decrypt(privateKey)
+	_, err := transaction.Decrypt(privateKey)
 	if err != noSymmetricKeyFoundError {
-		t.Errorf("Temporary decryption should fail with invalid temp key encoding. err=%v", err)
+		t.Errorf("Transaction decryption should fail with invalid temp key encoding. err=%v", err)
 		return
 	}
 
@@ -176,7 +176,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	challenges = map[string]string{
 		invalidKeyCiphertextBase64: validBase64string,
 	}
-	temporaryEncryptedOperation = GenerateTemporaryEncryptedOperation(
+	transaction = GenerateTransaction(
 		true,
 		challenges,
 		generateRandomBytes(SymmetricNonceSize),
@@ -184,9 +184,9 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 		innerOperationJson,
 		false,
 	)
-	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	_, err = transaction.Decrypt(privateKey)
 	if err != noSymmetricKeyFoundError {
-		t.Errorf("Temporary decryption should fail with invalid temp key ciphertext. err=%v", err)
+		t.Errorf("Transaction decryption should fail with invalid temp key ciphertext. err=%v", err)
 		return
 	}
 
@@ -196,7 +196,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	challenges = map[string]string{
 		invalidKeyCiphertextBase64: validBase64string,
 	}
-	temporaryEncryptedOperation = GenerateTemporaryEncryptedOperation(
+	transaction = GenerateTransaction(
 		true,
 		challenges,
 		generateRandomBytes(SymmetricNonceSize),
@@ -204,9 +204,9 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 		innerOperationJson,
 		false,
 	)
-	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	_, err = transaction.Decrypt(privateKey)
 	if err != noSymmetricKeyFoundError {
-		t.Errorf("Temporary decryption should fail with invalid temp key ciphertext. err=%v", err)
+		t.Errorf("Transaction decryption should fail with invalid temp key ciphertext. err=%v", err)
 		return
 	}
 
@@ -216,7 +216,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	challenges = map[string]string{
 		invalidKeyCiphertextBase64: validBase64string,
 	}
-	temporaryEncryptedOperation = GenerateTemporaryEncryptedOperation(
+	transaction = GenerateTransaction(
 		true,
 		challenges,
 		generateRandomBytes(SymmetricNonceSize),
@@ -224,9 +224,9 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 		innerOperationJson,
 		false,
 	)
-	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	_, err = transaction.Decrypt(privateKey)
 	if err != noSymmetricKeyFoundError {
-		t.Errorf("Temporary decryption should fail with invalid temp key ciphertext. err=%v", err)
+		t.Errorf("Transaction decryption should fail with invalid temp key ciphertext. err=%v", err)
 		return
 	}
 
@@ -236,7 +236,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	challenges = map[string]string{
 		validKeyCiphertextBase64: invalidBase64string,
 	}
-	temporaryEncryptedOperation = GenerateTemporaryEncryptedOperation(
+	transaction = GenerateTransaction(
 		true,
 		challenges,
 		generateRandomBytes(SymmetricNonceSize),
@@ -244,9 +244,9 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 		innerOperationJson,
 		false,
 	)
-	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	_, err = transaction.Decrypt(privateKey)
 	if err != noSymmetricKeyFoundError {
-		t.Errorf("Temporary decryption should fail with invalid challege encoding. err=%v", err)
+		t.Errorf("Transaction decryption should fail with invalid challege encoding. err=%v", err)
 		return
 	}
 
@@ -258,7 +258,7 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 	challenges = map[string]string{
 		validKeyCiphertextBase64: invalidChallengeCiphertextBase64,
 	}
-	temporaryEncryptedOperation = GenerateTemporaryEncryptedOperation(
+	transaction = GenerateTransaction(
 		true,
 		challenges,
 		generateRandomBytes(SymmetricNonceSize),
@@ -266,27 +266,27 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 		innerOperationJson,
 		false,
 	)
-	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	_, err = transaction.Decrypt(privateKey)
 	if err != noSymmetricKeyFoundError {
-		t.Errorf("Temporary decryption should fail with invalid challenge ciphertext. err=%v", err)
+		t.Errorf("Transaction decryption should fail with invalid challenge ciphertext. err=%v", err)
 		return
 	}
 
 	// Valid challenge ciphertext, doesn't match challenge string
-	temporaryEncryptedOperation, _ = GenerateTemporaryEncryptedOperationWithEncryption(
+	transaction, _ = GenerateTransactionWithEncryption(
 		innerOperationJson,
 		[]byte("WRONG CHALLENGE"),
 		func(map[string]string) {},
 		privateKey,
 	)
-	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	_, err = transaction.Decrypt(privateKey)
 	if err != noSymmetricKeyFoundError {
-		t.Errorf("Temporary decryption should fail with incorrect challenge. err=%v", err)
+		t.Errorf("Transaction decryption should fail with incorrect challenge. err=%v", err)
 		return
 	}
 
 	// Skipping wrong challenge
-	temporaryEncryptedOperation, _ = GenerateTemporaryEncryptedOperationWithEncryption(
+	transaction, _ = GenerateTransactionWithEncryption(
 		innerOperationJson,
 		[]byte(CorrectChallenge),
 		func(challenges map[string]string) {
@@ -294,25 +294,25 @@ func TestTemporaryInavlidChallenges(t *testing.T) {
 		},
 		privateKey,
 	)
-	_, err = temporaryEncryptedOperation.Decrypt(privateKey)
+	_, err = transaction.Decrypt(privateKey)
 	if err != nil {
-		t.Errorf("Temporary decryption should not fail with extra incorrect challenge. err=%v", err)
+		t.Errorf("Transaction decryption should not fail with extra incorrect challenge. err=%v", err)
 		return
 	}
 }
 
-func TestTemporaryInavlidPayloadStruncture(t *testing.T) {
+func TestInavlidTransactionPayloadStruncture(t *testing.T) {
 	// Make undecryptable permanent operation
-	temporaryEncryptedOperation, privateKey := GenerateTemporaryEncryptedOperationWithEncryption(
+	transaction, privateKey := GenerateTransactionWithEncryption(
 		[]byte("{"),
 		[]byte(CorrectChallenge),
 		func(map[string]string) {},
 		nil,
 	)
 
-	_, err := temporaryEncryptedOperation.Decrypt(privateKey)
+	_, err := transaction.Decrypt(privateKey)
 	if err != invalidPayloadError {
-		t.Errorf("Temporary decryption should fail with incorrectly structured payload. err=%v", err)
+		t.Errorf("Transaction decryption should fail with incorrectly structured payload. err=%v", err)
 	}
 }
 

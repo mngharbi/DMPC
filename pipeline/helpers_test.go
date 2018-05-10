@@ -18,7 +18,7 @@ import (
 
 func generateDecryptorRequester(formatSuccess bool, responseSuccess bool) decryptor.Requester {
 	if formatSuccess {
-		return func(*core.TemporaryEncryptedOperation) (channel chan *gofarm.Response, errs []error) {
+		return func(*core.Transaction) (channel chan *gofarm.Response, errs []error) {
 			result := decryptor.Success
 			if !responseSuccess {
 				result += 1
@@ -32,7 +32,7 @@ func generateDecryptorRequester(formatSuccess bool, responseSuccess bool) decryp
 			return channel, nil
 		}
 	} else {
-		return func(*core.TemporaryEncryptedOperation) (channel chan *gofarm.Response, errs []error) {
+		return func(*core.Transaction) (channel chan *gofarm.Response, errs []error) {
 			return nil, []error{errors.New("Decryptor request failed")}
 		}
 	}

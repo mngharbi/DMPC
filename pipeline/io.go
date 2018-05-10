@@ -23,8 +23,8 @@ func closeConnectionForInvalidData(c *Conversation) {
 
 func (c *Conversation) reader() {
 	for {
-		var temporaryEncryptedOperation core.TemporaryEncryptedOperation
-		if err := c.socket.ReadJSON(&temporaryEncryptedOperation); err == io.EOF {
+		var transaction core.Transaction
+		if err := c.socket.ReadJSON(&transaction); err == io.EOF {
 			return
 		} else if err != nil {
 			log.Debugf(invalidOperationLogMsg)
@@ -32,7 +32,7 @@ func (c *Conversation) reader() {
 			return
 		} else {
 			// Wait for ticket and push to outgoing queue in another goroutine
-			if channel, errs := passOperation(&temporaryEncryptedOperation); errs == nil {
+			if channel, errs := passOperation(&transaction); errs == nil {
 				go func() {
 					nativeResp := <-channel
 					if nativeResp != nil {

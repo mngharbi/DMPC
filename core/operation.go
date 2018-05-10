@@ -5,17 +5,17 @@ import (
 )
 
 /*
-	Structure of an operation before temporary encryption
+	Structure of a transaction (before temporary decryption)
 */
-type TemporaryEncryptionFields struct {
+type TransactionEncryptionFields struct {
 	Encrypted  bool              `json:"encrypted"`
 	Challenges map[string]string `json:"challenges"`
 	Nonce      string            `json:"nonce"`
 }
-type TemporaryEncryptedOperation struct {
+type Transaction struct {
 	Version float64 `json:"version"`
 
-	Encryption TemporaryEncryptionFields `json:"encryption"`
+	Encryption TransactionEncryptionFields `json:"encryption"`
 
 	Transmission json.RawMessage `json:"transmission"`
 
@@ -50,7 +50,7 @@ type PermanentEncryptedOperation struct {
 	Payload string `json:"payload"`
 }
 
-func (op *TemporaryEncryptedOperation) Decode(stream []byte) error {
+func (op *Transaction) Decode(stream []byte) error {
 	// Try to decode json into raw operation
 	if err := json.Unmarshal(stream, &op); err != nil {
 		return err
@@ -59,7 +59,7 @@ func (op *TemporaryEncryptedOperation) Decode(stream []byte) error {
 	return nil
 }
 
-func (op *TemporaryEncryptedOperation) Encode() ([]byte, error) {
+func (op *Transaction) Encode() ([]byte, error) {
 	jsonStream, _ := json.Marshal(op)
 
 	return jsonStream, nil

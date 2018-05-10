@@ -93,16 +93,16 @@ func generateValidEncryptedOperation(
 	)
 
 	permanentEncryptionEncoded, _ := permanentEncryption.Encode()
-	temporaryEncryption, _ := core.GenerateTemporaryEncryptedOperationWithEncryption(
+	transaction, _ := core.GenerateTransactionWithEncryption(
 		permanentEncryptionEncoded,
 		[]byte(core.CorrectChallenge),
 		func(map[string]string) {},
 		globalKey,
 	)
 
-	temporaryEncryptionEncoded, _ := temporaryEncryption.Encode()
+	transactionEncoded, _ := transaction.Encode()
 
-	return temporaryEncryptionEncoded, issuerKey, certifierKey
+	return transactionEncoded, issuerKey, certifierKey
 }
 
 /*

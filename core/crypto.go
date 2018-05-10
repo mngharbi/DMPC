@@ -143,9 +143,9 @@ func SymmetricDecrypt(aead cipher.AEAD, dst []byte, nonce []byte, ciphertext []b
 }
 
 /*
-	Temporary decryption
+	Transaction decryption
 */
-func (op *TemporaryEncryptedOperation) Decrypt(asymKey *rsa.PrivateKey) (*PermanentEncryptedOperation, error) {
+func (op *Transaction) Decrypt(asymKey *rsa.PrivateKey) (*PermanentEncryptedOperation, error) {
 	// Base64 decode payload
 	payloadBytes, err := Base64DecodeString(op.Payload)
 	if err != nil {

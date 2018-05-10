@@ -11,7 +11,7 @@ import (
 /*
 	Function to accept a structured request
 */
-type Requester func(*core.TemporaryEncryptedOperation) (chan *gofarm.Response, []error)
+type Requester func(*core.Transaction) (chan *gofarm.Response, []error)
 
 /*
 	Logging
@@ -35,7 +35,7 @@ type Config struct {
 
 type decryptorRequest struct {
 	isVerified bool
-	operation  *core.TemporaryEncryptedOperation
+	operation  *core.Transaction
 }
 
 func provisionServerOnce() {
@@ -82,28 +82,28 @@ func MakeEncodedRequest(encodedRequest []byte) (chan *gofarm.Response, []error) 
 
 func makeEncodedRequest(encodedRequest []byte, skipPermissions bool) (chan *gofarm.Response, []error) {
 	// Decode payload
-	temporaryEncrypted := &core.TemporaryEncryptedOperation{}
-	err := temporaryEncrypted.Decode(encodedRequest)
+	transaction := &core.Transaction{}
+	err := transaction.Decode(encodedRequest)
 	if err != nil {
 		return nil, []error{err}
 	}
 
-	return makeRequest(temporaryEncrypted, skipPermissions)
+	return makeRequest(transaction, skipPermissions)
 }
 
-func MakeUnverifiedRequest(temporaryEncrypted *core.TemporaryEncryptedOperation) (chan *gofarm.Response, []error) {
-	return makeRequest(temporaryEncrypted, true)
+func MakeUnverifiedRequest(transaction *core.Transaction) (chan *gofarm.Response, []error) {
+	return makeRequest(transaction, true)
 }
 
-func MakeRequest(temporaryEncrypted *core.TemporaryEncryptedOperation) (chan *gofarm.Response, []error) {
-	return makeRequest(temporaryEncrypted, false)
+func MakeRequest(transaction *core.Transaction) (chan *gofarm.Response, []error) {
+	return makeRequest(transaction, false)
 }
 
-func makeRequest(temporaryEncrypted *core.TemporaryEncryptedOperation, skipPermissions bool) (chan *gofarm.Response, []error) {
+func makeRequest(transaction *core.Transaction, skipPermissions bool) (chan *gofarm.Response, []error) {
 	log.Debugf(receivedRequestLogMsg)
 	nativeResponseChannel, err := serverHandler.MakeRequest(&decryptorRequest{
 		isVerified: !skipPermissions,
-		operation:  temporaryEncrypted,
+		operation:  transaction,
 	})
 	if err != nil {
 		return nil, []error{err}
@@ -145,13 +145,13 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	log.Debugf(runningRequestLogMsg)
 	decryptorWrapped := (*nativeRequest).(*decryptorRequest)
 
-	// Temporary decryption
+	// Transaction decryption
 	permanentEncrypted, err := decryptorWrapped.operation.Decrypt(sv.globalKey)
 	if err != nil {
-		return failRequest(TemporaryDecryptionError)
+		return failRequest(TransactionDecryptionError)
 	}
 	if len(permanentEncrypted.Payload) == 0 {
-		return failRequest(TemporaryDecryptionError)
+		return failRequest(TransactionDecryptionError)
 	}
 
 	// Permanent decryption

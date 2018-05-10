@@ -19,7 +19,7 @@ var (
 /*
 	Used to pass operation to decryptor
 */
-func passOperation(operation *core.TemporaryEncryptedOperation) (channel chan *gofarm.Response, errs []error) {
+func passOperation(operation *core.Transaction) (channel chan *gofarm.Response, errs []error) {
 	serverLock.RLock()
 	defer serverLock.RUnlock()
 	if serverSingleton.isRunning {

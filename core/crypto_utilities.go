@@ -98,14 +98,14 @@ func GeneratePublicKey() *rsa.PublicKey {
 	return &priv.PublicKey
 }
 
-func GenerateTemporaryEncryptedOperation(
+func GenerateTransaction(
 	encrypted bool,
 	challenges map[string]string,
 	nonce []byte,
 	nonceEncoded bool,
 	payload []byte,
 	payloadEncoded bool,
-) *TemporaryEncryptedOperation {
+) *Transaction {
 	nonceResult := string(nonce)
 	payloadResult := string(payload)
 	if !nonceEncoded {
@@ -115,9 +115,9 @@ func GenerateTemporaryEncryptedOperation(
 		payloadResult = Base64EncodeToString(payload)
 	}
 
-	return &TemporaryEncryptedOperation{
+	return &Transaction{
 		Version: 0.1,
-		Encryption: TemporaryEncryptionFields{
+		Encryption: TransactionEncryptionFields{
 			Encrypted:  encrypted,
 			Challenges: challenges,
 			Nonce:      nonceResult,
@@ -126,12 +126,12 @@ func GenerateTemporaryEncryptedOperation(
 	}
 }
 
-func GenerateTemporaryEncryptedOperationWithEncryption(
+func GenerateTransactionWithEncryption(
 	plainPayload []byte,
 	plaintextChallenge []byte,
 	modifyChallenges func(map[string]string),
 	recipientKey *rsa.PrivateKey,
-) (*TemporaryEncryptedOperation, *rsa.PrivateKey) {
+) (*Transaction, *rsa.PrivateKey) {
 	// Make temporary key and nonce
 	temporaryNonce := generateRandomBytes(SymmetricNonceSize)
 	temporaryKey := generateRandomBytes(SymmetricKeySize)
@@ -165,7 +165,7 @@ func GenerateTemporaryEncryptedOperationWithEncryption(
 	}
 	modifyChallenges(challenges)
 
-	return GenerateTemporaryEncryptedOperation(
+	return GenerateTransaction(
 		true,
 		challenges,
 		temporaryNonce,

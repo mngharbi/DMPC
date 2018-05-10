@@ -27,7 +27,7 @@ const (
 /*
    Utilities
 */
-func buildRootUserOperation(conf *config.Config) *core.TemporaryEncryptedOperation {
+func buildRootUserOperation(conf *config.Config) *core.Transaction {
 	// Get root user object from confuration
 	log.Debugf("Parsing root user object from confuration")
 	rootUserObject := conf.GetRootUserObject()
@@ -38,7 +38,7 @@ func buildRootUserOperation(conf *config.Config) *core.TemporaryEncryptedOperati
 		log.Fatalf(encodeRootUserOperationError)
 	}
 
-	// Build operation
+	// Build transaction
 	permanentEncryptedEncoded, err := core.GeneratePermanentEncryptedOperation(
 		// Non encrypted
 		false, "", nil, true,
@@ -52,7 +52,7 @@ func buildRootUserOperation(conf *config.Config) *core.TemporaryEncryptedOperati
 	if err != nil {
 		log.Fatalf(encodeRootUserOperationError)
 	}
-	return core.GenerateTemporaryEncryptedOperation(
+	return core.GenerateTransaction(
 		// Non encrypted
 		false, nil, nil, true,
 		// non base64 encoded payload
@@ -60,10 +60,10 @@ func buildRootUserOperation(conf *config.Config) *core.TemporaryEncryptedOperati
 	)
 }
 
-func createRootUser(operation *core.TemporaryEncryptedOperation) {
+func createRootUser(transaction *core.Transaction) {
 	// Make unverified request
 	log.Debugf("Requesting to add root user")
-	rootUserChannel, errs := decryptor.MakeUnverifiedRequest(operation)
+	rootUserChannel, errs := decryptor.MakeUnverifiedRequest(transaction)
 	if len(errs) != 0 {
 		log.Fatalf(createRootUserRequestError)
 	}
