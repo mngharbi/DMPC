@@ -39,7 +39,7 @@ func buildRootUserOperation(conf *config.Config) *core.Transaction {
 	}
 
 	// Build transaction
-	permanentEncryptedEncoded, err := core.GeneratePermanentEncryptedOperation(
+	operationEncoded, err := core.GenerateOperation(
 		// Non encrypted
 		false, "", nil, true,
 		// No issuer
@@ -56,7 +56,7 @@ func buildRootUserOperation(conf *config.Config) *core.Transaction {
 		// Non encrypted
 		false, nil, nil, true,
 		// non base64 encoded payload
-		permanentEncryptedEncoded, false,
+		operationEncoded, false,
 	)
 }
 

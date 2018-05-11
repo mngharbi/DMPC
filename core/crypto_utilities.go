@@ -178,7 +178,7 @@ func GenerateTransactionWithEncryption(
 /*
 	Encrypted Operation(s) generation
 */
-func GeneratePermanentEncryptedOperation(
+func GenerateOperation(
 	encrypted bool,
 	keyId string,
 	nonce []byte,
@@ -192,7 +192,7 @@ func GeneratePermanentEncryptedOperation(
 	requestType RequestType,
 	payload []byte,
 	payloadEncoded bool,
-) *PermanentEncryptedOperation {
+) *Operation {
 	// Encode or convert to string
 	nonceResult := string(nonce)
 	issuerSignatureResult := string(issuerSignature)
@@ -212,28 +212,28 @@ func GeneratePermanentEncryptedOperation(
 	}
 
 	// Create operation
-	return &PermanentEncryptedOperation{
-		Encryption: PermanentEncryptionFields{
+	return &Operation{
+		Encryption: OperationEncryptionFields{
 			Encrypted: encrypted,
 			KeyId:     keyId,
 			Nonce:     nonceResult,
 		},
-		Issue: PermanentAuthenticationFields{
+		Issue: OperationAuthenticationFields{
 			Id:        issuerId,
 			Signature: issuerSignatureResult,
 		},
-		Certification: PermanentAuthenticationFields{
+		Certification: OperationAuthenticationFields{
 			Id:        certifierId,
 			Signature: certifierSignatureResult,
 		},
-		Meta: PermanentMetaFields{
+		Meta: OperationMetaFields{
 			RequestType: requestType,
 		},
 		Payload: payloadResult,
 	}
 }
 
-func GeneratePermanentEncryptedOperationWithEncryption(
+func GenerateOperationWithEncryption(
 	keyId string,
 	permanentKey []byte,
 	permanentNonce []byte,
@@ -243,7 +243,7 @@ func GeneratePermanentEncryptedOperationWithEncryption(
 	modifyIssuerSignature func([]byte) ([]byte, bool),
 	certifierId string,
 	modifyCertifierSignature func([]byte) ([]byte, bool),
-) (*PermanentEncryptedOperation, *rsa.PrivateKey, *rsa.PrivateKey) {
+) (*Operation, *rsa.PrivateKey, *rsa.PrivateKey) {
 	// Encrypt payload with symmetric permanent key
 	aead, _ := NewAead(permanentKey)
 	ciphertextPayload := SymmetricEncrypt(
@@ -263,7 +263,7 @@ func GeneratePermanentEncryptedOperationWithEncryption(
 	certifierSignature, _ := Sign(certifierKey, plainPayloadHashed[:])
 	certifierSignature, certifierSignatureEncoded := modifyCertifierSignature(certifierSignature)
 
-	return GeneratePermanentEncryptedOperation(
+	return GenerateOperation(
 		true,
 		keyId,
 		permanentNonce,

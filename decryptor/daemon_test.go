@@ -31,7 +31,7 @@ func TestValidNonEncrypted(t *testing.T) {
 	hashedPayload := core.Hash(payload)
 	issuerSignature, _ := core.Sign(signKeyCollection[genericIssuerId], hashedPayload[:])
 	certifierSignature, _ := core.Sign(signKeyCollection[genericCertifierId], hashedPayload[:])
-	permanentEncryption := core.GeneratePermanentEncryptedOperation(
+	operation := core.GenerateOperation(
 		false,
 		"NO_KEY",
 		[]byte{},
@@ -46,13 +46,13 @@ func TestValidNonEncrypted(t *testing.T) {
 		payload,
 		false,
 	)
-	permanentEncryptionEncoded, _ := permanentEncryption.Encode()
+	operationEncoded, _ := operation.Encode()
 	transaction := core.GenerateTransaction(
 		false,
 		map[string]string{},
 		[]byte{},
 		false,
-		permanentEncryptionEncoded,
+		operationEncoded,
 		false,
 	)
 
@@ -96,7 +96,7 @@ func TestValidTransactionEncryptedOnly(t *testing.T) {
 	hashedPayload := core.Hash(payload)
 	issuerSignature, _ := core.Sign(signKeyCollection[genericIssuerId], hashedPayload[:])
 	certifierSignature, _ := core.Sign(signKeyCollection[genericCertifierId], hashedPayload[:])
-	permanentEncryption := core.GeneratePermanentEncryptedOperation(
+	operation := core.GenerateOperation(
 		false,
 		"NO_KEY",
 		[]byte{},
@@ -111,9 +111,9 @@ func TestValidTransactionEncryptedOnly(t *testing.T) {
 		payload,
 		false,
 	)
-	permanentEncryptionEncoded, _ := permanentEncryption.Encode()
+	operationEncoded, _ := operation.Encode()
 	transaction, _ := core.GenerateTransactionWithEncryption(
-		permanentEncryptionEncoded,
+		operationEncoded,
 		[]byte(core.CorrectChallenge),
 		func(map[string]string) {},
 		globalKey,
@@ -152,7 +152,7 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 
 	// Create non encrypted payload
 	payload := []byte("PAYLOAD")
-	permanentEncryption, issuerKey, certifierKey := core.GeneratePermanentEncryptedOperationWithEncryption(
+	operation, issuerKey, certifierKey := core.GenerateOperationWithEncryption(
 		keyId1,
 		keyCollection[keyId1],
 		generateRandomBytes(core.SymmetricNonceSize),
@@ -174,13 +174,13 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 		return
 	}
 
-	permanentEncryptionEncoded, _ := permanentEncryption.Encode()
+	operationEncoded, _ := operation.Encode()
 	transaction := core.GenerateTransaction(
 		false,
 		map[string]string{},
 		[]byte{},
 		false,
-		permanentEncryptionEncoded,
+		operationEncoded,
 		false,
 	)
 
@@ -270,7 +270,7 @@ func TestOperationEncryption(t *testing.T) {
 	// Setup operation
 	payload := []byte("PAYLOAD")
 	globalKey := core.GeneratePrivateKey()
-	permanentEncryption, issuerKey, certifierKey := core.GeneratePermanentEncryptedOperationWithEncryption(
+	operation, issuerKey, certifierKey := core.GenerateOperationWithEncryption(
 		"",
 		keyCollection[keyId1],
 		generateRandomBytes(core.SymmetricNonceSize),
@@ -293,7 +293,7 @@ func TestOperationEncryption(t *testing.T) {
 	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(keyCollection), executorRequester) {
 		return
 	}
-	decryptorResp, ok := makeOperationRequestAndGetResult(t, permanentEncryption)
+	decryptorResp, ok := makeOperationRequestAndGetResult(t, operation)
 	if !ok {
 		return
 	}
@@ -309,7 +309,7 @@ func TestOperationEncryption(t *testing.T) {
 		requestType:     core.AddMessageType,
 		signers:         nil,
 		payload:         nil,
-		failedOperation: permanentEncryption,
+		failedOperation: operation,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
 		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)
@@ -321,14 +321,14 @@ func TestOperationEncryption(t *testing.T) {
 	/*
 		Not buffered add message: not correctly signed
 	*/
-	permanentEncryption.Encryption.KeyId = keyId1
-	permanentEncryption.Issue.Signature = ""
-	permanentEncryption.Meta.Buffered = false
+	operation.Encryption.KeyId = keyId1
+	operation.Issue.Signature = ""
+	operation.Meta.Buffered = false
 
 	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(keyCollection), executorRequester) {
 		return
 	}
-	decryptorResp, ok = makeOperationRequestAndGetResult(t, permanentEncryption)
+	decryptorResp, ok = makeOperationRequestAndGetResult(t, operation)
 	if !ok {
 		return
 	}
@@ -344,7 +344,7 @@ func TestOperationEncryption(t *testing.T) {
 		requestType:     core.AddMessageType,
 		signers:         nil,
 		payload:         nil,
-		failedOperation: permanentEncryption,
+		failedOperation: operation,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
 		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)
@@ -356,13 +356,13 @@ func TestOperationEncryption(t *testing.T) {
 	/*
 		Buffered add message: not correctly encrypted
 	*/
-	permanentEncryption.Encryption.KeyId = ""
-	permanentEncryption.Meta.Buffered = true
+	operation.Encryption.KeyId = ""
+	operation.Meta.Buffered = true
 
 	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(keyCollection), executorRequester) {
 		return
 	}
-	decryptorResp, ok = makeOperationRequestAndGetResult(t, permanentEncryption)
+	decryptorResp, ok = makeOperationRequestAndGetResult(t, operation)
 	if !ok {
 		return
 	}

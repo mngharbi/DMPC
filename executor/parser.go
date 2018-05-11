@@ -21,7 +21,7 @@ type executorRequest struct {
 	signers         *core.VerifiedSigners
 	ticket          status.Ticket
 	request         []byte
-	failedOperation *core.PermanentEncryptedOperation
+	failedOperation *core.Operation
 }
 
 /*

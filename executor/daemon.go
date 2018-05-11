@@ -11,7 +11,7 @@ import (
 /*
 	Function to send in a decrypted request into the executor and returns a ticket
 */
-type Requester func(bool, core.RequestType, *core.VerifiedSigners, []byte, *core.PermanentEncryptedOperation) (status.Ticket, error)
+type Requester func(bool, core.RequestType, *core.VerifiedSigners, []byte, *core.Operation) (status.Ticket, error)
 
 /*
 	Errors
@@ -83,7 +83,7 @@ func MakeRequest(
 	requestType core.RequestType,
 	signers *core.VerifiedSigners,
 	request []byte,
-	failedOperation *core.PermanentEncryptedOperation,
+	failedOperation *core.Operation,
 ) (status.Ticket, error) {
 	log.Debugf(receivedRequestLogMsg)
 

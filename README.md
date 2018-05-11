@@ -8,9 +8,9 @@ It's built to be general enough to accommodate any type of setup but decouples c
 ## Encryption
 All messages are wrapped into operations that have two layers of encryption.
 
-The outer layer, also called a transaction, is meant for data in transit. It uses a temporary symmetric key (encrypted using the recipient's public key).
+The outer layer, also called transaction, is meant for data in transit. It uses a temporary symmetric key (encrypted using the recipient's public key).
 
-The inner layer, also called permanent encryption, is meant for data at rest. Every channel has its own symmetric encryption key (only the participants have it), and it's used for all communication within the channel.
+The inner layer, also called operation, is meant for data at rest. Every channel has its own symmetric encryption key (only the participants have it), and it's used for all communication within the channel.
 
 ## Installation
 

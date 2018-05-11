@@ -29,22 +29,24 @@ const (
 /*
 	Errors
 */
-var base64DecodeError error = errors.New("Error decoding base64.")
-var invalidNonceError error = errors.New("Invalid nonce provided.")
-var invalidSymmetricKeyError error = errors.New("Invalid key provided.")
-var aeadCreationError error = errors.New("Aead creation failed.")
-var noSymmetricKeyFoundError error = errors.New("No symmetric key passed the challenge.")
-var signError error = errors.New("Signing failed.")
-var asymmetrictEncryptionError error = errors.New("Asymmetric encryption failed.")
-var asymmetrictDecryptionError error = errors.New("Asymmetric decryption failed.")
-var symmetrictDecryptionError error = errors.New("Ssymmetric decryption failed.")
-var payloadDecodeError error = errors.New("Payload decoding failed.")
-var payloadDecryptionError error = errors.New("Payload decryption failed.")
-var invalidPayloadError error = errors.New("Invalid payload provided.")
-var keyNotFoundError error = errors.New("Symmetric Key not found by ID.")
-var invalidSignatureEncodingError error = errors.New("Invalid signature encoding.")
-var invalidIssuerSignatureError error = errors.New("Invalid issuer signature provided.")
-var invalidCertifierSignatureError error = errors.New("Invalid certifier signature provided.")
+var (
+	base64DecodeError              error = errors.New("Error decoding base64.")
+	invalidNonceError              error = errors.New("Invalid nonce provided.")
+	invalidSymmetricKeyError       error = errors.New("Invalid key provided.")
+	aeadCreationError              error = errors.New("Aead creation failed.")
+	noSymmetricKeyFoundError       error = errors.New("No symmetric key passed the challenge.")
+	signError                      error = errors.New("Signing failed.")
+	asymmetrictEncryptionError     error = errors.New("Asymmetric encryption failed.")
+	asymmetrictDecryptionError     error = errors.New("Asymmetric decryption failed.")
+	symmetrictDecryptionError      error = errors.New("Ssymmetric decryption failed.")
+	payloadDecodeError             error = errors.New("Payload decoding failed.")
+	payloadDecryptionError         error = errors.New("Payload decryption failed.")
+	invalidPayloadError            error = errors.New("Invalid payload provided.")
+	keyNotFoundError               error = errors.New("Symmetric Key not found by ID.")
+	invalidSignatureEncodingError  error = errors.New("Invalid signature encoding.")
+	invalidIssuerSignatureError    error = errors.New("Invalid issuer signature provided.")
+	invalidCertifierSignatureError error = errors.New("Invalid certifier signature provided.")
+)
 
 /*
 	Primitives
@@ -145,7 +147,7 @@ func SymmetricDecrypt(aead cipher.AEAD, dst []byte, nonce []byte, ciphertext []b
 /*
 	Transaction decryption
 */
-func (op *Transaction) Decrypt(asymKey *rsa.PrivateKey) (*PermanentEncryptedOperation, error) {
+func (op *Transaction) Decrypt(asymKey *rsa.PrivateKey) (*Operation, error) {
 	// Base64 decode payload
 	payloadBytes, err := Base64DecodeString(op.Payload)
 	if err != nil {
@@ -220,7 +222,7 @@ func (op *Transaction) Decrypt(asymKey *rsa.PrivateKey) (*PermanentEncryptedOper
 	}
 
 	// Decode payload into structure
-	var decodedOp PermanentEncryptedOperation
+	var decodedOp Operation
 	payloadDecodeErr := decodedOp.Decode(payloadBytes)
 	if payloadDecodeErr != nil {
 		return nil, invalidPayloadError
@@ -232,7 +234,7 @@ func (op *Transaction) Decrypt(asymKey *rsa.PrivateKey) (*PermanentEncryptedOper
 /*
 	Permanent decryption
 */
-func (op *PermanentEncryptedOperation) Decrypt(
+func (op *Operation) Decrypt(
 	getKeyById func(string) []byte,
 ) ([]byte, error) {
 	// Base64 decode payload
@@ -274,7 +276,7 @@ func (op *PermanentEncryptedOperation) Decrypt(
 /*
 	Signature verification
 */
-func (op *PermanentEncryptedOperation) Verify(
+func (op *Operation) Verify(
 	issuerSigningKey *rsa.PublicKey,
 	certifierSigningKey *rsa.PublicKey,
 	payload []byte,

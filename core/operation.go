@@ -5,46 +5,7 @@ import (
 )
 
 /*
-	Structure of a transaction (before temporary decryption)
-*/
-type TransactionEncryptionFields struct {
-	Encrypted  bool              `json:"encrypted"`
-	Challenges map[string]string `json:"challenges"`
-	Nonce      string            `json:"nonce"`
-}
-type Transaction struct {
-	Version float64 `json:"version"`
-
-	Encryption TransactionEncryptionFields `json:"encryption"`
-
-	Transmission json.RawMessage `json:"transmission"`
-
-	Payload string `json:"payload"`
-}
-
-/*
-	Decodes a transaction
-*/
-func (op *Transaction) Decode(stream []byte) error {
-	// Try to decode json into raw operation
-	if err := json.Unmarshal(stream, &op); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-/*
-	Encodes a transaction
-*/
-func (op *Transaction) Encode() ([]byte, error) {
-	jsonStream, _ := json.Marshal(op)
-
-	return jsonStream, nil
-}
-
-/*
-	Structure of an operation before permanent encryption
+	Request types
 */
 type RequestType int
 
@@ -53,42 +14,41 @@ const (
 	AddMessageType
 )
 
-type PermanentEncryptionFields struct {
+/*
+	Structure of an operation before permanent encryption
+*/
+type OperationEncryptionFields struct {
 	Encrypted bool   `json:"encrypted"`
 	KeyId     string `json:"keyId"`
 	Nonce     string `json:"nonce"`
 }
-type PermanentAuthenticationFields struct {
+type OperationAuthenticationFields struct {
 	Id        string `json:"id"`
 	Signature string `json:"signature"`
 }
-type PermanentMetaFields struct {
+type OperationMetaFields struct {
 	RequestType RequestType `json:"requestType"`
 	Buffered    bool
 }
-type PermanentEncryptedOperation struct {
-	Encryption PermanentEncryptionFields `json:"encryption"`
-
-	Issue PermanentAuthenticationFields `json:"issue"`
-
-	Certification PermanentAuthenticationFields `json:"certification"`
-
-	Meta PermanentMetaFields `json:"meta"`
-
-	Payload string `json:"payload"`
+type Operation struct {
+	Encryption    OperationEncryptionFields     `json:"encryption"`
+	Issue         OperationAuthenticationFields `json:"issue"`
+	Certification OperationAuthenticationFields `json:"certification"`
+	Meta          OperationMetaFields           `json:"meta"`
+	Payload       string                        `json:"payload"`
 }
 
 /*
 	Determines if the request should be dropped if decryption/signature verification fails
 */
-func (op *PermanentEncryptedOperation) ShouldDrop() bool {
+func (op *Operation) ShouldDrop() bool {
 	return !(op.Meta.RequestType == AddMessageType && !op.Meta.Buffered)
 }
 
 /*
 	Decodes an operation
 */
-func (op *PermanentEncryptedOperation) Decode(stream []byte) error {
+func (op *Operation) Decode(stream []byte) error {
 	// Try to decode json into raw operation
 	if err := json.Unmarshal(stream, &op); err != nil {
 		return err
@@ -100,7 +60,7 @@ func (op *PermanentEncryptedOperation) Decode(stream []byte) error {
 /*
 	Encodes an operation
 */
-func (op *PermanentEncryptedOperation) Encode() ([]byte, error) {
+func (op *Operation) Encode() ([]byte, error) {
 	jsonStream, _ := json.Marshal(op)
 
 	return jsonStream, nil

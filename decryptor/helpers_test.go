@@ -52,7 +52,7 @@ func makeTransactionRequestAndGetResult(
 
 func makeOperationRequestAndGetResult(
 	t *testing.T,
-	operation *core.PermanentEncryptedOperation,
+	operation *core.Operation,
 ) (*DecryptorResponse, bool) {
 	channel, errs := MakeOperationRequest(operation)
 	if len(errs) != 0 {
@@ -93,7 +93,7 @@ func generateValidEncryptedOperation(
 	certifierId string,
 	globalKey *rsa.PrivateKey,
 ) ([]byte, *rsa.PrivateKey, *rsa.PrivateKey) {
-	permanentEncryption, issuerKey, certifierKey := core.GeneratePermanentEncryptedOperationWithEncryption(
+	operation, issuerKey, certifierKey := core.GenerateOperationWithEncryption(
 		keyId,
 		key,
 		generateRandomBytes(core.SymmetricNonceSize),
@@ -105,9 +105,9 @@ func generateValidEncryptedOperation(
 		func(b []byte) ([]byte, bool) { return b, false },
 	)
 
-	permanentEncryptionEncoded, _ := permanentEncryption.Encode()
+	operationEncoded, _ := operation.Encode()
 	transaction, _ := core.GenerateTransactionWithEncryption(
-		permanentEncryptionEncoded,
+		operationEncoded,
 		[]byte(core.CorrectChallenge),
 		func(map[string]string) {},
 		globalKey,
@@ -151,7 +151,7 @@ type dummyExecutorEntry struct {
 	requestType     core.RequestType
 	signers         *core.VerifiedSigners
 	payload         []byte
-	failedOperation *core.PermanentEncryptedOperation
+	failedOperation *core.Operation
 }
 
 type dummyExecutorRegistry struct {
@@ -171,7 +171,7 @@ func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, executor.Req
 		data: map[status.Ticket]dummyExecutorEntry{},
 		lock: &sync.Mutex{},
 	}
-	requester := func(isVerified bool, requestType core.RequestType, signers *core.VerifiedSigners, payload []byte, failedOperation *core.PermanentEncryptedOperation) (status.Ticket, error) {
+	requester := func(isVerified bool, requestType core.RequestType, signers *core.VerifiedSigners, payload []byte, failedOperation *core.Operation) (status.Ticket, error) {
 		reg.lock.Lock()
 		ticketCopy := status.RequestNewTicket()
 		reg.data[ticketCopy] = dummyExecutorEntry{
