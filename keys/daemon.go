@@ -8,12 +8,6 @@ import (
 )
 
 /*
-	Lambdas
-*/
-type KeyAdder func(keyId string, key []byte) error
-type Decryptor func(keyId string, nonce []byte, ciphertext []byte) ([]byte, error)
-
-/*
 	Errors
 */
 var (

@@ -235,7 +235,7 @@ func (op *Transaction) Decrypt(asymKey *rsa.PrivateKey) (*Operation, error) {
 	Permanent decryption
 */
 func (op *Operation) Decrypt(
-	getKeyById func(string) []byte,
+	decrypt Decryptor,
 ) ([]byte, error) {
 	// Base64 decode payload
 	payloadBytes, err := Base64DecodeString(op.Payload)
@@ -254,20 +254,11 @@ func (op *Operation) Decrypt(
 			return nil, invalidNonceError
 		}
 
-		// Get key
-		keyBytes := getKeyById(op.Encryption.KeyId)
-		if keyBytes == nil {
+		// Decrypt
+		payloadBytes, err = decrypt(op.Encryption.KeyId, nonceBytes, payloadBytes)
+		if err != nil {
 			return nil, keyNotFoundError
 		}
-
-		// Use key to decrypt
-		aead, _ := NewAead(keyBytes)
-		payloadBytes, _ = SymmetricDecrypt(
-			aead,
-			payloadBytes[:0],
-			nonceBytes,
-			payloadBytes,
-		)
 	}
 
 	return payloadBytes, nil
