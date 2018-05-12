@@ -9,6 +9,7 @@ import (
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
+	"github.com/mngharbi/DMPC/keys"
 	"github.com/mngharbi/DMPC/pipeline"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
@@ -43,6 +44,9 @@ type Config struct {
 
 	// Configuration for users subsystem
 	Status StatusSubsystemConfig `json:"status"`
+
+	// Configuration for keys subsystem
+	Keys NumWorkersOnlyConfig `json:"keys"`
 
 	// Configuration for executor subsystem
 	Executor NumWorkersOnlyConfig `json:"executor"`
@@ -111,6 +115,12 @@ func (conf *Config) GetStatusSubsystemConfig() (status.StatusServerConfig, statu
 		}, status.ListenersServerConfig{
 			NumWorkers: conf.Status.Listeners.NumWorkers,
 		}
+}
+
+func (conf *Config) GetKeysSubsystemConfig() keys.Config {
+	return keys.Config{
+		NumWorkers: conf.Keys.NumWorkers,
+	}
 }
 
 func (conf *Config) GetExecutorSubsystemConfig() executor.Config {

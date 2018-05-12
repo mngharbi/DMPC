@@ -48,7 +48,7 @@ func provisionServerOnce() {
 func InitializeServer(
 	globalKey *rsa.PrivateKey,
 	usersSignKeyRequester core.UsersSignKeyRequester,
-	keyRequester core.KeyRequester,
+	keyDecryptor core.Decryptor,
 	executorRequester executor.Requester,
 	loggingHandler *core.LoggingHandler,
 	shutdownLambda core.ShutdownLambda,
@@ -56,7 +56,7 @@ func InitializeServer(
 	provisionServerOnce()
 	serverSingleton.globalKey = globalKey
 	serverSingleton.usersSignKeyRequester = usersSignKeyRequester
-	serverSingleton.keyRequester = keyRequester
+	serverSingleton.keyDecryptor = keyDecryptor
 	serverSingleton.executorRequester = executorRequester
 	log = loggingHandler
 	shutdownProgram = shutdownLambda
@@ -147,7 +147,7 @@ type server struct {
 
 	// Requester lambdas
 	usersSignKeyRequester core.UsersSignKeyRequester
-	keyRequester          core.KeyRequester
+	keyDecryptor          core.Decryptor
 	executorRequester     executor.Requester
 }
 
@@ -172,8 +172,8 @@ func decryptTransaction(transaction *core.Transaction, globalKey *rsa.PrivateKey
 	return operation, true
 }
 
-func decryptOperation(operation *core.Operation, keyRequester core.KeyRequester) ([]byte, bool) {
-	payload, err := operation.Decrypt(keyRequester)
+func decryptOperation(operation *core.Operation, keyDecryptor core.Decryptor) ([]byte, bool) {
+	payload, err := operation.Decrypt(keyDecryptor)
 	return payload, err == nil
 }
 
@@ -206,7 +206,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	}
 
 	// Operation decryption
-	plaintextBytes, decryptionSuccess := decryptOperation(operation, sv.keyRequester)
+	plaintextBytes, decryptionSuccess := decryptOperation(operation, sv.keyDecryptor)
 
 	// Determine if we should fail
 	droppable := operation.ShouldDrop()

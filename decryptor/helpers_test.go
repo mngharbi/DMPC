@@ -24,11 +24,11 @@ func resetAndStartServer(
 	conf Config,
 	globalKey *rsa.PrivateKey,
 	usersSignKeyRequester core.UsersSignKeyRequester,
-	keyRequester core.KeyRequester,
+	keyDecryptor core.Decryptor,
 	executorRequester executor.Requester,
 ) bool {
 	serverSingleton = server{}
-	InitializeServer(globalKey, usersSignKeyRequester, keyRequester, executorRequester, log, shutdownProgram)
+	InitializeServer(globalKey, usersSignKeyRequester, keyDecryptor, executorRequester, log, shutdownProgram)
 	err := StartServer(conf)
 	if err != nil {
 		t.Errorf(err.Error())

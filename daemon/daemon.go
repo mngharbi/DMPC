@@ -5,6 +5,7 @@ import (
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
+	"github.com/mngharbi/DMPC/keys"
 	"github.com/mngharbi/DMPC/pipeline"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
@@ -20,6 +21,11 @@ func startDaemons(conf *config.Config, shutdownLambda core.ShutdownLambda) {
 	log.Debugf(startingStatusSubsystemLogMsg)
 	statusUpdateConfig, statusListenersConfig := conf.GetStatusSubsystemConfig()
 	status.StartServers(statusUpdateConfig, statusListenersConfig, log, shutdownLambda)
+
+	// Start keys subsystem
+	log.Debugf(startingKeysSubsystemLogMsg)
+	keysSubsystemConfig := conf.GetKeysSubsystemConfig()
+	keys.StartServer(keysSubsystemConfig, log, shutdownLambda)
 
 	// Start executor subsystem
 	log.Debugf(startingExecutorSubsystemLogMsg)
@@ -43,10 +49,7 @@ func startDaemons(conf *config.Config, shutdownLambda core.ShutdownLambda) {
 	decryptor.InitializeServer(
 		privateEncryptionKey,
 		users.GetSigningKeysById,
-
-		// @TODO: Replace with actual closure when keys subsystem is implemented
-		(func(string) []byte { return nil }),
-
+		keys.Decrypt,
 		executor.MakeRequest,
 		log,
 		shutdownLambda,
@@ -66,6 +69,9 @@ func shutdownDaemons() {
 
 	log.Debugf(shutdownDecryptorSubsystemLogMsg)
 	decryptor.ShutdownServer()
+
+	log.Debugf(shutdownKeysSubsystemLogMsg)
+	keys.ShutdownServer()
 
 	log.Debugf(shutdownUsersSubsystemLogMsg)
 	users.ShutdownServer()

@@ -13,7 +13,7 @@ import (
 
 func TestStartShutdownSingleWorker(t *testing.T) {
 	_, executorRequester := createDummyExecutorRequesterFunctor()
-	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersSignKeyRequesterFunctor(getSignKeyCollection(), true), createDummyKeyRequesterFunctor(getKeysCollection()), executorRequester) {
+	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersSignKeyRequesterFunctor(getSignKeyCollection(), true), core.DecryptorFunctor(getKeysCollection(), true), executorRequester) {
 		return
 	}
 	ShutdownServer()
@@ -22,7 +22,7 @@ func TestStartShutdownSingleWorker(t *testing.T) {
 func TestValidNonEncrypted(t *testing.T) {
 	reg, executorRequester := createDummyExecutorRequesterFunctor()
 	signKeyCollection := getSignKeyCollection()
-	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(getKeysCollection()), executorRequester) {
+	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), core.DecryptorFunctor(getKeysCollection(), true), executorRequester) {
 		return
 	}
 
@@ -87,7 +87,7 @@ func TestValidTransactionEncryptedOnly(t *testing.T) {
 	reg, executorRequester := createDummyExecutorRequesterFunctor()
 	signKeyCollection := getSignKeyCollection()
 	globalKey := core.GeneratePrivateKey()
-	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(getKeysCollection()), executorRequester) {
+	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), core.DecryptorFunctor(getKeysCollection(), true), executorRequester) {
 		return
 	}
 
@@ -170,7 +170,7 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 	}
 
 	// Start server
-	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(keyCollection), executorRequester) {
+	if !resetAndStartServer(t, singleWorkerConfig(), nil, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), core.DecryptorFunctor(keyCollection, true), executorRequester) {
 		return
 	}
 
@@ -233,7 +233,7 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 	}
 
 	// Start server
-	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(keyCollection), executorRequester) {
+	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), core.DecryptorFunctor(keyCollection, true), executorRequester) {
 		return
 	}
 
@@ -290,7 +290,7 @@ func TestOperationEncryption(t *testing.T) {
 	/*
 		Not buffered add message: not correctly encrypted
 	*/
-	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(keyCollection), executorRequester) {
+	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), core.DecryptorFunctor(keyCollection, true), executorRequester) {
 		return
 	}
 	decryptorResp, ok := makeOperationRequestAndGetResult(t, operation)
@@ -325,7 +325,7 @@ func TestOperationEncryption(t *testing.T) {
 	operation.Issue.Signature = ""
 	operation.Meta.Buffered = false
 
-	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(keyCollection), executorRequester) {
+	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), core.DecryptorFunctor(keyCollection, true), executorRequester) {
 		return
 	}
 	decryptorResp, ok = makeOperationRequestAndGetResult(t, operation)
@@ -359,7 +359,7 @@ func TestOperationEncryption(t *testing.T) {
 	operation.Encryption.KeyId = ""
 	operation.Meta.Buffered = true
 
-	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(keyCollection), executorRequester) {
+	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), core.DecryptorFunctor(keyCollection, true), executorRequester) {
 		return
 	}
 	decryptorResp, ok = makeOperationRequestAndGetResult(t, operation)
@@ -399,7 +399,7 @@ func TestInvalidOperationEncoding(t *testing.T) {
 	}
 
 	_, executorRequester := createDummyExecutorRequesterFunctor()
-	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), createDummyKeyRequesterFunctor(keyCollection), executorRequester) {
+	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), core.DecryptorFunctor(keyCollection, true), executorRequester) {
 		return
 	}
 
@@ -477,8 +477,8 @@ func TestInvalidOperationEncoding(t *testing.T) {
 	if !ok {
 		return
 	}
-	if decryptorResp.Result != VerificationError {
-		t.Errorf("Decryptor request should fail if permanent encrypted payload can't be decrypted.")
+	if decryptorResp.Result != PermanentDecryptionError {
+		t.Errorf("Decryptor request should fail if permanent encrypted payload can't be decrypted. %+v", decryptorResp)
 		return
 	}
 

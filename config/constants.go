@@ -54,6 +54,9 @@ var defaultDaemonConfig Config = Config{
 			NumWorkers: 4,
 		},
 	},
+	Keys: NumWorkersOnlyConfig{
+		NumWorkers: 4,
+	},
 	Executor: NumWorkersOnlyConfig{
 		NumWorkers: 4,
 	},
