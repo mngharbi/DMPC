@@ -20,6 +20,31 @@ func generateRandomBytes(nbBytes int) (bytes []byte) {
 }
 
 /*
+	Generator of decryptor functions (used for testing)
+*/
+func DecryptorFunctor(keys map[string][]byte, success bool) Decryptor {
+	decryptorError := errors.New("Could not find key")
+	return func(keyId string, nonce []byte, ciphertext []byte) ([]byte, error) {
+		if !success {
+			return nil, decryptorError
+		}
+
+		key, ok := keys[keyId]
+		if !ok {
+			return nil, decryptorError
+		}
+
+		aead, _ := NewAead(key)
+		return SymmetricDecrypt(
+			aead,
+			ciphertext[:0],
+			nonce,
+			ciphertext,
+		)
+	}
+}
+
+/*
 	Key encoding
 */
 func pemEncodeBlock(keyBytes []byte, typeString string) string {

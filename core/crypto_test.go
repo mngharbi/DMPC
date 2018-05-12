@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"reflect"
 	"testing"
 )
@@ -13,26 +12,8 @@ import (
 const invalidBase64string = "12"
 const validBase64string = "bQ=="
 
-var decryptorError error = errors.New("Could not find key")
-
 func dummyByteToByteTransformer(str []byte) ([]byte, bool) {
 	return str, false
-}
-
-func decryptorGenerator(key []byte, err error) Decryptor {
-	return func(keyId string, nonce []byte, ciphertext []byte) ([]byte, error) {
-		if err != nil {
-			return nil, err
-		}
-
-		aead, _ := NewAead(key)
-		return SymmetricDecrypt(
-			aead,
-			ciphertext[:0],
-			nonce,
-			ciphertext,
-		)
-	}
 }
 
 /*
@@ -356,7 +337,7 @@ func TestPermanentValidOperation(t *testing.T) {
 	)
 
 	decryptedDecodedPayload, err := encryptedOperation.Decrypt(
-		decryptorGenerator(permanentKey, nil),
+		DecryptorFunctor(map[string][]byte{"KEY_ID": permanentKey}, true),
 	)
 	if err != nil ||
 		!reflect.DeepEqual(decryptedDecodedPayload, requestPayload) {
@@ -384,7 +365,7 @@ func TestPermanentInvalidPayload(t *testing.T) {
 	)
 
 	_, err := encryptedOperation.Decrypt(
-		decryptorGenerator(generateRandomBytes(SymmetricKeySize), nil),
+		DecryptorFunctor(map[string][]byte{"KEY_ID": generateRandomBytes(SymmetricKeySize)}, true),
 	)
 	if err != payloadDecodeError {
 		t.Errorf("Permanent decryption should fail with invalid base64 payload.")
@@ -411,7 +392,7 @@ func TestPermanentInvalidNonce(t *testing.T) {
 	)
 
 	_, err := encryptedOperation.Decrypt(
-		decryptorGenerator(generateRandomBytes(SymmetricKeySize), nil),
+		DecryptorFunctor(map[string][]byte{"KEY_ID": generateRandomBytes(SymmetricKeySize)}, true),
 	)
 	if err != invalidNonceError {
 		t.Errorf("Permanent decryption should fail with invalid base64 nonce.")
@@ -436,7 +417,7 @@ func TestPermanentInvalidNonce(t *testing.T) {
 	)
 
 	_, err = encryptedOperation.Decrypt(
-		decryptorGenerator(generateRandomBytes(SymmetricKeySize), nil),
+		DecryptorFunctor(map[string][]byte{"KEY_ID": generateRandomBytes(SymmetricKeySize)}, true),
 	)
 	if err != invalidNonceError {
 		t.Errorf("Permanent decryption should fail with invalid nonce length.")
@@ -464,7 +445,7 @@ func TestPermanentNotFoundKey(t *testing.T) {
 
 	// Decrypt with function that returns no key
 	_, err := encryptedOperation.Decrypt(
-		decryptorGenerator(nil, decryptorError),
+		DecryptorFunctor(nil, false),
 	)
 	if err != keyNotFoundError {
 		t.Errorf("Permanent decryption should fail with no key found.")
@@ -490,7 +471,7 @@ func TestPermanentInvalidIssuerSignature(t *testing.T) {
 	)
 
 	payload, err := encryptedOperation.Decrypt(
-		decryptorGenerator(permanentKey, nil),
+		DecryptorFunctor(map[string][]byte{"KEY_ID": permanentKey}, true),
 	)
 	if err != nil {
 		t.Errorf("Permanent decryption should not fail with invalid base64 issuer signature. err=%v", err)
@@ -518,7 +499,7 @@ func TestPermanentInvalidIssuerSignature(t *testing.T) {
 	)
 
 	payload, err = encryptedOperation.Decrypt(
-		decryptorGenerator(permanentKey, nil),
+		DecryptorFunctor(map[string][]byte{"KEY_ID": permanentKey}, true),
 	)
 	if err != nil {
 		t.Errorf("Permanent decryption should not fail with invalid issuer signature.")
@@ -551,7 +532,7 @@ func TestPermanentInvalidCertifierSignature(t *testing.T) {
 	)
 
 	payload, err := encryptedOperation.Decrypt(
-		decryptorGenerator(permanentKey, nil),
+		DecryptorFunctor(map[string][]byte{"KEY_ID": permanentKey}, true),
 	)
 	if err != nil {
 		t.Errorf("Permanent decryption should not fail with invalid base64 certifier signature. err=%v", err)
@@ -579,7 +560,7 @@ func TestPermanentInvalidCertifierSignature(t *testing.T) {
 	)
 
 	payload, err = encryptedOperation.Decrypt(
-		decryptorGenerator(permanentKey, nil),
+		DecryptorFunctor(map[string][]byte{"KEY_ID": permanentKey}, true),
 	)
 	if err != nil {
 		t.Errorf("Permanent decryption should  notfail with invalid certifier signature.")
