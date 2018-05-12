@@ -82,23 +82,23 @@ func encrypt(key []byte, payload []byte, nonce []byte) []byte {
 */
 
 const (
-	keyId1             string = "KEY_1"
-	keyId2             string = "KEY_2"
-	invalidKey       string = "INVALID"
-	invalidKeyId       string = ""
+	keyId1       string = "KEY_1"
+	keyId2       string = "KEY_2"
+	invalidKey   string = "INVALID"
+	invalidKeyId string = ""
 )
 
 func getKeysCollection() map[string][]byte {
 	return map[string][]byte{
-		keyId1: generateRandomBytes(core.SymmetricKeySize),
-		keyId2: generateRandomBytes(core.SymmetricKeySize),
-		invalidKey: generateRandomBytes(1+core.SymmetricKeySize),
+		keyId1:       generateRandomBytes(core.SymmetricKeySize),
+		keyId2:       generateRandomBytes(core.SymmetricKeySize),
+		invalidKey:   generateRandomBytes(1 + core.SymmetricKeySize),
 		invalidKeyId: generateRandomBytes(core.SymmetricKeySize),
 	}
 }
 
 func getPlainNonceCipher(key []byte) ([]byte, []byte, []byte) {
-	plain := generateRandomBytes(5*core.SymmetricKeySize)
+	plain := generateRandomBytes(5 * core.SymmetricKeySize)
 	nonce := validNonce()
 	return plain, nonce, encrypt(key, plain, nonce)
 }
@@ -108,5 +108,5 @@ func validNonce() []byte {
 }
 
 func invalidNonce() []byte {
-	return generateRandomBytes(1+core.SymmetricNonceSize)
+	return generateRandomBytes(1 + core.SymmetricNonceSize)
 }

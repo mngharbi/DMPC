@@ -1,8 +1,8 @@
 package keys
 
 import (
-	"testing"
 	"reflect"
+	"testing"
 )
 
 /*

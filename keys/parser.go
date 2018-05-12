@@ -8,15 +8,17 @@ import (
 	Key request structure
 */
 type keyRequestType int
+
 const (
 	AddKeyRequest keyRequestType = iota
 	DecryptRequest
 )
+
 type keyRequest struct {
-	Type  keyRequestType
-	KeyId string
+	Type    keyRequestType
+	KeyId   string
 	Payload []byte
-	Nonce []byte
+	Nonce   []byte
 }
 
 /*
@@ -24,7 +26,7 @@ type keyRequest struct {
 */
 func (req *keyRequest) makeRecord() *keyRecord {
 	return &keyRecord{
-		Id: req.KeyId,
+		Id:  req.KeyId,
 		Key: req.Payload,
 	}
 }
@@ -60,11 +62,13 @@ func (req *keyRequest) validate() bool {
 	Key response structure
 */
 type keyResponseCode int
+
 const (
 	Success keyResponseCode = iota
 	DecryptionFailure
 )
+
 type keyResponse struct {
-	Result keyResponseCode
+	Result    keyResponseCode
 	Decrypted []byte
 }

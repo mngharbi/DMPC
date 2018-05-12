@@ -1,10 +1,10 @@
 package keys
 
 import (
+	"errors"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/gofarm"
 	"github.com/mngharbi/memstore"
-	"errors"
 )
 
 /*
@@ -12,8 +12,8 @@ import (
 */
 var (
 	invalidRequestFormatError error = errors.New("Invalid request format.")
-	addingKeyFailedError error = errors.New("Failed to add key.")
-	decryptionFailedError error = errors.New("Failed to decrypt ciphertext.")
+	addingKeyFailedError      error = errors.New("Failed to add key.")
+	decryptionFailedError     error = errors.New("Failed to decrypt ciphertext.")
 )
 
 /*
@@ -39,7 +39,7 @@ type server struct {
 
 var (
 	serverSingleton server
-	serverHandler *gofarm.ServerHandler
+	serverHandler   *gofarm.ServerHandler
 )
 
 /*
@@ -94,8 +94,8 @@ func ShutdownServer() {
 
 func AddKey(keyId string, key []byte) error {
 	nativeResponseChannel, err := makeGenericRequest(&keyRequest{
-		Type: AddKeyRequest,
-		KeyId: keyId,
+		Type:    AddKeyRequest,
+		KeyId:   keyId,
 		Payload: key,
 	})
 	if err != nil {
@@ -113,10 +113,10 @@ func AddKey(keyId string, key []byte) error {
 
 func Decrypt(keyId string, nonce []byte, ciphertext []byte) ([]byte, error) {
 	nativeResponseChannel, err := makeGenericRequest(&keyRequest{
-		Type: DecryptRequest,
-		KeyId: keyId,
+		Type:    DecryptRequest,
+		KeyId:   keyId,
 		Payload: ciphertext,
-		Nonce: nonce,
+		Nonce:   nonce,
 	})
 	if err != nil {
 		return nil, err
@@ -201,8 +201,8 @@ func failRequest(responseCode keyResponseCode) *gofarm.Response {
 func successRequest(decrypted []byte) *gofarm.Response {
 	log.Debugf(successRequestLogMsg)
 	userRespPtr := &keyResponse{
-		Result: Success,
-		Decrypted:   decrypted,
+		Result:    Success,
+		Decrypted: decrypted,
 	}
 	var nativeResp gofarm.Response = userRespPtr
 	return &nativeResp
