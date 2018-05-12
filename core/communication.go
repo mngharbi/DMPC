@@ -19,11 +19,6 @@ type ShutdownLambda func()
 type UsersSignKeyRequester func([]string) ([]*rsa.PublicKey, error)
 
 /*
-	Function to get a symmetric key given its id
-*/
-type KeyRequester func(string) []byte
-
-/*
 	Function to add key to keys subsystem
 */
 type KeyAdder func(keyId string, key []byte) error
