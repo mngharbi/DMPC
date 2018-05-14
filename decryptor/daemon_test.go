@@ -58,7 +58,7 @@ func TestValidNonEncrypted(t *testing.T) {
 
 	// Make request and get ticket number
 	transactionEncoded, _ := transaction.Encode()
-	decryptorResp, ok := makeTransactionRequestAndGetResult(t, transactionEncoded)
+	decryptorResp, ok := makeTransactionRequestAndGetResult(t, transactionEncoded, true)
 	if !ok {
 		return
 	}
@@ -121,7 +121,7 @@ func TestValidTransactionEncryptedOnly(t *testing.T) {
 
 	// Make request and get ticket number
 	transactionEncoded, _ := transaction.Encode()
-	decryptorResp, ok := makeTransactionRequestAndGetResult(t, transactionEncoded)
+	decryptorResp, ok := makeTransactionRequestAndGetResult(t, transactionEncoded, true)
 	if !ok {
 		return
 	}
@@ -186,7 +186,7 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 
 	// Make request and get ticket number
 	transactionEncoded, _ := transaction.Encode()
-	decryptorResp, ok := makeTransactionRequestAndGetResult(t, transactionEncoded)
+	decryptorResp, ok := makeTransactionRequestAndGetResult(t, transactionEncoded, true)
 	if !ok {
 		return
 	}
@@ -238,7 +238,7 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 	}
 
 	// Make request and get ticket number
-	decryptorResp, ok := makeTransactionRequestAndGetResult(t, transactionEncoded)
+	decryptorResp, ok := makeTransactionRequestAndGetResult(t, transactionEncoded, true)
 	if !ok {
 		return
 	}
@@ -253,6 +253,61 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 		isVerified:  true,
 		requestType: core.UsersRequestType,
 		signers:     generateGenericSigners(),
+		payload:     payload,
+	}
+	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
+		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)
+		return
+	}
+
+	ShutdownServer()
+}
+
+/*
+	Encrypted at both levels, no signatures, no verification
+*/
+func TestValidTemporaryPermanentEncryptedUnverified(t *testing.T) {
+	reg, executorRequester := createDummyExecutorRequesterFunctor()
+	keyCollection := getKeysCollection()
+
+	// Create encrypted payload
+	payload := []byte("PAYLOAD")
+	globalKey := core.GeneratePrivateKey()
+	transactionEncoded, issuerKey, certifierKey := generateValidEncryptedOperation(
+		keyId1,
+		keyCollection[keyId1],
+		payload,
+		genericIssuerId,
+		genericCertifierId,
+		globalKey,
+	)
+
+	signKeyCollection := map[string]*rsa.PrivateKey{
+		genericIssuerId:    issuerKey,
+		genericCertifierId: certifierKey,
+	}
+
+	// Start server
+	if !resetAndStartServer(t, singleWorkerConfig(), globalKey, createDummyUsersSignKeyRequesterFunctor(signKeyCollection, true), core.DecryptorFunctor(keyCollection, true), executorRequester) {
+		return
+	}
+
+	// Make request and get ticket number
+	decryptorResp, ok := makeTransactionRequestAndGetResult(t, transactionEncoded, false)
+	if !ok {
+		return
+	}
+	if decryptorResp.Result != Success {
+		t.Errorf("Making request failed. decryptorResp=%+v", decryptorResp)
+		return
+	}
+
+	// Check entry with the ticket number
+	executorEntry := reg.getEntry(decryptorResp.Ticket)
+	executorEntryExpected := dummyExecutorEntry{
+		isVerified:  false,
+		requestType: core.UsersRequestType,
+		signers:     nil,
 		payload:     payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
@@ -420,7 +475,7 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		genericCertifierId,
 		differentKey,
 	)
-	decryptorResp, ok := makeTransactionRequestAndGetResult(t, transactionEncodedWrongKey)
+	decryptorResp, ok := makeTransactionRequestAndGetResult(t, transactionEncodedWrongKey, true)
 	if !ok {
 		return
 	}
@@ -437,7 +492,7 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		globalKey,
 	)
 	transactionNoPayloadEncoded, _ := transactionNoPayload.Encode()
-	decryptorResp, ok = makeTransactionRequestAndGetResult(t, transactionNoPayloadEncoded)
+	decryptorResp, ok = makeTransactionRequestAndGetResult(t, transactionNoPayloadEncoded, true)
 	if !ok {
 		return
 	}
@@ -455,7 +510,7 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		genericCertifierId,
 		globalKey,
 	)
-	decryptorResp, ok = makeTransactionRequestAndGetResult(t, transactionEncodedNoSignKey)
+	decryptorResp, ok = makeTransactionRequestAndGetResult(t, transactionEncodedNoSignKey, true)
 	if !ok {
 		return
 	}
@@ -473,7 +528,7 @@ func TestInvalidOperationEncoding(t *testing.T) {
 		genericCertifierId,
 		globalKey,
 	)
-	decryptorResp, ok = makeTransactionRequestAndGetResult(t, transactionEncodedWrongPermanentKey)
+	decryptorResp, ok = makeTransactionRequestAndGetResult(t, transactionEncodedWrongPermanentKey, true)
 	if !ok {
 		return
 	}

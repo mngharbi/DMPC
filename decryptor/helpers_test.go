@@ -40,8 +40,9 @@ func resetAndStartServer(
 func makeTransactionRequestAndGetResult(
 	t *testing.T,
 	requestBytes []byte,
+	isVerified bool,
 ) (*DecryptorResponse, bool) {
-	channel, errs := MakeEncodedTransactionRequest(requestBytes)
+	channel, errs := makeEncodedTransactionRequest(requestBytes, !isVerified)
 	if len(errs) != 0 {
 		t.Errorf("Decryptor should pass along request.")
 		return nil, false

@@ -216,7 +216,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 
 	// Verify signatures if not skipping verification
 	var signers *core.VerifiedSigners
-	var verificationSuccess bool
+	var verificationSuccess bool = true
 	if decryptorWrapped.isVerified && decryptionSuccess {
 		verificationSuccess = verifyPayload(operation, plaintextBytes, sv.usersSignKeyRequester)
 
