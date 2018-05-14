@@ -140,12 +140,6 @@ func createDummyUsersSignKeyRequesterFunctor(collection map[string]*rsa.PrivateK
 	}
 }
 
-func createDummyKeyRequesterFunctor(collection map[string][]byte) core.KeyRequester {
-	return func(keyId string) []byte {
-		return collection[keyId]
-	}
-}
-
 type dummyExecutorEntry struct {
 	isVerified      bool
 	requestType     core.RequestType
