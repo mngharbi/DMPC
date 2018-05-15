@@ -211,7 +211,7 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 	}
 
 	/*
-		Verify certifier permisisons
+		Verify certifier permissions
 	*/
 	if !rq.skipPermissions {
 		certifier := userRecords[certifierIndex]

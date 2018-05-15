@@ -53,7 +53,7 @@ func (a LockNeed) Less(b LockNeed) bool {
 
 func sanitizeLockNeeds(lockNeeds []LockNeed) []LockNeed {
 	/*
-		Remove duplicates and keep higher privelege lock
+		Remove duplicates and keep higher privilege lock
 		0 (default): no locks
 		1: read lock
 		2: write lock

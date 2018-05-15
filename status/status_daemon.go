@@ -112,7 +112,7 @@ func doStatusUpdate(currentRecord *StatusRecord, changedRecord *StatusRecord) {
 	}
 	listenersRecord := listenersRecordItem.(*listenersRecord)
 
-	// Send update to all listners
+	// Send update to all listeners
 	for _, updateChannel := range listenersRecord.channels {
 		updateChannel <- currentRecord
 	}

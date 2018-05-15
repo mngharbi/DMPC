@@ -246,7 +246,7 @@ func TestInavlidTransactionChallenges(t *testing.T) {
 	)
 	_, err = transaction.Decrypt(privateKey)
 	if err != noSymmetricKeyFoundError {
-		t.Errorf("Transaction decryption should fail with invalid challege encoding. err=%v", err)
+		t.Errorf("Transaction decryption should fail with invalid challenge encoding. err=%v", err)
 		return
 	}
 
@@ -368,7 +368,7 @@ func TestPermanentInvalidPayload(t *testing.T) {
 		DecryptorFunctor(map[string][]byte{"KEY_ID": generateRandomBytes(SymmetricKeySize)}, true),
 	)
 	if err != payloadDecodeError {
-		t.Errorf("Permanent decryption should fail with invalid base64 payload.")
+		t.Error("Permanent decryption should fail with invalid base64 payload.")
 		return
 	}
 }

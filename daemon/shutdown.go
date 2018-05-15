@@ -15,7 +15,7 @@ import (
 	Termination messages
 */
 var terminationCauseMessageMapping map[TerminationCause]string = map[TerminationCause]string{
-	FatalError:       "Fatal runtime error occured",
+	FatalError:       "Fatal runtime error occurred",
 	UserInterrupted:  "Detected user interruption",
 	SystemTerminated: "Detected system termination",
 }
