@@ -1,12 +1,13 @@
 package daemon
 
 import (
-	"github.com/mngharbi/DMPC/startup"
+	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
 	"github.com/mngharbi/DMPC/keys"
 	"github.com/mngharbi/DMPC/pipeline"
+	"github.com/mngharbi/DMPC/startup"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 )
@@ -16,6 +17,11 @@ func startDaemons(conf *startup.Config, shutdownLambda core.ShutdownLambda) {
 	log.Debugf(startingUsersSubsystemLogMsg)
 	usersSubsystemConfig := conf.GetUsersSubsystemConfig()
 	users.StartServer(usersSubsystemConfig, log, shutdownLambda)
+
+	// Start channels subsystem
+	log.Debugf(startingChannelsSubsystemLogMsg)
+	channelsMainSubsystemConfig, channelsMessagesSubsystemConfig, channelsListenersSubsystemConfig := conf.GetChannelsSubsystemConfig()
+	channels.StartServers(channelsMainSubsystemConfig, channelsMessagesSubsystemConfig, channelsListenersSubsystemConfig, log, shutdownLambda)
 
 	// Start status systems (status update and listeners servers)
 	log.Debugf(startingStatusSubsystemLogMsg)
@@ -75,6 +81,9 @@ func shutdownDaemons() {
 
 	log.Debugf(shutdownUsersSubsystemLogMsg)
 	users.ShutdownServer()
+
+	log.Debugf(shutdownChannelsSubsystemLogMsg)
+	channels.ShutdownServers()
 
 	log.Debugf(shutdownExecutorSubsystemLogMsg)
 	executor.ShutdownServer()

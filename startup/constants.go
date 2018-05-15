@@ -46,6 +46,17 @@ var defaultDaemonConfig Config = Config{
 	Users: NumWorkersOnlyConfig{
 		NumWorkers: 4,
 	},
+	Channels: ChannelsSubsystemConfig{
+		Channels: NumWorkersOnlyConfig{
+			NumWorkers: 2,
+		},
+		Messages: NumWorkersOnlyConfig{
+			NumWorkers: 4,
+		},
+		Listeners: NumWorkersOnlyConfig{
+			NumWorkers: 2,
+		},
+	},
 	Status: StatusSubsystemConfig{
 		Update: NumWorkersOnlyConfig{
 			NumWorkers: 2,

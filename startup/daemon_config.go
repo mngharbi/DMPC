@@ -6,6 +6,7 @@ package startup
 
 import (
 	"encoding/json"
+	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
@@ -41,6 +42,9 @@ type Config struct {
 
 	// Configuration for users subsystem
 	Users NumWorkersOnlyConfig `json:"users"`
+
+	// Configuration for channels subsystem
+	Channels ChannelsSubsystemConfig `json:"channels"`
 
 	// Configuration for users subsystem
 	Status StatusSubsystemConfig `json:"status"`
@@ -102,6 +106,22 @@ func (conf *Config) GetUsersSubsystemConfig() users.Config {
 	return users.Config{
 		NumWorkers: conf.Users.NumWorkers,
 	}
+}
+
+type ChannelsSubsystemConfig struct {
+	Channels  NumWorkersOnlyConfig `json:"channels"`
+	Messages  NumWorkersOnlyConfig `json:"messages"`
+	Listeners NumWorkersOnlyConfig `json:"listeners"`
+}
+
+func (conf *Config) GetChannelsSubsystemConfig() (channels.ChannelsServerConfig, channels.MessagesServerConfig, channels.ListenersServerConfig) {
+	return channels.ChannelsServerConfig{
+			NumWorkers: conf.Channels.Channels.NumWorkers,
+		}, channels.MessagesServerConfig{
+			NumWorkers: conf.Channels.Messages.NumWorkers,
+		}, channels.ListenersServerConfig{
+			NumWorkers: conf.Channels.Listeners.NumWorkers,
+		}
 }
 
 type StatusSubsystemConfig struct {

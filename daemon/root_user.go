@@ -5,10 +5,10 @@ package daemon
 */
 
 import (
-	"github.com/mngharbi/DMPC/startup"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
+	"github.com/mngharbi/DMPC/startup"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 	"time"

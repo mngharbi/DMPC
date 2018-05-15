@@ -5,8 +5,8 @@ package daemon
 */
 
 import (
-	"github.com/mngharbi/DMPC/startup"
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/startup"
 )
 
 /*

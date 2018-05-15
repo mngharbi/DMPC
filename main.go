@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/mngharbi/DMPC/startup"
 	"github.com/mngharbi/DMPC/daemon"
+	"github.com/mngharbi/DMPC/startup"
 	"github.com/urfave/cli"
 	"log"
 	"os"
