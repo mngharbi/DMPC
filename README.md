@@ -1,4 +1,4 @@
-# Distributed Multiuser Private Channels [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) ![Travis CI Build Status](https://api.travis-ci.org/mngharbi/DMPC.svg?branch=master)
+# Distributed Multiuser Private Channels [![Go Report Card](https://goreportcard.com/badge/gojp/goreportcard)](https://goreportcard.com/report/mngharbi/DMPC) ![Travis CI Build Status](https://api.travis-ci.org/mngharbi/DMPC.svg?branch=master) [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0) 
 
 ## Overview
 DMPC enables end-to-end encrypted, authenticated, channel based communication. It can be thought of as an extension to TCP. Users are identified by their public keys fingerprints. Authentication is based on a web of trust approach. Channels have multiple users as opposed to bi-directional sockets. It's aware of user permissions both at the global level *(e.g. whether you trust a user to introduce other users to you)* and at the channel level *(e.g. whether a participating user can close the channel)*.
