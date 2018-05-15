@@ -2,7 +2,7 @@
 	Common utilities for file I/O
 */
 
-package config
+package startup
 
 import (
 	"io/ioutil"

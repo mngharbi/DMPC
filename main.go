@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/mngharbi/DMPC/config"
+	"github.com/mngharbi/DMPC/startup"
 	"github.com/mngharbi/DMPC/daemon"
 	"github.com/urfave/cli"
 	"log"
@@ -31,7 +31,7 @@ func main() {
 			Aliases: []string{"i"},
 			Usage:   "Configure DMPC",
 			Action: func(c *cli.Context) error {
-				config.Install()
+				startup.Install()
 				return nil
 			},
 		},

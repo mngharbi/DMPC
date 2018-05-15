@@ -5,7 +5,7 @@ package daemon
 */
 
 import (
-	"github.com/mngharbi/DMPC/config"
+	"github.com/mngharbi/DMPC/startup"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
@@ -27,7 +27,7 @@ const (
 /*
    Utilities
 */
-func buildRootUserOperation(conf *config.Config) *core.Transaction {
+func buildRootUserOperation(conf *startup.Config) *core.Transaction {
 	// Get root user object from confuration
 	log.Debugf("Parsing root user object from confuration")
 	rootUserObject := conf.GetRootUserObject()

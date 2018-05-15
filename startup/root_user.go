@@ -1,4 +1,4 @@
-package config
+package startup
 
 /*
 	Utilities for getting the root user from conf

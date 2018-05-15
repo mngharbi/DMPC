@@ -1,7 +1,7 @@
 package daemon
 
 import (
-	"github.com/mngharbi/DMPC/config"
+	"github.com/mngharbi/DMPC/startup"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
@@ -11,7 +11,7 @@ import (
 	"github.com/mngharbi/DMPC/users"
 )
 
-func startDaemons(conf *config.Config, shutdownLambda core.ShutdownLambda) {
+func startDaemons(conf *startup.Config, shutdownLambda core.ShutdownLambda) {
 	// Start users subsystem
 	log.Debugf(startingUsersSubsystemLogMsg)
 	usersSubsystemConfig := conf.GetUsersSubsystemConfig()

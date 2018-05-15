@@ -2,7 +2,7 @@
 	Interaction with user through CLI
 */
 
-package config
+package startup
 
 import (
 	"bufio"

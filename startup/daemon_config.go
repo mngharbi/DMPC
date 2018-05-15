@@ -1,4 +1,4 @@
-package config
+package startup
 
 /*
 	Utilities/Definitions for conf
