@@ -45,9 +45,9 @@ func TestNoLock(t *testing.T) {
 func TestAllWriteLock(t *testing.T) {
 	var locked []LockNeed
 	expectedLocked := []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{true, "2"},
-		LockNeed{true, "3"},
+		{true, "1"},
+		{true, "2"},
+		{true, "3"},
 	}
 
 	unlocked := []LockNeed{}
@@ -65,9 +65,9 @@ func TestAllWriteLock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{true, "2"},
-		LockNeed{true, "3"},
+		{true, "1"},
+		{true, "2"},
+		{true, "3"},
 	})
 
 	if lockDuplication {
@@ -90,9 +90,9 @@ func TestAllWriteLock(t *testing.T) {
 func TestAllReadLock(t *testing.T) {
 	locked := []LockNeed{}
 	expectedLocked := []LockNeed{
-		LockNeed{false, "1"},
-		LockNeed{false, "2"},
-		LockNeed{false, "3"},
+		{false, "1"},
+		{false, "2"},
+		{false, "3"},
 	}
 
 	unlocked := []LockNeed{}
@@ -110,9 +110,9 @@ func TestAllReadLock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		LockNeed{false, "1"},
-		LockNeed{false, "2"},
-		LockNeed{false, "3"},
+		{false, "1"},
+		{false, "2"},
+		{false, "3"},
 	})
 
 	if lockDuplication {
@@ -131,8 +131,8 @@ func TestAllReadLock(t *testing.T) {
 func TestDuplicateWriteLock(t *testing.T) {
 	locked := []LockNeed{}
 	expectedLocked := []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{true, "2"},
+		{true, "1"},
+		{true, "2"},
 	}
 
 	unlocked := []LockNeed{}
@@ -149,9 +149,9 @@ func TestDuplicateWriteLock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{true, "2"},
-		LockNeed{true, "2"},
+		{true, "1"},
+		{true, "2"},
+		{true, "2"},
 	})
 
 	if lockDuplication {
@@ -170,8 +170,8 @@ func TestDuplicateWriteLock(t *testing.T) {
 func TestDuplicateReadLock(t *testing.T) {
 	locked := []LockNeed{}
 	expectedLocked := []LockNeed{
-		LockNeed{false, "1"},
-		LockNeed{false, "2"},
+		{false, "1"},
+		{false, "2"},
 	}
 
 	unlocked := []LockNeed{}
@@ -188,9 +188,9 @@ func TestDuplicateReadLock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		LockNeed{false, "1"},
-		LockNeed{false, "2"},
-		LockNeed{false, "2"},
+		{false, "1"},
+		{false, "2"},
+		{false, "2"},
 	})
 
 	if lockDuplication {
@@ -209,8 +209,8 @@ func TestDuplicateReadLock(t *testing.T) {
 func TestOverwritingReadLock(t *testing.T) {
 	locked := []LockNeed{}
 	expectedLocked := []LockNeed{
-		LockNeed{false, "2"},
-		LockNeed{true, "1"},
+		{false, "2"},
+		{true, "1"},
 	}
 
 	unlocked := []LockNeed{}
@@ -227,9 +227,9 @@ func TestOverwritingReadLock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		LockNeed{false, "1"},
-		LockNeed{true, "1"},
-		LockNeed{false, "2"},
+		{false, "1"},
+		{true, "1"},
+		{false, "2"},
 	})
 
 	if lockDuplication {
@@ -248,8 +248,8 @@ func TestOverwritingReadLock(t *testing.T) {
 func TestOverwritingReadAfterWriteLock(t *testing.T) {
 	locked := []LockNeed{}
 	expectedLocked := []LockNeed{
-		LockNeed{false, "2"},
-		LockNeed{true, "1"},
+		{false, "2"},
+		{true, "1"},
 	}
 
 	unlocked := []LockNeed{}
@@ -266,9 +266,9 @@ func TestOverwritingReadAfterWriteLock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{false, "1"},
-		LockNeed{false, "2"},
+		{true, "1"},
+		{false, "1"},
+		{false, "2"},
 	})
 
 	if lockDuplication {
@@ -291,14 +291,14 @@ func TestOverwritingReadAfterWriteLock(t *testing.T) {
 func RollbackFailedWriteLock(t *testing.T) {
 	locked := []LockNeed{}
 	expectedLocked := []LockNeed{
-		LockNeed{false, "2"},
-		LockNeed{true, "1"},
+		{false, "2"},
+		{true, "1"},
 	}
 
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{false, "2"},
+		{true, "1"},
+		{false, "2"},
 	}
 
 	initialMap := map[string]LockType{}
@@ -309,8 +309,8 @@ func RollbackFailedWriteLock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{false, "2"},
+		{true, "1"},
+		{false, "2"},
 	})
 
 	if lockDuplication {
@@ -329,14 +329,14 @@ func RollbackFailedWriteLock(t *testing.T) {
 func RollbackDuplicateFailedWriteLock(t *testing.T) {
 	locked := []LockNeed{}
 	expectedLocked := []LockNeed{
-		LockNeed{false, "2"},
-		LockNeed{true, "1"},
+		{false, "2"},
+		{true, "1"},
 	}
 
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{false, "2"},
+		{true, "1"},
+		{false, "2"},
 	}
 
 	initialMap := map[string]LockType{}
@@ -347,9 +347,9 @@ func RollbackDuplicateFailedWriteLock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{false, "1"},
-		LockNeed{false, "2"},
+		{true, "1"},
+		{false, "1"},
+		{false, "2"},
 	})
 
 	if lockDuplication {
@@ -393,9 +393,9 @@ func TestNoUnlock(t *testing.T) {
 func TestAllWriteUnlock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{
-		LockNeed{true, "3"},
-		LockNeed{true, "2"},
-		LockNeed{true, "1"},
+		{true, "3"},
+		{true, "2"},
+		{true, "1"},
 	}
 
 	initialMap := map[string]LockType{
@@ -409,9 +409,9 @@ func TestAllWriteUnlock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Unlock(doUnlockFail, []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{true, "2"},
-		LockNeed{true, "3"},
+		{true, "1"},
+		{true, "2"},
+		{true, "3"},
 	})
 
 	if unlockDuplication {
@@ -426,9 +426,9 @@ func TestAllWriteUnlock(t *testing.T) {
 func TestAllReadUnlock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{
-		LockNeed{false, "3"},
-		LockNeed{false, "2"},
-		LockNeed{false, "1"},
+		{false, "3"},
+		{false, "2"},
+		{false, "1"},
 	}
 
 	initialMap := map[string]LockType{
@@ -442,9 +442,9 @@ func TestAllReadUnlock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Unlock(doUnlockFail, []LockNeed{
-		LockNeed{false, "1"},
-		LockNeed{false, "2"},
-		LockNeed{false, "3"},
+		{false, "1"},
+		{false, "2"},
+		{false, "3"},
 	})
 
 	if unlockDuplication {
@@ -459,8 +459,8 @@ func TestAllReadUnlock(t *testing.T) {
 func TestDuplicateWriteUnlock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{
-		LockNeed{true, "2"},
-		LockNeed{true, "1"},
+		{true, "2"},
+		{true, "1"},
 	}
 
 	initialMap := map[string]LockType{
@@ -473,9 +473,9 @@ func TestDuplicateWriteUnlock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Unlock(doUnlockFail, []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{true, "2"},
-		LockNeed{true, "2"},
+		{true, "1"},
+		{true, "2"},
+		{true, "2"},
 	})
 
 	if unlockDuplication {
@@ -490,8 +490,8 @@ func TestDuplicateWriteUnlock(t *testing.T) {
 func TestDuplicateReadUnlock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{
-		LockNeed{false, "2"},
-		LockNeed{false, "1"},
+		{false, "2"},
+		{false, "1"},
 	}
 
 	initialMap := map[string]LockType{
@@ -504,9 +504,9 @@ func TestDuplicateReadUnlock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Unlock(doUnlockFail, []LockNeed{
-		LockNeed{false, "1"},
-		LockNeed{false, "2"},
-		LockNeed{false, "2"},
+		{false, "1"},
+		{false, "2"},
+		{false, "2"},
 	})
 
 	if unlockDuplication {
@@ -521,8 +521,8 @@ func TestDuplicateReadUnlock(t *testing.T) {
 func TestOverwritingReadUnlock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{false, "2"},
+		{true, "1"},
+		{false, "2"},
 	}
 
 	initialMap := map[string]LockType{
@@ -535,9 +535,9 @@ func TestOverwritingReadUnlock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Unlock(doUnlockFail, []LockNeed{
-		LockNeed{false, "1"},
-		LockNeed{true, "1"},
-		LockNeed{false, "2"},
+		{false, "1"},
+		{true, "1"},
+		{false, "2"},
 	})
 
 	if unlockDuplication {
@@ -552,8 +552,8 @@ func TestOverwritingReadUnlock(t *testing.T) {
 func TestOverwritingReadAfterWriteUnlock(t *testing.T) {
 	unlocked := []LockNeed{}
 	expectedUnlocked := []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{false, "2"},
+		{true, "1"},
+		{false, "2"},
 	}
 
 	initialMap := map[string]LockType{
@@ -566,9 +566,9 @@ func TestOverwritingReadAfterWriteUnlock(t *testing.T) {
 	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
 
 	Unlock(doUnlockFail, []LockNeed{
-		LockNeed{true, "1"},
-		LockNeed{false, "1"},
-		LockNeed{false, "2"},
+		{true, "1"},
+		{false, "1"},
+		{false, "2"},
 	})
 
 	if unlockDuplication {

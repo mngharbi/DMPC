@@ -12,7 +12,7 @@ import (
 type Conversation struct {
 	socket        *websocket.Conn
 	outgoingQueue chan status.Ticket
-	lock *sync.Mutex
+	lock          *sync.Mutex
 }
 
 func closeConnectionForInvalidData(c *Conversation) {
@@ -67,7 +67,7 @@ func NewConversation(socket *websocket.Conn) {
 	c := &Conversation{
 		socket:        socket,
 		outgoingQueue: make(chan status.Ticket),
-		lock: &sync.Mutex{},
+		lock:          &sync.Mutex{},
 	}
 
 	go c.reader()

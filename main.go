@@ -16,7 +16,7 @@ func main() {
 	app.Compiled = time.Now()
 	app.EnableBashCompletion = true
 	app.Authors = []cli.Author{
-		cli.Author{
+		{
 			Name:  "Nizar Gharbi",
 			Email: "email@mngharbi.com",
 		},

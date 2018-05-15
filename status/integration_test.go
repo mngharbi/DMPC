@@ -229,7 +229,7 @@ func TestConcurrentUpdates(t *testing.T) {
 	})()
 
 	// Make status updates concurrently
-	for updateIndex, _ := range statusUpdates {
+	for updateIndex := range statusUpdates {
 		updateCached := statusUpdates[updateIndex]
 		go (func() {
 			waitForRandomDuration()

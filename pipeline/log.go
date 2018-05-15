@@ -4,10 +4,10 @@ package pipeline
 	Logging messages
 */
 const (
-	startLogMsg string = "Starting up pipeline server"
-	shutdownLogMsg string = "Shutting down pipeline server"
+	startLogMsg               string = "Starting up pipeline server"
+	shutdownLogMsg            string = "Shutting down pipeline server"
 	connectionRequestedLogMsg string = "Got connection request to pipeline server"
-	invalidOperationLogMsg string = "Received invalid operation in pipeline server"
+	invalidOperationLogMsg    string = "Received invalid operation in pipeline server"
 )
 
 /*
@@ -15,7 +15,7 @@ const (
 */
 const (
 	startListeningInfoMsg string = "Pipeline server started listening on port %v"
-	shutdownInfoMsg string = "Server was shutdown"
+	shutdownInfoMsg       string = "Server was shutdown"
 )
 
 /*

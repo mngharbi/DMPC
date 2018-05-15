@@ -159,8 +159,8 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 	// Add need for read locks for issuer and certifier
 	if !rq.skipPermissions {
 		lockNeeds = []core.LockNeed{
-			core.LockNeed{false, rq.signers.IssuerId},
-			core.LockNeed{false, rq.signers.CertifierId},
+			{false, rq.signers.IssuerId},
+			{false, rq.signers.CertifierId},
 		}
 	}
 
