@@ -5,6 +5,7 @@
 package channels
 
 import (
+	"github.com/mngharbi/memstore"
 	"sync"
 	"testing"
 )
@@ -85,6 +86,14 @@ func multipleWorkersListenersConfig() ListenersServerConfig {
 	return ListenersServerConfig{
 		NumWorkers: 6,
 	}
+}
+
+func getListenersRecordById(mem *memstore.Memstore, id string) *listenersRecord {
+	item := mem.Get(makeSearchListenersRecord(id), listenersIndexId)
+	if item != nil {
+		return item.(*listenersRecord)
+	}
+	return nil
 }
 
 /*

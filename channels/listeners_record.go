@@ -61,6 +61,13 @@ func getListenersIndexes() (res []string) {
 /*
 	Utilities
 */
+
+func makeSearchListenersRecord(id string) *listenersRecord {
+	return &listenersRecord{
+		id: id,
+	}
+}
+
 func makeEmptyListenersRecord(id string) *listenersRecord {
 	return &listenersRecord{
 		id:       id,
