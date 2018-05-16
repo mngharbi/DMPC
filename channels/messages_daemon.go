@@ -54,6 +54,43 @@ func shutdownMessagesServer() {
 	Functional API
 */
 
+func genericPassthroughRequest(request interface{}) (chan *MessagesResponse, error) {
+	// Make request to server
+	nativeResponseChannel, err := messagesServerHandler.MakeRequest(request)
+	if err != nil {
+		return nil, err
+	}
+
+	// Pass through result
+	responseChannel := make(chan *MessagesResponse)
+	go func() {
+		nativeResponse := <-nativeResponseChannel
+		responseChannel <- (*nativeResponse).(*MessagesResponse)
+	}()
+
+	return responseChannel, nil
+}
+
+func AddMessage(request *AddMessageRequest) (chan *MessagesResponse, error) {
+	// Sanitize and validate request
+	err := request.sanitizeAndValidate()
+	if err != nil {
+		return nil, err
+	}
+
+	return genericPassthroughRequest(request)
+}
+
+func BufferOperation(request *BufferOperationRequest) (chan *MessagesResponse, error) {
+	// Sanitize and validate request
+	err := request.sanitizeAndValidate()
+	if err != nil {
+		return nil, err
+	}
+
+	return genericPassthroughRequest(request)
+}
+
 /*
 	Server implementation
 */
@@ -72,10 +109,15 @@ func (sv *messagesServer) Shutdown() error {
 	return nil
 }
 
-func (sv *messagesServer) Work(rq *gofarm.Request) (dummyReturnVal *gofarm.Response) {
+func (sv *messagesServer) Work(rq *gofarm.Request) *gofarm.Response {
 	log.Debugf(messagesRunningRequestLogMsg)
 
-	dummyReturnVal = nil
+	// Handle different requests
+	switch (*rq).(type) {
+	case AddMessageRequest:
+	case BufferOperationRequest:
+	}
 
-	return
+	var resp gofarm.Response = &MessagesResponse{}
+	return &resp
 }

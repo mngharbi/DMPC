@@ -4,10 +4,6 @@ import (
 	"testing"
 )
 
-const (
-	genericChannelId string = "channelId"
-)
-
 func TestListenersStartShutdown(t *testing.T) {
 	if !resetAndStartListenersServer(t, multipleWorkersListenersConfig()) {
 		return

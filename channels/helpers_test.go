@@ -5,10 +5,34 @@
 package channels
 
 import (
+	"crypto/rand"
+	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/memstore"
 	"sync"
 	"testing"
+	"time"
 )
+
+/*
+	Shared Constants and variables
+*/
+
+const (
+	genericChannelId   string = "channelId"
+	genericKeyId       string = "keyId"
+	genericIssuerId    string = "IssuerId"
+	genericCertifierId string = "CertifierId"
+)
+
+/*
+	Generic utilities
+*/
+
+func generateRandomBytes(nbBytes int) (bytes []byte) {
+	bytes = make([]byte, nbBytes)
+	rand.Read(bytes)
+	return
+}
 
 /*
 	Channels server utilities
@@ -59,6 +83,38 @@ func resetAndStartMessagesServer(t *testing.T, conf MessagesServerConfig) bool {
 func multipleWorkersMessagesConfig() MessagesServerConfig {
 	return MessagesServerConfig{
 		NumWorkers: 6,
+	}
+}
+
+func makeValidAddMessageRequest() *AddMessageRequest {
+	return &AddMessageRequest{
+		Timestamp: time.Now(),
+		Signers: &core.VerifiedSigners{
+			IssuerId:    genericIssuerId,
+			CertifierId: genericCertifierId,
+		},
+		ChannelId: genericChannelId,
+		Message:   generateRandomBytes(100),
+	}
+}
+
+func makeValidBufferOperationRequest() *BufferOperationRequest {
+	return &BufferOperationRequest{
+		Operation: core.GenerateOperation(
+			true,
+			genericKeyId,
+			nil,
+			true,
+			genericIssuerId,
+			nil,
+			true,
+			genericCertifierId,
+			nil,
+			true,
+			core.AddMessageType,
+			generateRandomBytes(100),
+			false,
+		),
 	}
 }
 
