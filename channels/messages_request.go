@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"errors"
 	"github.com/mngharbi/DMPC/core"
 	"time"
 )
@@ -32,6 +33,11 @@ type AddMessageRequest struct {
 	Validates and sanitizes request
 */
 func (rq *AddMessageRequest) sanitizeAndValidate() error {
+	valid := rq.Signers != nil &&
+		len(rq.Message) > 0
+	if !valid {
+		return errors.New("Add message request is invalid.")
+	}
 	return nil
 }
 
@@ -46,5 +52,10 @@ type BufferOperationRequest struct {
 	Validates and sanitizes request
 */
 func (rq *BufferOperationRequest) sanitizeAndValidate() error {
-	return nil
+	if rq.Operation == nil {
+		return errors.New("Buffer operation request is invalid.")
+	} else {
+		rq.Operation.Meta.Buffered = true
+		return nil
+	}
 }
