@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-func TestGetSigningKeysById(t *testing.T) {
+func makeUsers(t *testing.T) bool {
 	if !resetAndStartServer(t, multipleWorkersConfig()) {
-		return
+		return false
 	}
 
 	// Create issuer and certifier
@@ -15,7 +15,7 @@ func TestGetSigningKeysById(t *testing.T) {
 		false, true, false, false, false, false,
 		false, true, false, false, false, false,
 	) {
-		return
+		return false
 	}
 
 	// Create 3 users
@@ -25,9 +25,18 @@ func TestGetSigningKeysById(t *testing.T) {
 			t, false, "ISSUER", "CERTIFIER", "USER"+userSuffix, false, true, false, false, false, false,
 		)
 		if !success {
-			return
+			return false
 		}
 	}
+
+	return true
+}
+
+func TestGetSigningKeysById(t *testing.T) {
+	if !makeUsers(t) {
+		return
+	}
+	defer ShutdownServer()
 
 	// Make valid signing keys read
 	keys, err := GetSigningKeysById([]string{"USER_0", "USER_1", "USER_2"})
@@ -46,6 +55,4 @@ func TestGetSigningKeysById(t *testing.T) {
 	if err == nil {
 		t.Errorf("Getting signing keys without ids should fail. keys=%+v", keys)
 	}
-
-	ShutdownServer()
 }

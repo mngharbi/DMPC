@@ -24,14 +24,14 @@ func GenerateCreateRequest(userObject *UserObject, timestamp time.Time) *UserReq
 }
 
 /*
-	Gets signing keys by user ids
+	Generic function to read multiple users' attribute
 */
 const (
-	signingKeyRequestFailureErrorMsg string = "Unable to make request to retrieve signing key"
-	signingKeyNotFoundErrorMsg       string = "Unable to find signing key for keys provided"
+	genericRequestFailureErrorMsg string = "Unable to make request to retrieve user records"
+	genericUserNotFoundErrorMsg   string = "Unable to find at least one of the users"
 )
 
-func GetSigningKeysById(ids []string) ([]*rsa.PublicKey, error) {
+func getGenericUserAttributeByIds(ids []string, handleAttribute func(*UserObject)) error {
 	// Make unverified request for user
 	rq := &UserRequest{
 		Type:   ReadRequest,
@@ -40,22 +40,35 @@ func GetSigningKeysById(ids []string) ([]*rsa.PublicKey, error) {
 	rq.skipPermissions = true
 	channel, errs := makeRequest(rq)
 	if len(errs) != 0 {
-		return nil, errors.New(signingKeyRequestFailureErrorMsg)
+		return errors.New(genericRequestFailureErrorMsg)
 	}
 
 	// Wait for response
 	resp := <-channel
 	if resp == nil || resp.Result != Success {
-		return nil, errors.New(signingKeyRequestFailureErrorMsg)
+		return errors.New(genericRequestFailureErrorMsg)
 	} else if resp.Data == nil || len(resp.Data) != len(ids) {
-		return nil, errors.New(signingKeyNotFoundErrorMsg)
+		return errors.New(genericUserNotFoundErrorMsg)
 	} else {
-		var keys []*rsa.PublicKey
 		for _, userObject := range resp.Data {
-			keys = append(keys, userObject.signKeyObject)
+			handleAttribute(&userObject)
 		}
-		return keys, nil
+		return nil
 	}
+}
+
+/*
+	Gets signing keys by user ids
+*/
+func GetSigningKeysById(ids []string) ([]*rsa.PublicKey, error) {
+	var keys []*rsa.PublicKey
+	handleSingingKeyLambda := func(obj *UserObject) {
+		keys = append(keys, obj.signKeyObject)
+	}
+	if err := getGenericUserAttributeByIds(ids, handleSingingKeyLambda); err != nil {
+		return nil, err
+	}
+	return keys, nil
 }
 
 // Make a user object from a user record
