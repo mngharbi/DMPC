@@ -56,3 +56,28 @@ func TestGetSigningKeysById(t *testing.T) {
 		t.Errorf("Getting signing keys without ids should fail. keys=%+v", keys)
 	}
 }
+
+func TestGetChannelPermissionsByIds(t *testing.T) {
+	if !makeUsers(t) {
+		return
+	}
+	defer ShutdownServer()
+
+	// Make valid signing keys read
+	perms, err := GetChannelPermissionsByIds([]string{"USER_0", "USER_1", "USER_2"})
+	if err != nil || len(perms) != 3 {
+		t.Errorf("Getting channel permissions failed. err=%+v", err)
+	}
+
+	// Request one inexistent id
+	perms, err = GetChannelPermissionsByIds([]string{"USER_0", "USER_1", "USER_4"})
+	if err == nil {
+		t.Errorf("Getting inexistent channel permissions should fail. perms=%+v", perms)
+	}
+
+	// Request no ids
+	perms, err = GetChannelPermissionsByIds([]string{})
+	if err == nil {
+		t.Errorf("Getting channel permissions without ids should fail. perms=%+v", perms)
+	}
+}

@@ -71,6 +71,20 @@ func GetSigningKeysById(ids []string) ([]*rsa.PublicKey, error) {
 	return keys, nil
 }
 
+/*
+	Gets global channel permissionsby user ids
+*/
+func GetChannelPermissionsByIds(ids []string) ([]*ChannelPermissionsObject, error) {
+	var permissions []*ChannelPermissionsObject
+	handlePermissionsLambda := func(obj *UserObject) {
+		permissions = append(permissions, &obj.Permissions.Channel)
+	}
+	if err := getGenericUserAttributeByIds(ids, handlePermissionsLambda); err != nil {
+		return nil, err
+	}
+	return permissions, nil
+}
+
 // Make a user object from a user record
 func (usr *UserObject) createFromRecord(rec *userRecord) {
 	usr.Id = rec.Id
