@@ -20,9 +20,52 @@ import (
 const (
 	genericChannelId   string = "channelId"
 	genericKeyId       string = "keyId"
+	genericUserId      string = "USER_1"
 	genericIssuerId    string = "IssuerId"
 	genericCertifierId string = "CertifierId"
 )
+
+/*
+	Utilities for channel state
+*/
+
+func (rec *channelRecord) isDurationSet() bool {
+	return rec.duration != nil
+}
+
+func (rec *channelRecord) isOpenedSet() bool {
+	return rec.isDurationSet() && !rec.duration.opened.IsZero()
+}
+
+func (rec *channelRecord) isClosedSet() bool {
+	return rec.isDurationSet() && !rec.duration.closed.IsZero()
+}
+
+func (rec *channelRecord) isValidDuration() bool {
+	return rec.isDurationSet() && rec.duration.closed.After(rec.duration.opened)
+}
+
+func (rec *channelRecord) hasClosureAttempts() bool {
+	return len(rec.closureAttempts) > 0
+}
+
+func (rec *channelRecord) hasClosureRecord() bool {
+	return rec.closure != nil
+}
+
+func (rec *channelRecord) computeState() channelState {
+	if !rec.isOpenedSet() && !rec.isClosedSet() && !rec.hasClosureRecord() {
+		return channelBufferedState
+	}
+	if rec.isOpenedSet() && !rec.hasClosureAttempts() && !rec.isClosedSet() && !rec.hasClosureRecord() {
+		return channelOpenState
+	}
+	if rec.isOpenedSet() && !rec.hasClosureAttempts() && rec.isClosedSet() && rec.hasClosureRecord() && rec.isValidDuration() {
+		return channelClosedState
+	}
+
+	return channelInconsistentState
+}
 
 /*
 	Generic utilities
