@@ -245,7 +245,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	// Send raw bytes and metadata to executor
 	ticket, err := sv.executorRequester(
 		decryptorWrapped.isVerified,
-		operation.Meta.RequestType,
+		&operation.Meta,
 		signers,
 		plaintextBytes,
 		failedEncryptedOperation,

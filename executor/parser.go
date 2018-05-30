@@ -17,7 +17,7 @@ const (
 */
 type executorRequest struct {
 	isVerified      bool
-	requestType     core.RequestType
+	metaFields      *core.OperationMetaFields
 	signers         *core.VerifiedSigners
 	ticket          status.Ticket
 	request         []byte

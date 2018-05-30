@@ -2,6 +2,7 @@ package executor
 
 import (
 	"errors"
+	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
@@ -11,14 +12,17 @@ import (
 /*
 	Function to send in a decrypted request into the executor and returns a ticket
 */
-type Requester func(bool, core.RequestType, *core.VerifiedSigners, []byte, *core.Operation) (status.Ticket, error)
+type Requester func(bool, *core.OperationMetaFields, *core.VerifiedSigners, []byte, *core.Operation) (status.Ticket, error)
 
 /*
 	Errors
 */
 
-var invalidRequestTypeError error = errors.New("Invalid request type.")
-var subsystemChannelClosed error = errors.New("Corresponding subsystem shutdown during the request.")
+var (
+	invalidRequestTypeError error = errors.New("Invalid request type.")
+	subsystemChannelClosed  error = errors.New("Corresponding subsystem shutdown during the request.")
+	requestRejectedError    error = errors.New("Corresponding subsystem rejected the request.")
+)
 
 /*
 	Daemon configuration
@@ -49,6 +53,8 @@ func provisionServerOnce() {
 func InitializeServer(
 	usersRequester users.Requester,
 	usersRequesterUnverified users.Requester,
+	messageAdder channels.MessageAdder,
+	operationBufferer channels.OperationBufferer,
 	responseReporter status.Reporter,
 	ticketGenerator status.TicketGenerator,
 	loggingHandler *core.LoggingHandler,
@@ -57,6 +63,8 @@ func InitializeServer(
 	provisionServerOnce()
 	serverSingleton.usersRequester = usersRequester
 	serverSingleton.usersRequesterUnverified = usersRequesterUnverified
+	serverSingleton.messageAdder = messageAdder
+	serverSingleton.operationBufferer = operationBufferer
 	serverSingleton.responseReporter = responseReporter
 	serverSingleton.ticketGenerator = ticketGenerator
 	log = loggingHandler
@@ -80,7 +88,7 @@ func (sv *server) reportRejection(ticketId status.Ticket, reason status.FailReas
 
 func MakeRequest(
 	isVerified bool,
-	requestType core.RequestType,
+	metaFields *core.OperationMetaFields,
 	signers *core.VerifiedSigners,
 	request []byte,
 	failedOperation *core.Operation,
@@ -88,7 +96,7 @@ func MakeRequest(
 	log.Debugf(receivedRequestLogMsg)
 
 	// Check type
-	if !isValidRequestType(requestType) {
+	if !isValidRequestType(metaFields.RequestType) {
 		return "", invalidRequestTypeError
 	}
 
@@ -102,7 +110,7 @@ func MakeRequest(
 	// Make request
 	_, err = serverHandler.MakeRequest(&executorRequest{
 		isVerified:      isVerified,
-		requestType:     requestType,
+		metaFields:      metaFields,
 		signers:         signers,
 		ticket:          ticketId,
 		request:         request,
@@ -129,6 +137,8 @@ type server struct {
 	// Requester lambdas
 	usersRequester           users.Requester
 	usersRequesterUnverified users.Requester
+	messageAdder             channels.MessageAdder
+	operationBufferer        channels.OperationBufferer
 	responseReporter         status.Reporter
 	ticketGenerator          status.TicketGenerator
 }
@@ -149,7 +159,7 @@ func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.
 
 	wrappedRequest := (*nativeRequest).(*executorRequest)
 
-	switch wrappedRequest.requestType {
+	switch wrappedRequest.metaFields.RequestType {
 	case core.UsersRequestType:
 		sv.responseReporter(wrappedRequest.ticket, status.RunningStatus, status.NoReason, nil, nil)
 

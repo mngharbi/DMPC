@@ -3,6 +3,7 @@ package core
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 /*
@@ -25,7 +26,8 @@ func TestPermDecodeValid(t *testing.T) {
 		},
 
 		"meta": {
-			"requestType": 1
+			"requestType": 1,
+			"timestamp": "2018-01-01T00:00:00.000Z"
 		},
 
 		"payload": "BASE64_CIPHER"
@@ -53,7 +55,11 @@ func TestPermDecodeValid(t *testing.T) {
 	}
 
 	if !(rawOp.Meta.RequestType == 1) {
-		t.Error("Meta fields not decoded properly")
+		t.Error("Meta request type not decoded properly")
+	}
+
+	if !(rawOp.Meta.Timestamp.Unix() == time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC).Unix()) {
+		t.Error("Meta timestamp not decoded properly")
 	}
 
 	if rawOp.Payload != "BASE64_CIPHER" {
@@ -106,7 +112,8 @@ func TestPermDecodeEncodeCycle(t *testing.T) {
 		},
 
 		"meta": {
-			"requestType": 1
+			"requestType": 1,
+			"timestamp": "2018-01-01T00:00:00.000Z"
 		},
 
 		"payload": "BASE64_CIPHER"

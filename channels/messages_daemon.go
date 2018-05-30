@@ -10,6 +10,9 @@ import (
 	Server definitions
 */
 
+type MessageAdder func(request *AddMessageRequest) (chan *MessagesResponse, error)
+type OperationBufferer func(request *BufferOperationRequest) (chan *MessagesResponse, error)
+
 type MessagesServerConfig struct {
 	NumWorkers int
 }

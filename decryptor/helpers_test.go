@@ -143,7 +143,7 @@ func createDummyUsersSignKeyRequesterFunctor(collection map[string]*rsa.PrivateK
 
 type dummyExecutorEntry struct {
 	isVerified      bool
-	requestType     core.RequestType
+	meta            *core.OperationMetaFields
 	signers         *core.VerifiedSigners
 	payload         []byte
 	failedOperation *core.Operation
@@ -166,12 +166,12 @@ func createDummyExecutorRequesterFunctor() (*dummyExecutorRegistry, executor.Req
 		data: map[status.Ticket]dummyExecutorEntry{},
 		lock: &sync.Mutex{},
 	}
-	requester := func(isVerified bool, requestType core.RequestType, signers *core.VerifiedSigners, payload []byte, failedOperation *core.Operation) (status.Ticket, error) {
+	requester := func(isVerified bool, meta *core.OperationMetaFields, signers *core.VerifiedSigners, payload []byte, failedOperation *core.Operation) (status.Ticket, error) {
 		reg.lock.Lock()
 		ticketCopy := status.RequestNewTicket()
 		reg.data[ticketCopy] = dummyExecutorEntry{
 			isVerified:      isVerified,
-			requestType:     requestType,
+			meta:            meta,
 			signers:         signers,
 			payload:         payload,
 			failedOperation: failedOperation,

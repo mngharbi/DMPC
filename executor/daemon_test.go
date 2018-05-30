@@ -2,10 +2,10 @@ package executor
 
 import (
 	"errors"
+	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
-	"math/rand"
 	"reflect"
 	"strconv"
 	"sync"
@@ -14,123 +14,56 @@ import (
 )
 
 /*
-	Dummy subsystem lambdas
+	Constants
 */
 
-func waitForRandomDuration() {
-	duration := time.Duration(rand.Intn(100)) * time.Millisecond
-	timer := time.NewTimer(duration)
-	<-timer.C
-}
-
-func sendUserResponseAfterRandomDelay(channel chan *users.UserResponse, responseCode int) {
-	waitForRandomDuration()
-	UserResponsePtr := &users.UserResponse{
-		Result: responseCode,
-	}
-	channel <- UserResponsePtr
-}
-
-func createDummyUsersRequesterFunctor(responseCodeReturned int, errsReturned []error, closeChannel bool) (users.Requester, chan userRequesterCall) {
-	callsChannel := make(chan userRequesterCall, 0)
-	requester := func(signers *core.VerifiedSigners, request []byte) (chan *users.UserResponse, []error) {
-		go (func() {
-			callsChannel <- userRequesterCall{
-				signers: signers,
-				request: request,
-			}
-		})()
-		if errsReturned != nil {
-			return nil, errsReturned
-		}
-		responseChannel := make(chan *users.UserResponse)
-		if closeChannel {
-			close(responseChannel)
-		} else {
-			go sendUserResponseAfterRandomDelay(responseChannel, responseCodeReturned)
-		}
-		return responseChannel, nil
-	}
-	return requester, callsChannel
-}
-
-func createDummyTicketGeneratorFunctor() status.TicketGenerator {
-	lock := &sync.Mutex{}
-	generator := func() status.Ticket {
-		lock.Lock()
-		ticket := status.RequestNewTicket()
-		lock.Unlock()
-		return ticket
-	}
-	return generator
-}
-
-type dummyStatusEntry struct {
-	status        status.StatusCode
-	failureReason status.FailReasonCode
-	result        []byte
-	errors        []error
-}
-
-type dummyStatusRegistry struct {
-	ticketLogs map[status.Ticket][]dummyStatusEntry
-	lock       *sync.Mutex
-}
-
-type userRequesterCall struct {
-	signers *core.VerifiedSigners
-	request []byte
-}
-
-var responseReporterError error = errors.New("Response reporter error")
-
-func createDummyResposeReporterFunctor(success bool) (status.Reporter, *dummyStatusRegistry) {
-	reg := dummyStatusRegistry{
-		ticketLogs: map[status.Ticket][]dummyStatusEntry{},
-		lock:       &sync.Mutex{},
-	}
-	reporter := func(ticketId status.Ticket, status status.StatusCode, failureReason status.FailReasonCode, result []byte, errs []error) error {
-		if !success {
-			return responseReporterError
-		}
-		reg.lock.Lock()
-		reg.ticketLogs[ticketId] = append(reg.ticketLogs[ticketId], dummyStatusEntry{
-			status:        status,
-			failureReason: failureReason,
-			result:        result,
-			errors:        errs,
-		})
-		reg.lock.Unlock()
-		return nil
-	}
-	return reporter, &reg
-}
+var (
+	nowTime time.Time = time.Now()
+)
 
 /*
 	General tests
 */
 
-func TestStartShutdownServer(t *testing.T) {
-	usersRequester, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
-	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
-	responseReporter, _ := createDummyResposeReporterFunctor(true)
+func createDummies(
+	responseReporterSuccess bool,
+) (
+	users.Requester,
+	chan userRequesterCall,
+	users.Requester,
+	chan userRequesterCall,
+	channels.MessageAdder,
+	*messageRegistry,
+	channels.OperationBufferer,
+	*operationRegistry,
+	status.Reporter,
+	*dummyStatusRegistry,
+	status.TicketGenerator,
+) {
+	usersRequester, usersRequesterCh := createDummyUsersRequesterFunctor(users.Success, nil, false)
+	usersRequesterUnverified, usersRequesterUnverifiedCh := createDummyUsersRequesterFunctor(users.Success, nil, false)
+	messageAdder, messageAdderReg := createDummyMessageAdderFunctor(true)
+	operationBufferer, operationBuffererReg := createDummyOperationBuffererFunctor(true)
+	responseReporter, statusReg := createDummyResposeReporterFunctor(responseReporterSuccess)
 	ticketGenerator := createDummyTicketGeneratorFunctor()
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator) {
+	return usersRequester, usersRequesterCh, usersRequesterUnverified, usersRequesterUnverifiedCh, messageAdder, messageAdderReg, operationBufferer, operationBuffererReg, responseReporter, statusReg, ticketGenerator
+}
+
+func TestStartShutdownServer(t *testing.T) {
+	usersRequester, _, usersRequesterUnverified, _, messageAdder, _, operationBufferer, _, responseReporter, _, ticketGenerator := createDummies(true)
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, responseReporter, ticketGenerator) {
 		return
 	}
 	ShutdownServer()
 }
 
 func TestInvalidRequestType(t *testing.T) {
-	usersRequester, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
-	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
-	responseReporter, _ := createDummyResposeReporterFunctor(true)
-	ticketGenerator := createDummyTicketGeneratorFunctor()
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator) {
+	usersRequester, _, usersRequesterUnverified, _, messageAdder, _, operationBufferer, _, responseReporter, _, ticketGenerator := createDummies(true)
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, responseReporter, ticketGenerator) {
 		return
 	}
 
-	_, err := MakeRequest(false, UsersRequest-1, generateGenericSigners(), []byte{}, nil)
+	_, err := MakeRequest(false, &core.OperationMetaFields{RequestType: UsersRequest - 1, Timestamp: nowTime}, generateGenericSigners(), []byte{}, nil)
 	if err != invalidRequestTypeError {
 		t.Error("Request with invalid type should be rejected.")
 	}
@@ -139,15 +72,12 @@ func TestInvalidRequestType(t *testing.T) {
 }
 
 func TestReponseReporterQueueError(t *testing.T) {
-	usersRequester, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
-	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
-	responseReporter, reg := createDummyResposeReporterFunctor(false)
-	ticketGenerator := createDummyTicketGeneratorFunctor()
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator) {
+	usersRequester, _, usersRequesterUnverified, _, messageAdder, _, operationBufferer, _, responseReporter, reg, ticketGenerator := createDummies(false)
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, responseReporter, ticketGenerator) {
 		return
 	}
 
-	ticketId, err := MakeRequest(false, UsersRequest, generateGenericSigners(), []byte{}, nil)
+	ticketId, err := MakeRequest(false, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, generateGenericSigners(), []byte{}, nil)
 	if err != responseReporterError {
 		t.Error("Request should fail with response reporter error while queueing.")
 	}
@@ -160,17 +90,14 @@ func TestReponseReporterQueueError(t *testing.T) {
 }
 
 func TestRequestWhileNotRunning(t *testing.T) {
-	usersRequester, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
-	usersRequesterUnverified, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
-	responseReporter, reg := createDummyResposeReporterFunctor(true)
-	ticketGenerator := createDummyTicketGeneratorFunctor()
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, responseReporter, ticketGenerator) {
+	usersRequester, _, usersRequesterUnverified, _, messageAdder, _, operationBufferer, _, responseReporter, reg, ticketGenerator := createDummies(true)
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, responseReporter, ticketGenerator) {
 		return
 	}
 
 	ShutdownServer()
 
-	ticketId, err := MakeRequest(false, UsersRequest, generateGenericSigners(), []byte{}, nil)
+	ticketId, err := MakeRequest(false, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, generateGenericSigners(), []byte{}, nil)
 	if err == nil {
 		t.Error("Request should fail if made while server is down.")
 	}
@@ -186,6 +113,8 @@ func TestRequestWhileNotRunning(t *testing.T) {
 func doUserRequestTesting(t *testing.T, isVerified bool) {
 	// Set up context needed
 	usersRequesterDummy, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
+	operationBufferer, _ := createDummyOperationBuffererFunctor(true)
+	messageAdder, _ := createDummyMessageAdderFunctor(true)
 	responseReporter, reg := createDummyResposeReporterFunctor(true)
 	ticketGenerator := createDummyTicketGeneratorFunctor()
 	var usersRequester, usersRequesterVerified users.Requester
@@ -198,11 +127,12 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	} else {
 		usersRequesterVerified, usersRequester = usersRequesterFailing, usersRequesterDummy
 	}
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
+
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, messageAdder, operationBufferer, responseReporter, ticketGenerator) {
 		return
 	}
 
-	ticketId, err := MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{}, nil)
+	ticketId, err := MakeRequest(isVerified, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, generateGenericSigners(), []byte{}, nil)
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -226,10 +156,10 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	} else {
 		usersRequesterVerified, usersRequester = usersRequesterSuccess, usersRequesterDummy
 	}
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, messageAdder, operationBufferer, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketId, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{}, nil)
+	ticketId, err = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, generateGenericSigners(), []byte{}, nil)
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -253,10 +183,10 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	} else {
 		usersRequesterVerified, usersRequester = usersRequesterUnsuccessfulResponse, usersRequesterDummy
 	}
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, messageAdder, operationBufferer, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketId, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{}, nil)
+	ticketId, err = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, generateGenericSigners(), []byte{}, nil)
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -280,10 +210,10 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	} else {
 		usersRequesterVerified, usersRequester = usersRequesterSuccessfulResponse, usersRequesterDummy
 	}
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, messageAdder, operationBufferer, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketId, err = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), []byte{}, nil)
+	ticketId, err = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, generateGenericSigners(), []byte{}, nil)
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -305,7 +235,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	} else {
 		usersRequesterVerified, usersRequester = usersRequesterSuccessfulResponseMultiple, usersRequesterDummy
 	}
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, responseReporter, ticketGenerator) {
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, messageAdder, operationBufferer, responseReporter, ticketGenerator) {
 		return
 	}
 
@@ -318,7 +248,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 		go (func() {
 			waitForRandomDuration()
 			payload := []byte(strconv.Itoa(copyI))
-			_, _ = MakeRequest(isVerified, UsersRequest, generateGenericSigners(), payload, nil)
+			_, _ = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, generateGenericSigners(), payload, nil)
 			wg.Done()
 		})()
 	}

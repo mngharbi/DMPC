@@ -70,10 +70,13 @@ func TestValidNonEncrypted(t *testing.T) {
 	// Check entry with the ticket number
 	executorEntry := reg.getEntry(decryptorResp.Ticket)
 	executorEntryExpected := dummyExecutorEntry{
-		isVerified:  true,
-		requestType: core.UsersRequestType,
-		signers:     generateGenericSigners(),
-		payload:     payload,
+		isVerified: true,
+		meta: &core.OperationMetaFields{
+			RequestType: core.UsersRequestType,
+			Buffered:    false,
+		},
+		signers: generateGenericSigners(),
+		payload: payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
 		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)
@@ -133,10 +136,13 @@ func TestValidTransactionEncryptedOnly(t *testing.T) {
 	// Check entry with the ticket number
 	executorEntry := reg.getEntry(decryptorResp.Ticket)
 	executorEntryExpected := dummyExecutorEntry{
-		isVerified:  true,
-		requestType: core.UsersRequestType,
-		signers:     generateGenericSigners(),
-		payload:     payload,
+		isVerified: true,
+		meta: &core.OperationMetaFields{
+			RequestType: core.UsersRequestType,
+			Buffered:    false,
+		},
+		signers: generateGenericSigners(),
+		payload: payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
 		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)
@@ -198,10 +204,13 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 	// Check entry with the ticket number
 	executorEntry := reg.getEntry(decryptorResp.Ticket)
 	executorEntryExpected := dummyExecutorEntry{
-		isVerified:  true,
-		requestType: core.UsersRequestType,
-		signers:     generateGenericSigners(),
-		payload:     payload,
+		isVerified: true,
+		meta: &core.OperationMetaFields{
+			RequestType: core.UsersRequestType,
+			Buffered:    false,
+		},
+		signers: generateGenericSigners(),
+		payload: payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
 		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)
@@ -250,10 +259,13 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 	// Check entry with the ticket number
 	executorEntry := reg.getEntry(decryptorResp.Ticket)
 	executorEntryExpected := dummyExecutorEntry{
-		isVerified:  true,
-		requestType: core.UsersRequestType,
-		signers:     generateGenericSigners(),
-		payload:     payload,
+		isVerified: true,
+		meta: &core.OperationMetaFields{
+			RequestType: core.UsersRequestType,
+			Buffered:    false,
+		},
+		signers: generateGenericSigners(),
+		payload: payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
 		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)
@@ -305,10 +317,13 @@ func TestValidTemporaryPermanentEncryptedUnverified(t *testing.T) {
 	// Check entry with the ticket number
 	executorEntry := reg.getEntry(decryptorResp.Ticket)
 	executorEntryExpected := dummyExecutorEntry{
-		isVerified:  false,
-		requestType: core.UsersRequestType,
-		signers:     nil,
-		payload:     payload,
+		isVerified: false,
+		meta: &core.OperationMetaFields{
+			RequestType: core.UsersRequestType,
+			Buffered:    false,
+		},
+		signers: nil,
+		payload: payload,
 	}
 	if !reflect.DeepEqual(executorEntry, executorEntryExpected) {
 		t.Errorf("Executor entry doesn't match. executorEntry=%+v, executorEntryExpected=%+v", executorEntry, executorEntryExpected)
@@ -360,8 +375,11 @@ func TestOperationEncryption(t *testing.T) {
 	// Check entry with the ticket number
 	executorEntry := reg.getEntry(decryptorResp.Ticket)
 	executorEntryExpected := dummyExecutorEntry{
-		isVerified:      true,
-		requestType:     core.AddMessageType,
+		isVerified: true,
+		meta: &core.OperationMetaFields{
+			RequestType: core.AddMessageType,
+			Buffered:    true,
+		},
 		signers:         nil,
 		payload:         nil,
 		failedOperation: operation,
@@ -395,8 +413,11 @@ func TestOperationEncryption(t *testing.T) {
 	// Check entry with the ticket number
 	executorEntry = reg.getEntry(decryptorResp.Ticket)
 	executorEntryExpected = dummyExecutorEntry{
-		isVerified:      true,
-		requestType:     core.AddMessageType,
+		isVerified: true,
+		meta: &core.OperationMetaFields{
+			RequestType: core.AddMessageType,
+			Buffered:    true,
+		},
 		signers:         nil,
 		payload:         nil,
 		failedOperation: operation,

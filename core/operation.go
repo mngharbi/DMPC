@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"time"
 )
 
 /*
@@ -28,6 +29,7 @@ type OperationAuthenticationFields struct {
 }
 type OperationMetaFields struct {
 	RequestType RequestType `json:"requestType"`
+	Timestamp   time.Time   `json:"timestamp"`
 	Buffered    bool
 }
 type Operation struct {
