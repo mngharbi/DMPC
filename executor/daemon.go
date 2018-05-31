@@ -12,7 +12,7 @@ import (
 /*
 	Function to send in a decrypted request into the executor and returns a ticket
 */
-type Requester func(bool, *core.OperationMetaFields, *core.VerifiedSigners, []byte, *core.Operation) (status.Ticket, error)
+type Requester func(bool, *core.OperationMetaFields, string, *core.VerifiedSigners, []byte, *core.Operation) (status.Ticket, error)
 
 /*
 	Errors
@@ -89,6 +89,7 @@ func (sv *server) reportRejection(ticketId status.Ticket, reason status.FailReas
 func MakeRequest(
 	isVerified bool,
 	metaFields *core.OperationMetaFields,
+	keyId string,
 	signers *core.VerifiedSigners,
 	request []byte,
 	failedOperation *core.Operation,
@@ -111,6 +112,7 @@ func MakeRequest(
 	_, err = serverHandler.MakeRequest(&executorRequest{
 		isVerified:      isVerified,
 		metaFields:      metaFields,
+		keyId:           keyId,
 		signers:         signers,
 		ticket:          ticketId,
 		request:         request,

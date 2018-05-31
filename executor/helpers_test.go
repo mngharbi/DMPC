@@ -21,6 +21,7 @@ import (
 */
 
 const (
+	genericKeyId       string = "KEY_ID"
 	genericIssuerId    string = "ISSUER_ID"
 	genericCertifierId string = "CERTIFIER_ID"
 )
