@@ -33,20 +33,20 @@ func createDummies(
 	users.Requester,
 	chan userRequesterCall,
 	channels.MessageAdder,
-	*messageRegistry,
+	chan *channels.AddMessageRequest,
 	channels.OperationBufferer,
-	*operationRegistry,
+	chan *channels.BufferOperationRequest,
 	status.Reporter,
 	*dummyStatusRegistry,
 	status.TicketGenerator,
 ) {
 	usersRequester, usersRequesterCh := createDummyUsersRequesterFunctor(users.Success, nil, false)
 	usersRequesterUnverified, usersRequesterUnverifiedCh := createDummyUsersRequesterFunctor(users.Success, nil, false)
-	messageAdder, messageAdderReg := createDummyMessageAdderFunctor(true)
-	operationBufferer, operationBuffererReg := createDummyOperationBuffererFunctor(true)
+	messageAdder, messageAdderCalls := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
+	operationBufferer, operationBuffererCalls := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
 	responseReporter, statusReg := createDummyResposeReporterFunctor(responseReporterSuccess)
 	ticketGenerator := createDummyTicketGeneratorFunctor()
-	return usersRequester, usersRequesterCh, usersRequesterUnverified, usersRequesterUnverifiedCh, messageAdder, messageAdderReg, operationBufferer, operationBuffererReg, responseReporter, statusReg, ticketGenerator
+	return usersRequester, usersRequesterCh, usersRequesterUnverified, usersRequesterUnverifiedCh, messageAdder, messageAdderCalls, operationBufferer, operationBuffererCalls, responseReporter, statusReg, ticketGenerator
 }
 
 func TestStartShutdownServer(t *testing.T) {
@@ -110,11 +110,15 @@ func TestRequestWhileNotRunning(t *testing.T) {
 	}
 }
 
+/*
+	User requests
+*/
+
 func doUserRequestTesting(t *testing.T, isVerified bool) {
 	// Set up context needed
 	usersRequesterDummy, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
-	operationBufferer, _ := createDummyOperationBuffererFunctor(true)
-	messageAdder, _ := createDummyMessageAdderFunctor(true)
+	operationBufferer, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
+	messageAdder, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
 	responseReporter, reg := createDummyResposeReporterFunctor(true)
 	ticketGenerator := createDummyTicketGeneratorFunctor()
 	var usersRequester, usersRequesterVerified users.Requester

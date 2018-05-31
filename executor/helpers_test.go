@@ -47,6 +47,11 @@ func waitForRandomDuration() {
 	User dummies
 */
 
+type userRequesterCall struct {
+	signers *core.VerifiedSigners
+	request []byte
+}
+
 func sendUserResponseAfterRandomDelay(channel chan *users.UserResponse, responseCode int) {
 	waitForRandomDuration()
 	UserResponsePtr := &users.UserResponse{
@@ -78,6 +83,10 @@ func createDummyUsersRequesterFunctor(responseCodeReturned int, errsReturned []e
 	return requester, callsChannel
 }
 
+/*
+	Ticket dummy
+*/
+
 func createDummyTicketGeneratorFunctor() status.TicketGenerator {
 	lock := &sync.Mutex{}
 	generator := func() status.Ticket {
@@ -102,11 +111,6 @@ type dummyStatusEntry struct {
 type dummyStatusRegistry struct {
 	ticketLogs map[status.Ticket][]dummyStatusEntry
 	lock       *sync.Mutex
-}
-
-type userRequesterCall struct {
-	signers *core.VerifiedSigners
-	request []byte
 }
 
 var responseReporterError error = errors.New("Response reporter error")
@@ -137,58 +141,56 @@ func createDummyResposeReporterFunctor(success bool) (status.Reporter, *dummySta
 	Message adder
 */
 
-type messageRegistry struct {
-	requests []*channels.AddMessageRequest
-	lock     *sync.Mutex
+func sendMessageResponseAfterRandomDelay(channel chan *channels.MessagesResponse, responseCode channels.MessagesStatusCode) {
+	waitForRandomDuration()
+	messageReponsePtr := &channels.MessagesResponse{
+		Result: responseCode,
+	}
+	channel <- messageReponsePtr
 }
 
-var addMessageError error = errors.New("Message adder error")
-
-func createDummyMessageAdderFunctor(success bool) (channels.MessageAdder, *messageRegistry) {
-	reg := messageRegistry{
-		lock: &sync.Mutex{},
-	}
-	adder := func(addMessageRequest *channels.AddMessageRequest) (chan *channels.MessagesResponse, error) {
-		if !success {
-			return nil, addMessageError
+func createDummyMessageAdderFunctor(responseCodeReturned channels.MessagesStatusCode, errReturned error, closeChannel bool) (channels.MessageAdder, chan *channels.AddMessageRequest) {
+	callsChannel := make(chan *channels.AddMessageRequest, 0)
+	requester := func(addMessageRequest *channels.AddMessageRequest) (chan *channels.MessagesResponse, error) {
+		go (func() {
+			callsChannel <- addMessageRequest
+		})()
+		if errReturned != nil {
+			return nil, errReturned
 		}
-		ch := make(chan *channels.MessagesResponse, 1)
-		ch <- &channels.MessagesResponse{Result: channels.MessagesSuccess}
-		reg.lock.Lock()
-		reg.requests = append(reg.requests, addMessageRequest)
-		reg.lock.Unlock()
-		return ch, nil
+		responseChannel := make(chan *channels.MessagesResponse)
+		if closeChannel {
+			close(responseChannel)
+		} else {
+			go sendMessageResponseAfterRandomDelay(responseChannel, responseCodeReturned)
+		}
+		return responseChannel, nil
 	}
-	return adder, &reg
+	return requester, callsChannel
 }
 
 /*
 	Operation bufferer
 */
 
-type operationRegistry struct {
-	requests []*channels.BufferOperationRequest
-	lock     *sync.Mutex
-}
-
-var bufferOperationError error = errors.New("Operation bufferer error")
-
-func createDummyOperationBuffererFunctor(success bool) (channels.OperationBufferer, *operationRegistry) {
-	reg := operationRegistry{
-		lock: &sync.Mutex{},
-	}
-	bufferer := func(bufferOperationRequest *channels.BufferOperationRequest) (chan *channels.MessagesResponse, error) {
-		if !success {
-			return nil, bufferOperationError
+func createDummyOperationBuffererFunctor(responseCodeReturned channels.MessagesStatusCode, errReturned error, closeChannel bool) (channels.OperationBufferer, chan *channels.BufferOperationRequest) {
+	callsChannel := make(chan *channels.BufferOperationRequest, 0)
+	requester := func(bufferOperationRequest *channels.BufferOperationRequest) (chan *channels.MessagesResponse, error) {
+		go (func() {
+			callsChannel <- bufferOperationRequest
+		})()
+		if errReturned != nil {
+			return nil, errReturned
 		}
-		ch := make(chan *channels.MessagesResponse, 1)
-		ch <- &channels.MessagesResponse{Result: channels.MessagesSuccess}
-		reg.lock.Lock()
-		reg.requests = append(reg.requests, bufferOperationRequest)
-		reg.lock.Unlock()
-		return ch, nil
+		responseChannel := make(chan *channels.MessagesResponse)
+		if closeChannel {
+			close(responseChannel)
+		} else {
+			go sendMessageResponseAfterRandomDelay(responseChannel, responseCodeReturned)
+		}
+		return responseChannel, nil
 	}
-	return bufferer, &reg
+	return requester, callsChannel
 }
 
 /*
