@@ -194,6 +194,38 @@ func createDummyOperationBuffererFunctor(responseCodeReturned channels.MessagesS
 }
 
 /*
+	Channels dummies
+*/
+
+func sendChannelsResponseAfterRandomDelay(channel chan *channels.ChannelsResponse, responseCode channels.ChannelsStatusCode) {
+	waitForRandomDuration()
+	channelsReponsePtr := &channels.ChannelsResponse{
+		Result: responseCode,
+	}
+	channel <- channelsReponsePtr
+}
+
+func createDummyChannelActionFunctor(responseCodeReturned channels.ChannelsStatusCode, errReturned error, closeChannel bool) (channels.ChannelActionRequester, chan interface{}) {
+	callsChannel := make(chan interface{}, 0)
+	requester := func(request interface{}) (chan *channels.ChannelsResponse, error) {
+		go (func() {
+			callsChannel <- request
+		})()
+		if errReturned != nil {
+			return nil, errReturned
+		}
+		responseChannel := make(chan *channels.ChannelsResponse)
+		if closeChannel {
+			close(responseChannel)
+		} else {
+			go sendChannelsResponseAfterRandomDelay(responseChannel, responseCodeReturned)
+		}
+		return responseChannel, nil
+	}
+	return requester, callsChannel
+}
+
+/*
 	Server
 */
 
@@ -204,11 +236,12 @@ func resetAndStartServer(
 	usersRequesterUnverified users.Requester,
 	messageAdder channels.MessageAdder,
 	operationBufferer channels.OperationBufferer,
+	channelActionRequester channels.ChannelActionRequester,
 	responseReporter status.Reporter,
 	ticketGenerator status.TicketGenerator,
 ) bool {
 	serverSingleton = server{}
-	InitializeServer(usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, responseReporter, ticketGenerator, log, shutdownProgram)
+	InitializeServer(usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, responseReporter, ticketGenerator, log, shutdownProgram)
 	err := StartServer(conf)
 	if err != nil {
 		t.Errorf(err.Error())

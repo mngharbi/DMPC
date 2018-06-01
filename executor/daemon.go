@@ -55,6 +55,7 @@ func InitializeServer(
 	usersRequesterUnverified users.Requester,
 	messageAdder channels.MessageAdder,
 	operationBufferer channels.OperationBufferer,
+	channelActionRequester channels.ChannelActionRequester,
 	responseReporter status.Reporter,
 	ticketGenerator status.TicketGenerator,
 	loggingHandler *core.LoggingHandler,
@@ -65,6 +66,7 @@ func InitializeServer(
 	serverSingleton.usersRequesterUnverified = usersRequesterUnverified
 	serverSingleton.messageAdder = messageAdder
 	serverSingleton.operationBufferer = operationBufferer
+	serverSingleton.channelActionRequester = channelActionRequester
 	serverSingleton.responseReporter = responseReporter
 	serverSingleton.ticketGenerator = ticketGenerator
 	log = loggingHandler
@@ -141,6 +143,7 @@ type server struct {
 	usersRequesterUnverified users.Requester
 	messageAdder             channels.MessageAdder
 	operationBufferer        channels.OperationBufferer
+	channelActionRequester   channels.ChannelActionRequester
 	responseReporter         status.Reporter
 	ticketGenerator          status.TicketGenerator
 }
@@ -161,10 +164,11 @@ func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.
 
 	wrappedRequest := (*nativeRequest).(*executorRequest)
 
+	// Report running status
+	sv.responseReporter(wrappedRequest.ticket, status.RunningStatus, status.NoReason, nil, nil)
+
 	switch wrappedRequest.metaFields.RequestType {
 	case core.UsersRequestType:
-		sv.responseReporter(wrappedRequest.ticket, status.RunningStatus, status.NoReason, nil, nil)
-
 		// Determine lambda to use based on whether the request is verified or not
 		var usersRequester users.Requester
 		if wrappedRequest.isVerified {
@@ -195,8 +199,6 @@ func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.
 			sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, userReponseEncoded, nil)
 		}
 	case core.AddMessageType:
-		sv.responseReporter(wrappedRequest.ticket, status.RunningStatus, status.NoReason, nil, nil)
-
 		// Send request to channels subsystem based on type (operation buffering/ add message)
 		var messageChannel chan *channels.MessagesResponse
 		var requestErr error

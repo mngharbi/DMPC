@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"errors"
 	"github.com/mngharbi/gofarm"
 	"github.com/mngharbi/memstore"
 	"sync"
@@ -9,6 +10,8 @@ import (
 /*
 	Server definitions
 */
+
+type ChannelActionRequester func(request interface{}) (chan *ChannelsResponse, error)
 
 type ChannelsServerConfig struct {
 	NumWorkers int
@@ -53,6 +56,37 @@ func shutdownChannelsServer() {
 /*
 	Functional API
 */
+
+func ChannelAction(request interface{}) (chan *ChannelsResponse, error) {
+	// Sanitize and validate request
+	var sanitizingErr error
+	switch request.(type) {
+	case *OpenChannelRequest:
+		sanitizingErr = request.(*OpenChannelRequest).sanitizeAndValidate()
+	case *CloseChannelRequest:
+		sanitizingErr = request.(*CloseChannelRequest).sanitizeAndValidate()
+	default:
+		return nil, errors.New("Unrecognized channel action")
+	}
+	if sanitizingErr != nil {
+		return nil, sanitizingErr
+	}
+
+	// Make request to server
+	nativeResponseChannel, err := channelsServerHandler.MakeRequest(request)
+	if err != nil {
+		return nil, err
+	}
+
+	// Pass through result
+	responseChannel := make(chan *ChannelsResponse)
+	go func() {
+		nativeResponse := <-nativeResponseChannel
+		responseChannel <- (*nativeResponse).(*ChannelsResponse)
+	}()
+
+	return responseChannel, nil
+}
 
 /*
 	Server implementation
