@@ -136,8 +136,8 @@ func makeValidAddMessageRequest() *AddMessageRequest {
 			IssuerId:    genericIssuerId,
 			CertifierId: genericCertifierId,
 		},
-		ChannelId: genericChannelId,
-		Message:   generateRandomBytes(100),
+		KeyId:   genericKeyId,
+		Message: generateRandomBytes(100),
 	}
 }
 

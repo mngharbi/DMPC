@@ -25,7 +25,7 @@ type MessagesResponse struct {
 type AddMessageRequest struct {
 	Timestamp time.Time
 	Signers   *core.VerifiedSigners
-	ChannelId string
+	KeyId     string
 	Message   []byte
 }
 

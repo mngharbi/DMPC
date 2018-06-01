@@ -33,9 +33,9 @@ func createDummies(
 	users.Requester,
 	chan userRequesterCall,
 	channels.MessageAdder,
-	chan *channels.AddMessageRequest,
+	chan interface{},
 	channels.OperationBufferer,
-	chan *channels.BufferOperationRequest,
+	chan interface{},
 	status.Reporter,
 	*dummyStatusRegistry,
 	status.TicketGenerator,
@@ -63,7 +63,7 @@ func TestInvalidRequestType(t *testing.T) {
 		return
 	}
 
-	_, err := MakeRequest(false, &core.OperationMetaFields{RequestType: UsersRequest - 1, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
+	_, err := MakeRequest(false, &core.OperationMetaFields{RequestType: core.UsersRequestType - 1, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
 	if err != invalidRequestTypeError {
 		t.Error("Request with invalid type should be rejected.")
 	}
@@ -77,7 +77,7 @@ func TestReponseReporterQueueError(t *testing.T) {
 		return
 	}
 
-	ticketId, err := MakeRequest(false, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
+	ticketId, err := MakeRequest(false, &core.OperationMetaFields{RequestType: core.UsersRequestType, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
 	if err != responseReporterError {
 		t.Error("Request should fail with response reporter error while queueing.")
 	}
@@ -97,7 +97,7 @@ func TestRequestWhileNotRunning(t *testing.T) {
 
 	ShutdownServer()
 
-	ticketId, err := MakeRequest(false, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
+	ticketId, err := MakeRequest(false, &core.OperationMetaFields{RequestType: core.UsersRequestType, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
 	if err == nil {
 		t.Error("Request should fail if made while server is down.")
 	}
@@ -136,7 +136,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 		return
 	}
 
-	ticketId, err := MakeRequest(isVerified, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
+	ticketId, err := MakeRequest(isVerified, &core.OperationMetaFields{RequestType: core.UsersRequestType, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -163,7 +163,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, messageAdder, operationBufferer, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketId, err = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
+	ticketId, err = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: core.UsersRequestType, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -190,7 +190,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, messageAdder, operationBufferer, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketId, err = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
+	ticketId, err = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: core.UsersRequestType, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -217,7 +217,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterVerified, messageAdder, operationBufferer, responseReporter, ticketGenerator) {
 		return
 	}
-	ticketId, err = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
+	ticketId, err = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: core.UsersRequestType, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, nil)
 	if err != nil {
 		t.Error("Request should not fail.")
 		return
@@ -252,7 +252,7 @@ func doUserRequestTesting(t *testing.T, isVerified bool) {
 		go (func() {
 			waitForRandomDuration()
 			payload := []byte(strconv.Itoa(copyI))
-			_, _ = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: UsersRequest, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), payload, nil)
+			_, _ = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: core.UsersRequestType, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), payload, nil)
 			wg.Done()
 		})()
 	}
@@ -283,4 +283,219 @@ func TestUnverifiedUserRequest(t *testing.T) {
 
 func TestVerifiedUserRequest(t *testing.T) {
 	doUserRequestTesting(t, true)
+}
+
+/*
+	Message requests
+*/
+
+func doMessagesTesting(t *testing.T, isVerified bool, isBuffered bool) {
+	// Set up context needed
+	usersRequesterDummy, _ := createDummyUsersRequesterFunctor(users.Success, nil, false)
+	operationBufferer, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
+	messageAdder, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
+	responseReporter, reg := createDummyResposeReporterFunctor(true)
+	ticketGenerator := createDummyTicketGeneratorFunctor()
+
+	// Default empty operation (nil if not buffered)
+	var requestOperation *core.Operation
+	if isBuffered {
+		requestOperation = &core.Operation{}
+	}
+
+	// Test with request rejected directly from channels subsystem closure
+	requestError := errors.New("Request Failed.")
+	if isBuffered {
+		operationBuffererFailing, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, requestError, false)
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBuffererFailing, responseReporter, ticketGenerator) {
+			return
+		}
+	} else {
+		messageAdderFailing, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, requestError, false)
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdderFailing, operationBufferer, responseReporter, ticketGenerator) {
+			return
+		}
+	}
+	ticketId, err := MakeRequest(isVerified, &core.OperationMetaFields{RequestType: core.AddMessageType, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, requestOperation)
+	if err != nil {
+		t.Error("Request should not fail.")
+		return
+	}
+
+	ShutdownServer()
+
+	if len(reg.ticketLogs[ticketId]) != 3 ||
+		reg.ticketLogs[ticketId][0].status != status.QueuedStatus ||
+		reg.ticketLogs[ticketId][1].status != status.RunningStatus ||
+		reg.ticketLogs[ticketId][2].status != status.FailedStatus ||
+		reg.ticketLogs[ticketId][2].failureReason != status.RejectedReason ||
+		!reflect.DeepEqual(reg.ticketLogs[ticketId][2].errors, []error{requestError}) {
+		t.Error("Request should run but fail, and statuses should be reported correctly when request is rejected.")
+	}
+
+	// Test with channel closed from channels subsystem closure
+	if isBuffered {
+		operationBuffererFailing, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, true)
+		requestOperation = &core.Operation{}
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBuffererFailing, responseReporter, ticketGenerator) {
+			return
+		}
+	} else {
+		messageAdderFailing, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, true)
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdderFailing, operationBufferer, responseReporter, ticketGenerator) {
+			return
+		}
+	}
+	ticketId, err = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: core.AddMessageType, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, requestOperation)
+	if err != nil {
+		t.Error("Request should not fail.")
+		return
+	}
+
+	ShutdownServer()
+
+	if len(reg.ticketLogs[ticketId]) != 3 ||
+		reg.ticketLogs[ticketId][0].status != status.QueuedStatus ||
+		reg.ticketLogs[ticketId][1].status != status.RunningStatus ||
+		reg.ticketLogs[ticketId][2].status != status.FailedStatus ||
+		reg.ticketLogs[ticketId][2].failureReason != status.RejectedReason ||
+		!reflect.DeepEqual(reg.ticketLogs[ticketId][2].errors, []error{subsystemChannelClosed}) {
+		t.Error("Request should run but fail, and statuses should be reported correctly when channel closes.")
+	}
+
+	// Test with failed requests
+	if isBuffered {
+		operationBuffererFailing, _ := createDummyOperationBuffererFunctor(1+channels.MessagesSuccess, nil, false)
+		requestOperation = &core.Operation{}
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBuffererFailing, responseReporter, ticketGenerator) {
+			return
+		}
+	} else {
+		messageAdderFailing, _ := createDummyMessageAdderFunctor(1+channels.MessagesSuccess, nil, false)
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdderFailing, operationBufferer, responseReporter, ticketGenerator) {
+			return
+		}
+	}
+	ticketId, err = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: core.AddMessageType, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, requestOperation)
+	if err != nil {
+		t.Error("Request should not fail.")
+		return
+	}
+
+	ShutdownServer()
+
+	if len(reg.ticketLogs[ticketId]) != 3 ||
+		reg.ticketLogs[ticketId][0].status != status.QueuedStatus ||
+		reg.ticketLogs[ticketId][1].status != status.RunningStatus ||
+		reg.ticketLogs[ticketId][2].status != status.FailedStatus ||
+		reg.ticketLogs[ticketId][2].failureReason != status.FailedReason ||
+		reg.ticketLogs[ticketId][2].errors != nil {
+		t.Error("Request should run but fail, and statuses should be reported correctly when the request failed.")
+	}
+
+	// Test with one successful request
+	if isBuffered {
+		operationBuffererFailing, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
+		requestOperation = &core.Operation{}
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBuffererFailing, responseReporter, ticketGenerator) {
+			return
+		}
+	} else {
+		messageAdderFailing, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdderFailing, operationBufferer, responseReporter, ticketGenerator) {
+			return
+		}
+	}
+	ticketId, err = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: core.AddMessageType, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, requestOperation)
+	if err != nil {
+		t.Error("Request should not fail.")
+		return
+	}
+
+	ShutdownServer()
+
+	if len(reg.ticketLogs[ticketId]) != 3 ||
+		reg.ticketLogs[ticketId][0].status != status.QueuedStatus ||
+		reg.ticketLogs[ticketId][1].status != status.RunningStatus ||
+		reg.ticketLogs[ticketId][2].status != status.SuccessStatus {
+		t.Error("Request should succeed.")
+	}
+
+	// Test with concurrent successful requests and check calls made
+	var callsChannel chan interface{}
+	if isBuffered {
+		var operationBuffererFailing channels.OperationBufferer
+		operationBuffererFailing, callsChannel = createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
+		requestOperation = &core.Operation{}
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBuffererFailing, responseReporter, ticketGenerator) {
+			return
+		}
+	} else {
+		var messageAdderFailing channels.MessageAdder
+		messageAdderFailing, callsChannel = createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdderFailing, operationBufferer, responseReporter, ticketGenerator) {
+			return
+		}
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(10)
+	checksumExpected := 0
+	for i := 1; i <= 10; i++ {
+		checksumExpected += i
+		copyI := i
+		go (func() {
+			waitForRandomDuration()
+			if isBuffered {
+				payload := []byte(strconv.Itoa(copyI))
+				op := &core.Operation{Payload: string(payload)}
+				_, _ = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: core.AddMessageType, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), []byte{}, op)
+			} else {
+				payload := []byte(strconv.Itoa(copyI))
+				_, _ = MakeRequest(isVerified, &core.OperationMetaFields{RequestType: core.AddMessageType, Timestamp: nowTime}, genericKeyId, generateGenericSigners(), payload, nil)
+			}
+			wg.Done()
+		})()
+	}
+	wg.Wait()
+
+	ShutdownServer()
+
+	checksum := 0
+	for i := 1; i <= 10; i++ {
+		callLog := <-callsChannel
+		if isBuffered {
+			nb, _ := strconv.Atoi(string(callLog.(*channels.BufferOperationRequest).Operation.Payload))
+			checksum += nb
+		} else {
+			if callLog.(*channels.AddMessageRequest).Timestamp != nowTime ||
+				!reflect.DeepEqual(callLog.(*channels.AddMessageRequest).Signers, generateGenericSigners()) ||
+				callLog.(*channels.AddMessageRequest).KeyId != genericKeyId {
+				t.Error("Unexpected call made to messages subsystem.")
+				return
+			} else {
+				nb, _ := strconv.Atoi(string(callLog.(*channels.AddMessageRequest).Message))
+				checksum += nb
+			}
+		}
+	}
+	if checksum != checksumExpected {
+		t.Errorf("Payload didn't make it through as expected. checksum=%v, checksumExpected=%v", checksum, checksumExpected)
+	}
+}
+
+func TestUnverifiedAddMessage(t *testing.T) {
+	doMessagesTesting(t, false, false)
+}
+
+func TestVerifiedAddMessage(t *testing.T) {
+	doMessagesTesting(t, true, false)
+}
+
+func TestUnverifiedBufferOperation(t *testing.T) {
+	doMessagesTesting(t, false, true)
+}
+
+func TestVerifiedBufferOperation(t *testing.T) {
+	doMessagesTesting(t, true, true)
 }

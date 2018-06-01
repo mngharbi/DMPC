@@ -6,13 +6,6 @@ import (
 )
 
 /*
-	Request types
-*/
-const (
-	UsersRequest = iota
-)
-
-/*
 	Internal request structure
 */
 type executorRequest struct {

@@ -194,6 +194,44 @@ func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.
 		} else {
 			sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, userReponseEncoded, nil)
 		}
+	case core.AddMessageType:
+		sv.responseReporter(wrappedRequest.ticket, status.RunningStatus, status.NoReason, nil, nil)
+
+		// Send request to channels subsystem based on type (operation buffering/ add message)
+		var messageChannel chan *channels.MessagesResponse
+		var requestErr error
+		if wrappedRequest.failedOperation == nil {
+			messageChannel, requestErr = sv.messageAdder(&channels.AddMessageRequest{
+				Timestamp: wrappedRequest.metaFields.Timestamp,
+				Signers:   wrappedRequest.signers,
+				KeyId:     wrappedRequest.keyId,
+				Message:   wrappedRequest.request,
+			})
+		} else {
+			messageChannel, requestErr = sv.operationBufferer(&channels.BufferOperationRequest{
+				Operation: wrappedRequest.failedOperation,
+			})
+		}
+
+		// Handle request rejection
+		if requestErr != nil {
+			sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestErr})
+			return
+		}
+
+		// Wait for response and handle premature channel closure
+		messageResponse, ok := <-messageChannel
+		if !ok {
+			sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{subsystemChannelClosed})
+			return
+		}
+
+		// Handle response
+		if messageResponse.Result != channels.MessagesSuccess {
+			sv.responseReporter(wrappedRequest.ticket, status.FailedStatus, status.FailedReason, nil, nil)
+		} else {
+			sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, nil, nil)
+		}
 	}
 
 	return

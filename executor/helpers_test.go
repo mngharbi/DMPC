@@ -138,7 +138,7 @@ func createDummyResposeReporterFunctor(success bool) (status.Reporter, *dummySta
 }
 
 /*
-	Message adder
+	Messages dummies
 */
 
 func sendMessageResponseAfterRandomDelay(channel chan *channels.MessagesResponse, responseCode channels.MessagesStatusCode) {
@@ -149,8 +149,8 @@ func sendMessageResponseAfterRandomDelay(channel chan *channels.MessagesResponse
 	channel <- messageReponsePtr
 }
 
-func createDummyMessageAdderFunctor(responseCodeReturned channels.MessagesStatusCode, errReturned error, closeChannel bool) (channels.MessageAdder, chan *channels.AddMessageRequest) {
-	callsChannel := make(chan *channels.AddMessageRequest, 0)
+func createDummyMessageAdderFunctor(responseCodeReturned channels.MessagesStatusCode, errReturned error, closeChannel bool) (channels.MessageAdder, chan interface{}) {
+	callsChannel := make(chan interface{}, 0)
 	requester := func(addMessageRequest *channels.AddMessageRequest) (chan *channels.MessagesResponse, error) {
 		go (func() {
 			callsChannel <- addMessageRequest
@@ -173,8 +173,8 @@ func createDummyMessageAdderFunctor(responseCodeReturned channels.MessagesStatus
 	Operation bufferer
 */
 
-func createDummyOperationBuffererFunctor(responseCodeReturned channels.MessagesStatusCode, errReturned error, closeChannel bool) (channels.OperationBufferer, chan *channels.BufferOperationRequest) {
-	callsChannel := make(chan *channels.BufferOperationRequest, 0)
+func createDummyOperationBuffererFunctor(responseCodeReturned channels.MessagesStatusCode, errReturned error, closeChannel bool) (channels.OperationBufferer, chan interface{}) {
+	callsChannel := make(chan interface{}, 0)
 	requester := func(bufferOperationRequest *channels.BufferOperationRequest) (chan *channels.MessagesResponse, error) {
 		go (func() {
 			callsChannel <- bufferOperationRequest
