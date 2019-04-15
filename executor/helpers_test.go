@@ -8,6 +8,7 @@ import (
 	"errors"
 	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/locker"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 	"math/rand"
@@ -226,6 +227,35 @@ func createDummyChannelActionFunctor(responseCodeReturned channels.ChannelsStatu
 }
 
 /*
+	Locker dummies
+*/
+
+func sendLockerResponseAfterRandomDelay(channel chan bool, response bool) {
+	waitForRandomDuration()
+	channel <- response
+}
+
+func createDummyLockerFunctor(responseReturned bool, errsReturned []error, closeChannel bool) (locker.Requester, chan interface{}) {
+	callsChannel := make(chan interface{}, 0)
+	requester := func(request *locker.LockerRequest) (chan bool, []error) {
+		go (func() {
+			callsChannel <- request
+		})()
+		if errsReturned != nil {
+			return nil, errsReturned
+		}
+		responseChannel := make(chan bool)
+		if closeChannel {
+			close(responseChannel)
+		} else {
+			go sendLockerResponseAfterRandomDelay(responseChannel, responseReturned)
+		}
+		return responseChannel, nil
+	}
+	return requester, callsChannel
+}
+
+/*
 	Server
 */
 
@@ -237,11 +267,12 @@ func resetAndStartServer(
 	messageAdder channels.MessageAdder,
 	operationBufferer channels.OperationBufferer,
 	channelActionRequester channels.ChannelActionRequester,
+	lockerRequester locker.Requester,
 	responseReporter status.Reporter,
 	ticketGenerator status.TicketGenerator,
 ) bool {
 	serverSingleton = server{}
-	InitializeServer(usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, responseReporter, ticketGenerator, log, shutdownProgram)
+	InitializeServer(usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, lockerRequester, responseReporter, ticketGenerator, log, shutdownProgram)
 	err := StartServer(conf)
 	if err != nil {
 		t.Errorf(err.Error())

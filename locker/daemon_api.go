@@ -6,6 +6,11 @@ import (
 )
 
 /*
+	Requester type
+*/
+type Requester func(*LockerRequest) (chan bool, []error)
+
+/*
 	Logging
 */
 var (

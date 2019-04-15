@@ -47,6 +47,7 @@ func startDaemons(conf *startup.Config, shutdownLambda core.ShutdownLambda) {
 		channels.AddMessage,
 		channels.BufferOperation,
 		channels.ChannelAction,
+		locker.RequestLock,
 		status.UpdateStatus,
 		status.RequestNewTicket,
 		log,

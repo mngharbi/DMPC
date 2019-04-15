@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/locker"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 	"github.com/mngharbi/gofarm"
@@ -56,6 +57,7 @@ func InitializeServer(
 	messageAdder channels.MessageAdder,
 	operationBufferer channels.OperationBufferer,
 	channelActionRequester channels.ChannelActionRequester,
+	lockerRequester locker.Requester,
 	responseReporter status.Reporter,
 	ticketGenerator status.TicketGenerator,
 	loggingHandler *core.LoggingHandler,
@@ -67,6 +69,7 @@ func InitializeServer(
 	serverSingleton.messageAdder = messageAdder
 	serverSingleton.operationBufferer = operationBufferer
 	serverSingleton.channelActionRequester = channelActionRequester
+	serverSingleton.lockerRequester = lockerRequester
 	serverSingleton.responseReporter = responseReporter
 	serverSingleton.ticketGenerator = ticketGenerator
 	log = loggingHandler
@@ -144,6 +147,7 @@ type server struct {
 	messageAdder             channels.MessageAdder
 	operationBufferer        channels.OperationBufferer
 	channelActionRequester   channels.ChannelActionRequester
+	lockerRequester          locker.Requester
 	responseReporter         status.Reporter
 	ticketGenerator          status.TicketGenerator
 }
