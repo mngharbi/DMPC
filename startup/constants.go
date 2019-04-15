@@ -43,6 +43,9 @@ var defaultUserObject users.UserObject = users.UserObject{
 */
 var defaultDaemonConfig Config = Config{
 	LogLevel: core.INFO,
+	Locker: NumWorkersOnlyConfig{
+		NumWorkers: 4,
+	},
 	Users: NumWorkersOnlyConfig{
 		NumWorkers: 4,
 	},

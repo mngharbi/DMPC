@@ -11,6 +11,7 @@ import (
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
 	"github.com/mngharbi/DMPC/keys"
+	"github.com/mngharbi/DMPC/locker"
 	"github.com/mngharbi/DMPC/pipeline"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
@@ -39,6 +40,9 @@ type Config struct {
 
 	// All customizable paths
 	Paths ConfigPaths `json:"paths"`
+
+	// Configuration for locker subsystem
+	Locker NumWorkersOnlyConfig `json:"locker"`
 
 	// Configuration for users subsystem
 	Users NumWorkersOnlyConfig `json:"users"`
@@ -101,6 +105,12 @@ func GetConfig() *Config {
 /*
 	Server confuration
 */
+
+func (conf *Config) GetLockerSubsystemConfig() locker.Config {
+	return locker.Config{
+		NumWorkers: conf.Users.NumWorkers,
+	}
+}
 
 func (conf *Config) GetUsersSubsystemConfig() users.Config {
 	return users.Config{

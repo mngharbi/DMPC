@@ -6,6 +6,7 @@ import (
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
 	"github.com/mngharbi/DMPC/keys"
+	"github.com/mngharbi/DMPC/locker"
 	"github.com/mngharbi/DMPC/pipeline"
 	"github.com/mngharbi/DMPC/startup"
 	"github.com/mngharbi/DMPC/status"
@@ -13,6 +14,11 @@ import (
 )
 
 func startDaemons(conf *startup.Config, shutdownLambda core.ShutdownLambda) {
+	// Start locker subsystem
+	log.Debugf(startingLockerSubsystemLogMsg)
+	lockerSubsystemConfig := conf.GetLockerSubsystemConfig()
+	locker.StartServer(lockerSubsystemConfig, log, shutdownLambda)
+
 	// Start users subsystem
 	log.Debugf(startingUsersSubsystemLogMsg)
 	usersSubsystemConfig := conf.GetUsersSubsystemConfig()
@@ -90,6 +96,9 @@ func shutdownDaemons() {
 
 	log.Debugf(shutdownStatusSubsystemLogMsg)
 	status.ShutdownServers()
+
+	log.Debugf(shutdownLockerSubsystemLogMsg)
+	locker.ShutdownServer()
 }
 
 func Start() {

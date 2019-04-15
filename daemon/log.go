@@ -5,6 +5,7 @@ package daemon
 */
 const (
 	// Starting up subsystems
+	startingLockerSubsystemLogMsg    string = "Starting locker subsystem"
 	startingUsersSubsystemLogMsg     string = "Starting users subsystem"
 	startingChannelsSubsystemLogMsg  string = "Starting channels subsystem"
 	startingStatusSubsystemLogMsg    string = "Starting status subsystem"
@@ -14,6 +15,7 @@ const (
 	startingPipelineSubsystemLogMsg  string = "Starting pipeline subsystem"
 
 	// Shutting down subsystems
+	shutdownLockerSubsystemLogMsg    string = "Shutting down locker subsystem"
 	shutdownUsersSubsystemLogMsg     string = "Shutting down users subsystem"
 	shutdownChannelsSubsystemLogMsg  string = "Shutting down channels subsystem"
 	shutdownStatusSubsystemLogMsg    string = "Shutting down status subsystem"
