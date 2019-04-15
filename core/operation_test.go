@@ -27,7 +27,8 @@ func TestPermDecodeValid(t *testing.T) {
 
 		"meta": {
 			"requestType": 1,
-			"timestamp": "2018-01-01T00:00:00.000Z"
+			"timestamp": "2018-01-01T00:00:00.000Z",
+			"channelId": "CHANNEL_ID"
 		},
 
 		"payload": "BASE64_CIPHER"
@@ -56,6 +57,10 @@ func TestPermDecodeValid(t *testing.T) {
 
 	if !(rawOp.Meta.RequestType == 1) {
 		t.Error("Meta request type not decoded properly")
+	}
+
+	if !(rawOp.Meta.ChannelId == "CHANNEL_ID") {
+		t.Error("Meta request channel id not decoded properly")
 	}
 
 	if !(rawOp.Meta.Timestamp.Unix() == time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC).Unix()) {
@@ -113,7 +118,8 @@ func TestPermDecodeEncodeCycle(t *testing.T) {
 
 		"meta": {
 			"requestType": 1,
-			"timestamp": "2018-01-01T00:00:00.000Z"
+			"timestamp": "2018-01-01T00:00:00.000Z",
+			"channelId": "CHANNEL_ID"
 		},
 
 		"payload": "BASE64_CIPHER"

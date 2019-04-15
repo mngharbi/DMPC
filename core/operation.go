@@ -32,6 +32,7 @@ type OperationAuthenticationFields struct {
 type OperationMetaFields struct {
 	RequestType RequestType `json:"requestType"`
 	Timestamp   time.Time   `json:"timestamp"`
+	ChannelId   string      `json:"channelId"`
 	Buffered    bool
 }
 type Operation struct {
