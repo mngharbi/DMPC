@@ -7,7 +7,6 @@ package daemon
 import (
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
-	"github.com/mngharbi/DMPC/executor"
 	"github.com/mngharbi/DMPC/startup"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
@@ -47,7 +46,7 @@ func buildRootUserOperation(conf *startup.Config) *core.Transaction {
 		// No certifier
 		"", nil, true,
 		// non base64 encoded payload and meta
-		executor.UsersRequest, encodedCreateRequest, false,
+		core.UsersRequestType, encodedCreateRequest, false,
 	).Encode()
 	if err != nil {
 		log.Fatalf(encodeRootUserOperationError)

@@ -44,6 +44,9 @@ func startDaemons(conf *startup.Config, shutdownLambda core.ShutdownLambda) {
 	executor.InitializeServer(
 		users.MakeRequest,
 		users.MakeUnverifiedRequest,
+		channels.AddMessage,
+		channels.BufferOperation,
+		channels.ChannelAction,
 		status.UpdateStatus,
 		status.RequestNewTicket,
 		log,
