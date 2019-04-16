@@ -10,7 +10,7 @@ import (
 /*
 	Lambda to send a request and signers to users subsystem
 */
-type Requester func(*core.VerifiedSigners, []byte) (chan *UserResponse, []error)
+type Requester func(*core.VerifiedSigners, bool, bool, []byte) (chan *UserResponse, []error)
 
 /*
 	Logging
@@ -55,17 +55,18 @@ func ShutdownServer() {
 	serverHandler.ShutdownServer()
 }
 
-func MakeUnverifiedRequest(signers *core.VerifiedSigners, rawRequest []byte) (chan *UserResponse, []error) {
+func MakeUnverifiedRequest(signers *core.VerifiedSigners, readLock bool, readUnlock bool, rawRequest []byte) (chan *UserResponse, []error) {
 	log.Debugf(receivedRequestLogMsg)
-	return makeEncodedRequest(signers, rawRequest, true)
+	return makeEncodedRequest(signers, readLock, readUnlock, rawRequest, true)
 }
 
-func MakeRequest(signers *core.VerifiedSigners, rawRequest []byte) (chan *UserResponse, []error) {
+func MakeRequest(signers *core.VerifiedSigners, readLock bool, readUnlock bool, rawRequest []byte) (chan *UserResponse, []error) {
 	log.Debugf(receivedRequestLogMsg)
-	return makeEncodedRequest(signers, rawRequest, false)
+	return makeEncodedRequest(signers, readLock, readUnlock, rawRequest, false)
 }
 
-func makeEncodedRequest(signers *core.VerifiedSigners, rawRequest []byte, skipPermissions bool) (chan *UserResponse, []error) {
+// @TODO: lock/unlock needs to be moved out to locker subsystem
+func makeEncodedRequest(signers *core.VerifiedSigners, readLock bool, readUnlock bool, rawRequest []byte, skipPermissions bool) (chan *UserResponse, []error) {
 	// Build request object
 	rqPtr := &UserRequest{}
 	rqPtr.skipPermissions = skipPermissions
@@ -76,6 +77,10 @@ func makeEncodedRequest(signers *core.VerifiedSigners, rawRequest []byte, skipPe
 
 	// Set issuer and certifier from arguments
 	rqPtr.addSigners(signers)
+
+	// Set read lock/unlock
+	rqPtr.ReadLock = readLock
+	rqPtr.ReadUnlock = readUnlock
 
 	return makeRequest(rqPtr)
 }
@@ -111,6 +116,10 @@ func makeRequest(rqPtr *UserRequest) (chan *UserResponse, []error) {
 	Server implementation
 */
 
+const (
+	idIndexStr string = "id"
+)
+
 type server struct {
 	isInitialized bool
 	store         *memstore.Memstore
@@ -118,7 +127,7 @@ type server struct {
 
 // Indexes used to store users
 var indexesMap map[string]bool = map[string]bool{
-	"id": true,
+	idIndexStr: true,
 }
 
 func getIndexes() (res []string) {
@@ -159,25 +168,38 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 	// Add need for read locks for issuer and certifier
 	if !rq.skipPermissions {
 		lockNeeds = []core.LockNeed{
-			{false, rq.signers.IssuerId},
-			{false, rq.signers.CertifierId},
+			{core.ReadLockType, rq.signers.IssuerId},
+			{core.ReadLockType, rq.signers.CertifierId},
 		}
 	}
 
 	// Add write lock for user record if updating
 	if rq.Type == UpdateRequest {
-		lockNeeds = append(lockNeeds, core.LockNeed{true, rq.Data.Id})
+		lockNeeds = append(lockNeeds, core.LockNeed{core.WriteLockType, rq.Data.Id})
 	}
 
 	// Add read locks for user records if reading
-	if rq.Type == ReadRequest {
+	lockNeedsWithoutSubjectReadLocks := lockNeeds
+	if rq.Type == ReadRequest && rq.ReadLock {
 		for _, userId := range rq.Fields {
-			lockNeeds = append(lockNeeds, core.LockNeed{false, userId})
+			lockNeeds = append(lockNeeds, core.LockNeed{core.ReadLockType, userId})
 		}
 	}
 
-	// Get locks needed
-	userRecords, isLocked := lockUsers(sv, lockNeeds)
+	// Get locks needed (if locking)
+	var userRecords []*userRecord
+	isLocked := false
+	if len(lockNeeds) != 0 {
+		userRecords, isLocked = lockUsers(sv, lockNeeds)
+	}
+
+	// Read records if without read locking if option is on
+	if rq.Type == ReadRequest && !rq.ReadLock {
+		unlockedUserRecords := readUserRecordsByIds(sv.store, rq.Fields)
+		for _, record := range unlockedUserRecords {
+			userRecords = append(userRecords, record)
+		}
+	}
 
 	// Find user records for certifier, issuer, and subject
 	var issuerIndex, certifierIndex, subjectIndex int = -1, -1, -1
@@ -291,8 +313,11 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 
 		// Transform records requested into objects and add to response
 		for _, userRecordIndex := range usersRequestedIds {
-			createdObject := &UserObject{}
-			createdObject.createFromRecord(userRecords[userRecordIndex])
+			var createdObject *UserObject = nil
+			if userRecords[userRecordIndex] != nil {
+				createdObject = &UserObject{}
+				createdObject.createFromRecord(userRecords[userRecordIndex])
+			}
 			responseData = append(responseData, createdObject)
 		}
 	}
@@ -300,9 +325,24 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 	/*
 		Handle unlocking
 	*/
-	_, isUnlocked := unlockUsers(sv, lockNeeds)
-	if !isUnlocked {
-		return failRequest(UnlockingFailedError)
+
+	// Add lock needs if read unlocking without locking
+	if rq.Type == ReadRequest && !rq.ReadLock && rq.ReadUnlock {
+		for _, userId := range rq.Fields {
+			lockNeeds = append(lockNeeds, core.LockNeed{core.ReadLockType, userId})
+		}
+	}
+
+	// Use lock needs without subject locks if locking without unlocking
+	if rq.Type == ReadRequest && rq.ReadLock && !rq.ReadUnlock {
+		lockNeeds = lockNeedsWithoutSubjectReadLocks
+	}
+
+	// Do unlocking
+	if len(lockNeeds) != 0 {
+		if _, isUnlocked := unlockUsers(sv, lockNeeds); !isUnlocked {
+			return failRequest(UnlockingFailedError)
+		}
 	}
 
 	// Request is done, return response generated

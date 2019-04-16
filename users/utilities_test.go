@@ -81,3 +81,28 @@ func TestGetChannelPermissionsByIds(t *testing.T) {
 		t.Errorf("Getting channel permissions without ids should fail. perms=%+v", perms)
 	}
 }
+
+func TestReadUserRecordsByIds(t *testing.T) {
+	if !makeUsers(t) {
+		return
+	}
+	defer ShutdownServer()
+
+	// Make sure we attempt to read all user ids
+	userRecords := readUserRecordsByIds(serverSingleton.store, []string{"USER_0", "USER_1", "USER_2", "NOT_USER_ID"})
+	if len(userRecords) != 4 {
+		t.Errorf("Reading user records failed. userRecords=%+v", userRecords)
+	}
+
+	// Existing users should not be nil
+	if userRecords[0] == nil || userRecords[0].Id != "USER_0" ||
+		userRecords[1] == nil || userRecords[1].Id != "USER_1" ||
+		userRecords[2] == nil || userRecords[2].Id != "USER_2" {
+		t.Errorf("Reading existing user records should return corresponding records. userRecords=%+v", userRecords)
+	}
+
+	// Non-existing users should be nil
+	if userRecords[3] != nil {
+		t.Errorf("Reading non-existing users should be nil . userRecords=%+v", userRecords)
+	}
+}

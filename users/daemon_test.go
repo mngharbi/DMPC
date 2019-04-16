@@ -31,7 +31,7 @@ func TestMalformattedRequest(t *testing.T) {
 	}
 
 	requestBytes := []byte(`{invalid}`)
-	_, errs := MakeRequest(generateGenericSigners(), requestBytes)
+	_, errs := MakeRequest(generateGenericSigners(), true, true, requestBytes)
 	if len(errs) == 0 {
 		t.Error("Malformatted request should fail")
 	}
@@ -48,7 +48,7 @@ func TestEmptyReadRequest(t *testing.T) {
 		return
 	}
 
-	_, errs := makeUserReadRequest("ISSUER", "CERTIFIER", []string{})
+	_, errs := makeUserReadRequest(true, true, "ISSUER", "CERTIFIER", []string{})
 	if len(errs) == 0 {
 		t.Error("Read request with no users should fail")
 	}
@@ -61,7 +61,7 @@ func TestUnknownIssuerReadRequest(t *testing.T) {
 		return
 	}
 
-	serverResponsePtr, ok, success := makeAndGetUserReadRequest(t, "ISSUER", "CERTIFIER", []string{"USER"})
+	serverResponsePtr, ok, success := makeAndGetUserReadRequest(t, true, true, "ISSUER", "CERTIFIER", []string{"USER"})
 	if !success {
 		return
 	}
@@ -84,7 +84,7 @@ func TestUnknownCertifierReadRequest(t *testing.T) {
 	}
 
 	// Make read request
-	serverResponsePtr, ok, success := makeAndGetUserReadRequest(t, "ISSUER", "CERTIFIER", []string{"USER"})
+	serverResponsePtr, ok, success := makeAndGetUserReadRequest(t, true, true, "ISSUER", "CERTIFIER", []string{"USER"})
 	if !success {
 		return
 	}
@@ -110,7 +110,7 @@ func TestUnknownSubjectReadRequest(t *testing.T) {
 	}
 
 	// Make read request
-	serverResponsePtr, ok, success := makeAndGetUserReadRequest(t, "ISSUER", "CERTIFIER", []string{"USER"})
+	serverResponsePtr, ok, success := makeAndGetUserReadRequest(t, true, true, "ISSUER", "CERTIFIER", []string{"USER"})
 	if !success {
 		return
 	}
@@ -144,12 +144,64 @@ func TestExistentUserReadRequest(t *testing.T) {
 	}
 
 	// Make read request
-	serverResponsePtr, ok, success := makeAndGetUserReadRequest(t, "ISSUER", "CERTIFIER", []string{"USER"})
+	serverResponsePtr, ok, success := makeAndGetUserReadRequest(t, true, true, "ISSUER", "CERTIFIER", []string{"USER"})
 	if !success {
 		return
 	}
 	if !ok || serverResponsePtr.Result != Success {
 		t.Errorf("Read request of existing should succeed, result:%v", *serverResponsePtr)
+		return
+	}
+	if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(*userObjectPtr, serverResponsePtr.Data[0]) {
+		t.Errorf("Read request response doesn't match user expected.\nexpected=%v\nresult=%v", *userObjectPtr, serverResponsePtr.Data[0])
+		return
+	}
+
+	ShutdownServer()
+}
+
+func TestExistentUserReadRequestWithSingleLockOperation(t *testing.T) {
+	if !resetAndStartServer(t, multipleWorkersConfig()) {
+		return
+	}
+
+	// Create issuer and certifier
+	if !createIssuerAndCertifier(t,
+		false, true, false, false, false, false,
+		false, true, false, false, false, false,
+	) {
+		return
+	}
+
+	// Create user
+	userObjectPtr, success := createUser(
+		t, false, "ISSUER", "CERTIFIER", "USER", false, true, false, false, false, false,
+	)
+	if !success {
+		return
+	}
+
+	// Make read request with read lock only
+	serverResponsePtr, ok, success := makeAndGetUserReadRequest(t, true, false, "ISSUER", "CERTIFIER", []string{"USER"})
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != Success {
+		t.Errorf("Read request of existing user with only read lock should succeed, result:%v", *serverResponsePtr)
+		return
+	}
+	if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(*userObjectPtr, serverResponsePtr.Data[0]) {
+		t.Errorf("Read request response doesn't match user expected.\nexpected=%v\nresult=%v", *userObjectPtr, serverResponsePtr.Data[0])
+		return
+	}
+
+	// Make read request with read unlock only
+	serverResponsePtr, ok, success = makeAndGetUserReadRequest(t, false, true, "ISSUER", "CERTIFIER", []string{"USER"})
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != Success {
+		t.Errorf("Read request of existing user with only read unlock should succeed, result:%v", *serverResponsePtr)
 		return
 	}
 	if len(serverResponsePtr.Data) != 1 || !reflect.DeepEqual(*userObjectPtr, serverResponsePtr.Data[0]) {

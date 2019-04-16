@@ -181,8 +181,8 @@ func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.
 			usersRequester = sv.usersRequesterUnverified
 		}
 
-		// Make the request to users subsystem
-		channel, errs := usersRequester(wrappedRequest.signers, wrappedRequest.request)
+		// Make the request to users subsystem (not leaving it locked)
+		channel, errs := usersRequester(wrappedRequest.signers, true, true, wrappedRequest.request)
 		if errs != nil {
 			sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, errs)
 			return

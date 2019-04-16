@@ -34,8 +34,10 @@ const (
 func getGenericUserAttributeByIds(ids []string, handleAttribute func(*UserObject)) error {
 	// Make unverified request for user
 	rq := &UserRequest{
-		Type:   ReadRequest,
-		Fields: ids,
+		Type:       ReadRequest,
+		Fields:     ids,
+		ReadLock:   true,
+		ReadUnlock: true,
 	}
 	rq.skipPermissions = true
 	channel, errs := makeRequest(rq)
@@ -72,7 +74,7 @@ func GetSigningKeysById(ids []string) ([]*rsa.PublicKey, error) {
 }
 
 /*
-	Gets global channel permissionsby user ids
+	Gets global channel permissions by user ids
 */
 func GetChannelPermissionsByIds(ids []string) ([]*ChannelPermissionsObject, error) {
 	var permissions []*ChannelPermissionsObject
@@ -83,6 +85,25 @@ func GetChannelPermissionsByIds(ids []string) ([]*ChannelPermissionsObject, erro
 		return nil, err
 	}
 	return permissions, nil
+}
+
+/*
+	Read records from store
+*/
+func readUserRecordsByIds(store *memstore.Memstore, ids []string) []*userRecord {
+	result := []*userRecord{}
+
+	for _, id := range ids {
+		searchRecord := makeSearchByIdRecord(id)
+		itemResult := store.Get(searchRecord, idIndexStr)
+		if itemResult != nil {
+			result = append(result, itemResult.(*userRecord))
+		} else {
+			result = append(result, nil)
+		}
+	}
+
+	return result
 }
 
 // Make a user object from a user record

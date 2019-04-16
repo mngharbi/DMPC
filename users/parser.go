@@ -70,6 +70,10 @@ type UserRequest struct {
 	Timestamp time.Time  `json:"timestamp"`
 	signers   *core.VerifiedSigners
 
+	// Controls locking within request
+	ReadLock   bool
+	ReadUnlock bool
+
 	// Private settings
 	skipPermissions bool
 }
@@ -191,7 +195,7 @@ var sanitizeFieldsUpdatedAllowed map[string]bool = map[string]bool{
 	"permissions.user.encKeyUpdate":      true,
 	"permissions.user.signKeyUpdate":     true,
 	"permissions.user.permissionsUpdate": true,
-	"active": true,
+	"active":                             true,
 }
 
 func (rq *UserRequest) sanitizeFieldsUpdated() {

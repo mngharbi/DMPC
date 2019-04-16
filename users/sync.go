@@ -13,8 +13,8 @@ import (
 func lockUsers(sv *server, lockNeeds []core.LockNeed) (userRecords []*userRecord, lockingSuccess bool) {
 	// Build lock functions
 	var userRecordsItems []memstore.Item
-	doLocking := core.RecordLockingFunctorGenerator(sv.store, core.Locking, makeSearchByIdRecord, "id", true, &userRecordsItems)
-	doUnlocking := core.RecordLockingFunctorGenerator(sv.store, core.Unlocking, makeSearchByIdRecord, "id", true, &userRecordsItems)
+	doLocking := core.RecordLockingFunctorGenerator(sv.store, core.Locking, makeSearchByIdRecord, idIndexStr, true, &userRecordsItems)
+	doUnlocking := core.RecordLockingFunctorGenerator(sv.store, core.Unlocking, makeSearchByIdRecord, idIndexStr, true, &userRecordsItems)
 
 	// Do locking (rollback unlocking included)
 	lockingSuccess = core.Lock(doLocking, doUnlocking, lockNeeds)
@@ -30,7 +30,7 @@ func lockUsers(sv *server, lockNeeds []core.LockNeed) (userRecords []*userRecord
 func unlockUsers(sv *server, unlockNeeds []core.LockNeed) (userRecords []*userRecord, unlockingSuccess bool) {
 	// Build unlock function
 	var userRecordsItems []memstore.Item
-	doUnlocking := core.RecordLockingFunctorGenerator(sv.store, core.Unlocking, makeSearchByIdRecord, "id", true, &userRecordsItems)
+	doUnlocking := core.RecordLockingFunctorGenerator(sv.store, core.Unlocking, makeSearchByIdRecord, idIndexStr, true, &userRecordsItems)
 
 	// Do unlocking
 	unlockingSuccess = core.Unlock(doUnlocking, unlockNeeds)

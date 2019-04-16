@@ -195,12 +195,12 @@ func makeUserCreationRequest(
 		userPermissionsUpdatePermission,
 	)
 
-	// Make a request to the server
+	// Make a request to the server (always read lock/unlock)
 	requestFunc := MakeRequest
 	if skipVerification {
 		requestFunc = MakeUnverifiedRequest
 	}
-	channel, errs := requestFunc(generateSigners(issuerId, certifierId), requestBytes)
+	channel, errs := requestFunc(generateSigners(issuerId, certifierId), true, true, requestBytes)
 	return channel, userObjectPtr, errs
 }
 
@@ -484,7 +484,7 @@ func makeUserUpdateRequest(
 		userEncKeyUpdatePermissionPtr, userSignKeyUpdatePermissionPtr, userPermissionsUpdatePtr,
 		activePtr, createdAtPtr, disabledAtPtr, updatedAtPtr,
 	)
-	return MakeRequest(generateSigners(issuerId, certifierId), requestBytes)
+	return MakeRequest(generateSigners(issuerId, certifierId), true, true, requestBytes)
 }
 
 func makeAndGetUserUpdateRequest(
@@ -538,13 +538,13 @@ func generateUserReadRequest(users []string) (request []byte) {
 	}`)
 }
 
-func makeUserReadRequest(issuerId string, certifierId string, users []string) (chan *UserResponse, []error) {
+func makeUserReadRequest(readLock bool, readUnlock bool, issuerId string, certifierId string, users []string) (chan *UserResponse, []error) {
 	requestBytes := generateUserReadRequest(users)
-	return MakeRequest(generateSigners(issuerId, certifierId), requestBytes)
+	return MakeRequest(generateSigners(issuerId, certifierId), readLock, readUnlock, requestBytes)
 }
 
-func makeAndGetUserReadRequest(t *testing.T, issuerId string, certifierId string, users []string) (*UserResponse, bool, bool) {
-	channel, errs := makeUserReadRequest(issuerId, certifierId, users)
+func makeAndGetUserReadRequest(t *testing.T, readLock bool, readUnlock bool, issuerId string, certifierId string, users []string) (*UserResponse, bool, bool) {
+	channel, errs := makeUserReadRequest(readLock, readUnlock, issuerId, certifierId, users)
 	if len(errs) > 0 {
 		t.Errorf("Valid read request should go through\n. errs=%v", errs)
 		return nil, false, false
