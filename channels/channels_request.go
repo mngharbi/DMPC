@@ -84,16 +84,30 @@ func (rq *OpenChannelRequest) sanitizeAndValidate() error {
 */
 type CloseChannelRequest struct {
 	Id        string    `json:"id"`
-	KeyId     string    `json:"keyId"`
 	Timestamp time.Time `json:"timestamp"`
+}
+
+// *CloseChannelRequest -> Json
+func (rq *CloseChannelRequest) Encode() ([]byte, error) {
+	jsonStream, err := json.Marshal(rq)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonStream, nil
+}
+
+// Json -> *CloseChannelRequest
+func (rq *CloseChannelRequest) Decode(stream []byte) error {
+	return json.Unmarshal(stream, rq)
 }
 
 /*
 	Validates and sanitizes request
 */
 func (rq *CloseChannelRequest) sanitizeAndValidate() error {
-	if len(rq.Id) == 0 ||
-		len(rq.KeyId) == 0 {
+	if len(rq.Id) == 0 {
 		return errors.New("Close channel request is invalid.")
 	}
 	return nil

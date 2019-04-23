@@ -113,6 +113,56 @@ func (sv *server) doAddChannel(wrappedRequest *executorRequest) {
 }
 
 /*
+	Close channel
+*/
+
+func (sv *server) doCloseChannel(wrappedRequest *executorRequest) {
+	// Parse request
+	request := &channels.CloseChannelRequest{}
+	err := request.Decode(wrappedRequest.request)
+	if err != nil {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{err})
+		return
+	}
+
+	// Lock channel
+	lockRequest := &locker.LockerRequest{
+		Type: locker.ChannelLock,
+		Needs: []core.LockNeed{
+			{
+				LockType: core.WriteLockType,
+				Id:       request.Id,
+			},
+		},
+	}
+	lockRequest.LockingType = core.Locking
+	lockChannel, errs := sv.lockerRequester(lockRequest)
+	if len(errs) != 0 {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, errs)
+		return
+	}
+	defer func() {
+		lockRequest.LockingType = core.Unlocking
+		lockChannel, _ = sv.lockerRequester(lockRequest)
+		_ = <-lockChannel
+	}()
+
+	// Send request through to channels subsystem
+	channelResponseChannel, err := sv.channelActionRequester(request)
+	if err != nil {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestRejectedError})
+		return
+	}
+	channelResponsePtr, ok := <-channelResponseChannel
+	if !ok {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{subsystemChannelClosed})
+	} else {
+		channelResponseEncoded, _ := channelResponsePtr.Encode()
+		sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, channelResponseEncoded, nil)
+	}
+}
+
+/*
 	Add message
 */
 

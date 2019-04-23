@@ -45,6 +45,8 @@ func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.
 		sv.doGenericUsersRequest(wrappedRequest)
 	case core.AddChannelType:
 		sv.doAddChannel(wrappedRequest)
+	case core.CloseChannelType:
+		sv.doCloseChannel(wrappedRequest)
 	case core.AddMessageType:
 		sv.doAddMessage(wrappedRequest)
 	}

@@ -21,5 +21,5 @@ type executorRequest struct {
 	Utilities
 */
 func isValidRequestType(requestType core.RequestType) bool {
-	return core.UsersRequestType <= requestType && requestType <= core.AddChannelType
+	return core.UsersRequestType <= requestType && requestType <= core.CloseChannelType
 }

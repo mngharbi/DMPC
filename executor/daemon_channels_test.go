@@ -108,6 +108,60 @@ func TestAddChannelRequest(t *testing.T) {
 	}
 }
 
+func TestCloseChannelRequest(t *testing.T) {
+	// Set up context needed
+	usersRequesterDummy, _ := createDummyUsersRequesterFunctor(users.Success, nil, nil, false)
+	operationBufferer, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
+	messageAdder, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
+	channelActionRequester, channelActionCalls := createDummyChannelActionFunctor(channels.ChannelsSuccess, nil, false)
+	lockerRequester, lockerCalls := createDummyLockerFunctor(true, nil, false)
+	keyAdder, _ := createDummyKeyAdderFunctor(nil)
+	responseReporter, reg := createDummyResposeReporterFunctor(true)
+	ticketGenerator := createDummyTicketGeneratorFunctor()
+
+	rq := &channels.CloseChannelRequest{
+		Id:        genericChannelId,
+		Timestamp: nowTime,
+	}
+	rqEncoded, _ := rq.Encode()
+
+	meta := &core.OperationMetaFields{
+		RequestType: core.CloseChannelType,
+		Timestamp:   nowTime,
+	}
+
+	// Test valid request
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBufferer, channelActionRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+		return
+	}
+
+	ticketId, err := MakeRequest(true, meta, generateGenericSigners(), rqEncoded, nil)
+	if err != nil {
+		t.Error("Request should not fail.")
+		ShutdownServer()
+		return
+	}
+
+	ShutdownServer()
+
+	if len(reg.ticketLogs[ticketId]) != 3 ||
+		reg.ticketLogs[ticketId][0].status != status.QueuedStatus ||
+		reg.ticketLogs[ticketId][1].status != status.RunningStatus ||
+		reg.ticketLogs[ticketId][2].status != status.SuccessStatus {
+		t.Errorf("Request should succeed and statuses should be reported correctly.")
+	}
+
+	// Check channel write lock/unlock
+	checkChannelLocking(t, lockerCalls, core.WriteLockType)
+
+	channelActionCall := (<-channelActionCalls).(*channels.CloseChannelRequest)
+	rqDecoded := &channels.CloseChannelRequest{}
+	rqDecoded.Decode(rqEncoded)
+	if !reflect.DeepEqual(channelActionCall, rqDecoded) {
+		t.Errorf("Channel close request should be forwared to channel action subsystem. expected=%+v, found=%+v", rqDecoded, channelActionCall)
+	}
+}
+
 /*
 	Message requests
 */
