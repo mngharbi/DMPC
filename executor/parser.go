@@ -11,7 +11,6 @@ import (
 type executorRequest struct {
 	isVerified      bool
 	metaFields      *core.OperationMetaFields
-	keyId           string
 	signers         *core.VerifiedSigners
 	ticket          status.Ticket
 	request         []byte
@@ -22,5 +21,5 @@ type executorRequest struct {
 	Utilities
 */
 func isValidRequestType(requestType core.RequestType) bool {
-	return core.UsersRequestType <= requestType && requestType <= core.AddMessageType
+	return core.UsersRequestType <= requestType && requestType <= core.AddChannelType
 }

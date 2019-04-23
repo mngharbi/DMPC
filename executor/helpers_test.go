@@ -22,9 +22,14 @@ import (
 */
 
 const (
+	genericChannelId   string = "CHANNEL_ID"
 	genericKeyId       string = "KEY_ID"
 	genericIssuerId    string = "ISSUER_ID"
 	genericCertifierId string = "CERTIFIER_ID"
+)
+
+var (
+	genericKey []byte = generateRandomBytes(core.SymmetricKeySize)
 )
 
 func generateSigners(issuerId string, certifierId string) *core.VerifiedSigners {
@@ -49,25 +54,42 @@ func waitForRandomDuration() {
 */
 
 type userRequesterCall struct {
-	signers *core.VerifiedSigners
-	request []byte
+	signers    *core.VerifiedSigners
+	readLock   bool
+	readUnlock bool
+	request    []byte
 }
 
-func sendUserResponseAfterRandomDelay(channel chan *users.UserResponse, responseCode int) {
+var (
+	userObjectsWithPermissions []users.UserObject = []users.UserObject{
+		{
+			Permissions: users.PermissionsObject{
+				Channel: users.ChannelPermissionsObject{
+					Add: true,
+				},
+			},
+		},
+	}
+)
+
+func sendUserResponseAfterRandomDelay(channel chan *users.UserResponse, responseCode int, data []users.UserObject) {
 	waitForRandomDuration()
 	UserResponsePtr := &users.UserResponse{
 		Result: responseCode,
+		Data:   data,
 	}
 	channel <- UserResponsePtr
 }
 
-func createDummyUsersRequesterFunctor(responseCodeReturned int, errsReturned []error, closeChannel bool) (users.Requester, chan userRequesterCall) {
+func createDummyUsersRequesterFunctor(responseCodeReturned int, data []users.UserObject, errsReturned []error, closeChannel bool) (users.Requester, chan userRequesterCall) {
 	callsChannel := make(chan userRequesterCall, 0)
-	requester := func(signers *core.VerifiedSigners, request []byte) (chan *users.UserResponse, []error) {
+	requester := func(signers *core.VerifiedSigners, readLock bool, readUnlock bool, request []byte) (chan *users.UserResponse, []error) {
 		go (func() {
 			callsChannel <- userRequesterCall{
-				signers: signers,
-				request: request,
+				signers:    signers,
+				readLock:   readLock,
+				readUnlock: readUnlock,
+				request:    request,
 			}
 		})()
 		if errsReturned != nil {
@@ -77,7 +99,7 @@ func createDummyUsersRequesterFunctor(responseCodeReturned int, errsReturned []e
 		if closeChannel {
 			close(responseChannel)
 		} else {
-			go sendUserResponseAfterRandomDelay(responseChannel, responseCodeReturned)
+			go sendUserResponseAfterRandomDelay(responseChannel, responseCodeReturned, data)
 		}
 		return responseChannel, nil
 	}
@@ -256,6 +278,30 @@ func createDummyLockerFunctor(responseReturned bool, errsReturned []error, close
 }
 
 /*
+	Key adder dummies
+*/
+
+type keyAdderCall struct {
+	keyId string
+	key   []byte
+}
+
+func createDummyKeyAdderFunctor(response error) (core.KeyAdder, chan interface{}) {
+	callsChannel := make(chan interface{}, 0)
+	requester := func(keyId string, key []byte) error {
+		go (func() {
+			callsChannel <- keyAdderCall{
+				keyId: keyId,
+				key:   key,
+			}
+		})()
+
+		return response
+	}
+	return requester, callsChannel
+}
+
+/*
 	Server
 */
 
@@ -268,11 +314,12 @@ func resetAndStartServer(
 	operationBufferer channels.OperationBufferer,
 	channelActionRequester channels.ChannelActionRequester,
 	lockerRequester locker.Requester,
+	keyAdder core.KeyAdder,
 	responseReporter status.Reporter,
 	ticketGenerator status.TicketGenerator,
 ) bool {
 	serverSingleton = server{}
-	InitializeServer(usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, lockerRequester, responseReporter, ticketGenerator, log, shutdownProgram)
+	InitializeServer(usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator, log, shutdownProgram)
 	err := StartServer(conf)
 	if err != nil {
 		t.Errorf(err.Error())
@@ -285,4 +332,14 @@ func multipleWorkersConfig() Config {
 	return Config{
 		NumWorkers: 6,
 	}
+}
+
+/*
+	Utilities
+*/
+
+func generateRandomBytes(nbBytes int) (bytes []byte) {
+	bytes = make([]byte, nbBytes)
+	rand.Read(bytes)
+	return
 }

@@ -246,7 +246,6 @@ func (sv *server) Work(nativeRequest *gofarm.Request) *gofarm.Response {
 	ticket, err := sv.executorRequester(
 		decryptorWrapped.isVerified,
 		&operation.Meta,
-		operation.Encryption.KeyId,
 		signers,
 		plaintextBytes,
 		failedEncryptedOperation,

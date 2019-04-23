@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-set -e
 touch coverage.txt
 
 for subsystem in $(go list ./...); do

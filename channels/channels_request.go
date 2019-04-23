@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"encoding/json"
 	"errors"
 	"time"
 )
@@ -15,7 +16,18 @@ const (
 )
 
 type ChannelsResponse struct {
-	Result ChannelsStatusCode
+	Result ChannelsStatusCode `json:"result"`
+}
+
+// *ChannelsResponse -> Json
+func (resp *ChannelsResponse) Encode() ([]byte, error) {
+	jsonStream, err := json.Marshal(resp)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonStream, nil
 }
 
 /*
@@ -32,8 +44,25 @@ type ChannelPermissionsObject struct {
 type OpenChannelRequest struct {
 	Id          string                    `json:"id"`
 	KeyId       string                    `json:"keyId"`
+	Key         []byte                    `json:"key"`
 	Permissions *ChannelPermissionsObject `json:"permissions"`
 	Timestamp   time.Time                 `json:"timestamp"`
+}
+
+// *OpenChannelRequest -> Json
+func (rq *OpenChannelRequest) Encode() ([]byte, error) {
+	jsonStream, err := json.Marshal(rq)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonStream, nil
+}
+
+// Json -> *OpenChannelRequest
+func (rq *OpenChannelRequest) Decode(stream []byte) error {
+	return json.Unmarshal(stream, rq)
 }
 
 /*
@@ -43,7 +72,8 @@ func (rq *OpenChannelRequest) sanitizeAndValidate() error {
 	if len(rq.Id) == 0 ||
 		len(rq.KeyId) == 0 ||
 		rq.Permissions == nil ||
-		len(rq.Permissions.Users) == 0 {
+		len(rq.Permissions.Users) == 0 ||
+		len(rq.Key) == 0 {
 		return errors.New("Open channel request is invalid.")
 	}
 	return nil
