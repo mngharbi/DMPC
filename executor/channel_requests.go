@@ -34,11 +34,14 @@ func (sv *server) doAddChannel(wrappedRequest *executorRequest) {
 	// Set channel id from operation meta fields
 	request.Id = wrappedRequest.metaFields.ChannelId
 
-	// Get and RLock certifier user object
+	// Set signers from decryptor
 	if wrappedRequest.signers == nil {
 		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{unverifiedChannelCreationError})
 		return
 	}
+	request.Signers = wrappedRequest.signers
+
+	// Get and RLock certifier user object
 	usersRequest := &users.UserRequest{
 		Type:      users.ReadRequest,
 		Timestamp: wrappedRequest.metaFields.Timestamp,
@@ -130,6 +133,13 @@ func (sv *server) doCloseChannel(wrappedRequest *executorRequest) {
 
 	// Set channel id from operation meta fields
 	request.Id = wrappedRequest.metaFields.ChannelId
+
+	// Set signers from decryptor
+	if wrappedRequest.signers == nil {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{unverifiedChannelCreationError})
+		return
+	}
+	request.Signers = wrappedRequest.signers
 
 	// Lock channel
 	lockRequest := &locker.LockerRequest{

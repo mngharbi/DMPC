@@ -106,8 +106,9 @@ func TestAddChannelRequest(t *testing.T) {
 	expectedRq := &channels.OpenChannelRequest{}
 	*expectedRq = *rq
 	expectedRq.Id = genericChannelId
+	expectedRq.Signers = generateGenericSigners()
 	if !reflect.DeepEqual(channelActionCall, expectedRq) {
-		t.Error("Channel add request should be forwarded to channel action subsystem.")
+		t.Errorf("Channel add request should be forwarded to channel action subsystem. expected=%+v, found=%+v", expectedRq, channelActionCall)
 	}
 }
 
@@ -158,11 +159,12 @@ func TestCloseChannelRequest(t *testing.T) {
 	checkChannelLocking(t, lockerCalls, core.WriteLockType)
 
 	channelActionCall := (<-channelActionCalls).(*channels.CloseChannelRequest)
-	rqDecoded := &channels.CloseChannelRequest{}
-	rqDecoded.Decode(rqEncoded)
-	rqDecoded.Id = genericChannelId
-	if !reflect.DeepEqual(channelActionCall, rqDecoded) {
-		t.Errorf("Channel close request should be forwarded to channel action subsystem. expected=%+v, found=%+v", rqDecoded, channelActionCall)
+	expectedRq := &channels.CloseChannelRequest{}
+	expectedRq.Decode(rqEncoded)
+	expectedRq.Id = genericChannelId
+	expectedRq.Signers = generateGenericSigners()
+	if !reflect.DeepEqual(channelActionCall, expectedRq) {
+		t.Errorf("Channel close request should be forwarded to channel action subsystem. expected=%+v, found=%+v", expectedRq, channelActionCall)
 	}
 }
 

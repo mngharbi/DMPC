@@ -3,6 +3,7 @@ package channels
 import (
 	"encoding/json"
 	"errors"
+	"github.com/mngharbi/DMPC/core"
 	"time"
 )
 
@@ -43,6 +44,7 @@ type ChannelPermissionsObject struct {
 }
 type OpenChannelRequest struct {
 	Id          string
+	Signers     *core.VerifiedSigners
 	KeyId       string                    `json:"keyId"`
 	Key         []byte                    `json:"key"`
 	Permissions *ChannelPermissionsObject `json:"permissions"`
@@ -84,6 +86,7 @@ func (rq *OpenChannelRequest) sanitizeAndValidate() error {
 */
 type CloseChannelRequest struct {
 	Id        string
+	Signers   *core.VerifiedSigners
 	Timestamp time.Time `json:"timestamp"`
 }
 
