@@ -47,8 +47,9 @@ func TestAddChannelRequest(t *testing.T) {
 	ticketGenerator := createDummyTicketGeneratorFunctor()
 
 	rq := &channels.OpenChannelRequest{
-		KeyId: genericKeyId,
-		Key:   genericKey,
+		KeyId:     genericKeyId,
+		Key:       genericKey,
+		Timestamp: nowTime,
 	}
 	rqEncoded, _ := rq.Encode()
 
@@ -104,7 +105,7 @@ func TestAddChannelRequest(t *testing.T) {
 
 	channelActionCall := (<-channelActionCalls).(*channels.OpenChannelRequest)
 	expectedRq := &channels.OpenChannelRequest{}
-	*expectedRq = *rq
+	expectedRq.Decode(rqEncoded)
 	expectedRq.Id = genericChannelId
 	expectedRq.Signers = generateGenericSigners()
 	if !reflect.DeepEqual(channelActionCall, expectedRq) {
