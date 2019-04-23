@@ -27,7 +27,7 @@ func startDaemons(conf *startup.Config, shutdownLambda core.ShutdownLambda) {
 	// Start channels subsystem
 	log.Debugf(startingChannelsSubsystemLogMsg)
 	channelsMainSubsystemConfig, channelsMessagesSubsystemConfig, channelsListenersSubsystemConfig := conf.GetChannelsSubsystemConfig()
-	channels.StartServers(channelsMainSubsystemConfig, channelsMessagesSubsystemConfig, channelsListenersSubsystemConfig, log, shutdownLambda)
+	channels.StartServers(channelsMainSubsystemConfig, channelsMessagesSubsystemConfig, channelsListenersSubsystemConfig, decryptor.MakeOperationRequest, log, shutdownLambda)
 
 	// Start status systems (status update and listeners servers)
 	log.Debugf(startingStatusSubsystemLogMsg)

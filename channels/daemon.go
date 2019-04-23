@@ -21,6 +21,7 @@ func StartServers(
 	channelsConfig ChannelsServerConfig,
 	messagesConfig MessagesServerConfig,
 	listenersConfig ListenersServerConfig,
+	operationQueuer core.OperationQueuer,
 	loggingHandler *core.LoggingHandler,
 	shutdownLambda core.ShutdownLambda,
 ) error {
@@ -31,7 +32,7 @@ func StartServers(
 	if err := startChannelsServer(channelsConfig, serversWaitGroup); err != nil {
 		return err
 	}
-	if err := startMessagesServer(messagesConfig, serversWaitGroup); err != nil {
+	if err := startMessagesServer(messagesConfig, operationQueuer, serversWaitGroup); err != nil {
 		return err
 	}
 	if err := startListenersServer(listenersConfig, serversWaitGroup); err != nil {

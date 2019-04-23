@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/gofarm"
 	"github.com/mngharbi/memstore"
 	"sync"
@@ -18,7 +19,8 @@ type MessagesServerConfig struct {
 }
 
 type messagesServer struct {
-	isInitialized bool
+	isInitialized   bool
+	operationQueuer core.OperationQueuer
 }
 
 var (
@@ -37,11 +39,12 @@ func provisionMessagesServerOnce() {
 	}
 }
 
-func startMessagesServer(conf MessagesServerConfig, serversWaitGroup *sync.WaitGroup) (err error) {
+func startMessagesServer(conf MessagesServerConfig, operationQueuer core.OperationQueuer, serversWaitGroup *sync.WaitGroup) (err error) {
 	defer serversWaitGroup.Done()
 	provisionMessagesServerOnce()
 	if !messagesServerSingleton.isInitialized {
 		messagesServerSingleton.isInitialized = true
+		messagesServerSingleton.operationQueuer = operationQueuer
 		messagesServerHandler.ResetServer()
 		messagesServerHandler.InitServer(&messagesServerSingleton)
 	}

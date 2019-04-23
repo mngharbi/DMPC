@@ -7,7 +7,10 @@ package channels
 import (
 	"crypto/rand"
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/status"
+	"github.com/mngharbi/gofarm"
 	"github.com/mngharbi/memstore"
+	intrand "math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -104,23 +107,59 @@ func multipleWorkersChannelsConfig() ChannelsServerConfig {
 }
 
 /*
+	OperationQueuer dummy
+*/
+
+func waitForRandomDuration() {
+	duration := time.Duration(intrand.Intn(100)) * time.Millisecond
+	timer := time.NewTimer(duration)
+	<-timer.C
+}
+
+func sendTicketAfterRandomDelay(channel chan *gofarm.Response, ticketReturned status.Ticket) {
+	waitForRandomDuration()
+	var ticketGeneric gofarm.Response = ticketReturned
+	channel <- &ticketGeneric
+}
+
+func createDummyOperationQueuerFunctor(ticketReturned status.Ticket, errsReturned []error, closeChannel bool) (core.OperationQueuer, chan core.Operation) {
+	callsChannel := make(chan core.Operation, 0)
+	requester := func(operation *core.Operation) (chan *gofarm.Response, []error) {
+		go (func() {
+			callsChannel <- *operation
+		})()
+		if errsReturned != nil {
+			return nil, errsReturned
+		}
+		responseChannel := make(chan *gofarm.Response)
+		if closeChannel {
+			close(responseChannel)
+		} else {
+			go sendTicketAfterRandomDelay(responseChannel, ticketReturned)
+		}
+		return responseChannel, nil
+	}
+	return requester, callsChannel
+}
+
+/*
 	Messages server utilities
 */
 
-func startMessagesServerAndTest(t *testing.T, conf MessagesServerConfig) bool {
+func startMessagesServerAndTest(t *testing.T, conf MessagesServerConfig, operationQueuer core.OperationQueuer) bool {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	defer wg.Wait()
-	if err := startMessagesServer(conf, wg); err != nil {
+	if err := startMessagesServer(conf, operationQueuer, wg); err != nil {
 		t.Errorf(err.Error())
 		return false
 	}
 	return true
 }
 
-func resetAndStartMessagesServer(t *testing.T, conf MessagesServerConfig) bool {
+func resetAndStartMessagesServer(t *testing.T, conf MessagesServerConfig, operationQueuer core.OperationQueuer) bool {
 	messagesServerSingleton = messagesServer{}
-	return startMessagesServerAndTest(t, conf)
+	return startMessagesServerAndTest(t, conf, operationQueuer)
 }
 
 func multipleWorkersMessagesConfig() MessagesServerConfig {
@@ -199,17 +238,17 @@ func getListenersRecordById(mem *memstore.Memstore, id string) *listenersRecord 
 	Server utilities
 */
 
-func startBothServersAndTest(t *testing.T, channelsConf ChannelsServerConfig, messagesConf MessagesServerConfig, listenersConf ListenersServerConfig) bool {
-	if err := StartServers(channelsConf, messagesConf, listenersConf, log, shutdownProgram); err != nil {
+func startBothServersAndTest(t *testing.T, channelsConf ChannelsServerConfig, messagesConf MessagesServerConfig, listenersConf ListenersServerConfig, operationQueuer core.OperationQueuer) bool {
+	if err := StartServers(channelsConf, messagesConf, listenersConf, operationQueuer, log, shutdownProgram); err != nil {
 		t.Errorf(err.Error())
 		return false
 	}
 	return true
 }
 
-func resetAndStartBothServers(t *testing.T, channelsConf ChannelsServerConfig, messagesConf MessagesServerConfig, listenersConf ListenersServerConfig) bool {
+func resetAndStartBothServers(t *testing.T, channelsConf ChannelsServerConfig, messagesConf MessagesServerConfig, listenersConf ListenersServerConfig, operationQueuer core.OperationQueuer) bool {
 	channelsServerSingleton = channelsServer{}
 	messagesServerSingleton = messagesServer{}
 	listenersServerSingleton = listenersServer{}
-	return startBothServersAndTest(t, channelsConf, messagesConf, listenersConf)
+	return startBothServersAndTest(t, channelsConf, messagesConf, listenersConf, operationQueuer)
 }

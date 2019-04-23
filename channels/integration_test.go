@@ -6,11 +6,13 @@
 package channels
 
 import (
+	"github.com/mngharbi/DMPC/status"
 	"testing"
 )
 
 func TestStartShutdownServers(t *testing.T) {
-	if !resetAndStartBothServers(t, multipleWorkersChannelsConfig(), multipleWorkersMessagesConfig(), multipleWorkersListenersConfig()) {
+	operationQueuerDummy, _ := createDummyOperationQueuerFunctor(status.RequestNewTicket(), nil, false)
+	if !resetAndStartBothServers(t, multipleWorkersChannelsConfig(), multipleWorkersMessagesConfig(), multipleWorkersListenersConfig(), operationQueuerDummy) {
 		return
 	}
 	ShutdownServers()

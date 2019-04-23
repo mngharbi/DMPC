@@ -6,6 +6,7 @@ package core
 
 import (
 	"crypto/rsa"
+	"github.com/mngharbi/gofarm"
 )
 
 /*
@@ -27,3 +28,8 @@ type KeyAdder func(keyId string, key []byte) error
 	Function to decrypt by key id
 */
 type Decryptor func(keyId string, nonce []byte, ciphertext []byte) ([]byte, error)
+
+/*
+	Function to feed operation into decryptor
+*/
+type OperationQueuer func(*Operation) (chan *gofarm.Response, []error)

@@ -1,11 +1,13 @@
 package channels
 
 import (
+	"github.com/mngharbi/DMPC/status"
 	"testing"
 )
 
 func TestMessagesStartShutdown(t *testing.T) {
-	if !resetAndStartMessagesServer(t, multipleWorkersMessagesConfig()) {
+	operationQueuerDummy, _ := createDummyOperationQueuerFunctor(status.RequestNewTicket(), nil, false)
+	if !resetAndStartMessagesServer(t, multipleWorkersMessagesConfig(), operationQueuerDummy) {
 		return
 	}
 	shutdownMessagesServer()
@@ -22,7 +24,8 @@ func TestAddMessageServerDown(t *testing.T) {
 }
 
 func TestAddMessageValid(t *testing.T) {
-	if !resetAndStartMessagesServer(t, multipleWorkersMessagesConfig()) {
+	operationQueuerDummy, _ := createDummyOperationQueuerFunctor(status.RequestNewTicket(), nil, false)
+	if !resetAndStartMessagesServer(t, multipleWorkersMessagesConfig(), operationQueuerDummy) {
 		return
 	}
 	defer shutdownMessagesServer()
@@ -32,7 +35,8 @@ func TestAddMessageValid(t *testing.T) {
 }
 
 func TestAddMessageInvalid(t *testing.T) {
-	if !resetAndStartMessagesServer(t, multipleWorkersMessagesConfig()) {
+	operationQueuerDummy, _ := createDummyOperationQueuerFunctor(status.RequestNewTicket(), nil, false)
+	if !resetAndStartMessagesServer(t, multipleWorkersMessagesConfig(), operationQueuerDummy) {
 		return
 	}
 	defer shutdownMessagesServer()
@@ -73,7 +77,8 @@ func TestBufferOperationServerDown(t *testing.T) {
 }
 
 func TestBufferOperationValid(t *testing.T) {
-	if !resetAndStartMessagesServer(t, multipleWorkersMessagesConfig()) {
+	operationQueuerDummy, _ := createDummyOperationQueuerFunctor(status.RequestNewTicket(), nil, false)
+	if !resetAndStartMessagesServer(t, multipleWorkersMessagesConfig(), operationQueuerDummy) {
 		return
 	}
 	defer shutdownMessagesServer()
@@ -83,7 +88,8 @@ func TestBufferOperationValid(t *testing.T) {
 }
 
 func TestBufferOperationInvalid(t *testing.T) {
-	if !resetAndStartMessagesServer(t, multipleWorkersMessagesConfig()) {
+	operationQueuerDummy, _ := createDummyOperationQueuerFunctor(status.RequestNewTicket(), nil, false)
+	if !resetAndStartMessagesServer(t, multipleWorkersMessagesConfig(), operationQueuerDummy) {
 		return
 	}
 	defer shutdownMessagesServer()
