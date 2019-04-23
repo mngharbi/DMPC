@@ -75,7 +75,6 @@ func TestValidNonEncrypted(t *testing.T) {
 			RequestType: core.UsersRequestType,
 			Buffered:    false,
 		},
-		keyId:   keyId1,
 		signers: generateGenericSigners(),
 		payload: payload,
 	}
@@ -142,7 +141,6 @@ func TestValidTransactionEncryptedOnly(t *testing.T) {
 			RequestType: core.UsersRequestType,
 			Buffered:    false,
 		},
-		keyId:   keyId1,
 		signers: generateGenericSigners(),
 		payload: payload,
 	}
@@ -211,7 +209,6 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 			RequestType: core.UsersRequestType,
 			Buffered:    false,
 		},
-		keyId:   keyId1,
 		signers: generateGenericSigners(),
 		payload: payload,
 	}
@@ -267,7 +264,6 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 			RequestType: core.UsersRequestType,
 			Buffered:    false,
 		},
-		keyId:   keyId1,
 		signers: generateGenericSigners(),
 		payload: payload,
 	}
@@ -326,7 +322,6 @@ func TestValidTemporaryPermanentEncryptedUnverified(t *testing.T) {
 			RequestType: core.UsersRequestType,
 			Buffered:    false,
 		},
-		keyId:   keyId1,
 		signers: nil,
 		payload: payload,
 	}
@@ -423,7 +418,6 @@ func TestOperationEncryption(t *testing.T) {
 			RequestType: core.AddMessageType,
 			Buffered:    true,
 		},
-		keyId:           keyId1,
 		signers:         nil,
 		payload:         nil,
 		failedOperation: operation,
