@@ -52,6 +52,14 @@ func TestAddMessageInvalid(t *testing.T) {
 	if ch != nil || err == nil {
 		t.Error("Adding empty message should fail.")
 	}
+
+	// Empty channel id
+	invalid = makeValidAddMessageRequest()
+	invalid.ChannelId = ""
+	ch, err = AddMessage(invalid)
+	if ch != nil || err == nil {
+		t.Error("Adding message with empty channel id should fail.")
+	}
 }
 
 /*

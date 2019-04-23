@@ -23,6 +23,7 @@ type MessagesResponse struct {
 	Structure for add message request
 */
 type AddMessageRequest struct {
+	ChannelId string
 	Timestamp time.Time
 	Signers   *core.VerifiedSigners
 	Message   []byte
@@ -33,7 +34,8 @@ type AddMessageRequest struct {
 */
 func (rq *AddMessageRequest) sanitizeAndValidate() error {
 	valid := rq.Signers != nil &&
-		len(rq.Message) > 0
+		len(rq.Message) > 0 &&
+		len(rq.ChannelId) > 0
 	if !valid {
 		return errors.New("Add message request is invalid.")
 	}

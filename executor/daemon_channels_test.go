@@ -47,7 +47,6 @@ func TestAddChannelRequest(t *testing.T) {
 	ticketGenerator := createDummyTicketGeneratorFunctor()
 
 	rq := &channels.OpenChannelRequest{
-		Id:    genericChannelId,
 		KeyId: genericKeyId,
 		Key:   genericKey,
 	}
@@ -55,6 +54,7 @@ func TestAddChannelRequest(t *testing.T) {
 
 	meta := &core.OperationMetaFields{
 		RequestType: core.AddChannelType,
+		ChannelId:   genericChannelId,
 		Timestamp:   nowTime,
 	}
 
@@ -103,8 +103,11 @@ func TestAddChannelRequest(t *testing.T) {
 	}
 
 	channelActionCall := (<-channelActionCalls).(*channels.OpenChannelRequest)
-	if !reflect.DeepEqual(channelActionCall, rq) {
-		t.Error("Channel add request should be forwared to channel action subsystem.")
+	expectedRq := &channels.OpenChannelRequest{}
+	*expectedRq = *rq
+	expectedRq.Id = genericChannelId
+	if !reflect.DeepEqual(channelActionCall, expectedRq) {
+		t.Error("Channel add request should be forwarded to channel action subsystem.")
 	}
 }
 
@@ -120,13 +123,13 @@ func TestCloseChannelRequest(t *testing.T) {
 	ticketGenerator := createDummyTicketGeneratorFunctor()
 
 	rq := &channels.CloseChannelRequest{
-		Id:        genericChannelId,
 		Timestamp: nowTime,
 	}
 	rqEncoded, _ := rq.Encode()
 
 	meta := &core.OperationMetaFields{
 		RequestType: core.CloseChannelType,
+		ChannelId:   genericChannelId,
 		Timestamp:   nowTime,
 	}
 
@@ -157,8 +160,9 @@ func TestCloseChannelRequest(t *testing.T) {
 	channelActionCall := (<-channelActionCalls).(*channels.CloseChannelRequest)
 	rqDecoded := &channels.CloseChannelRequest{}
 	rqDecoded.Decode(rqEncoded)
+	rqDecoded.Id = genericChannelId
 	if !reflect.DeepEqual(channelActionCall, rqDecoded) {
-		t.Errorf("Channel close request should be forwared to channel action subsystem. expected=%+v, found=%+v", rqDecoded, channelActionCall)
+		t.Errorf("Channel close request should be forwarded to channel action subsystem. expected=%+v, found=%+v", rqDecoded, channelActionCall)
 	}
 }
 
@@ -370,12 +374,14 @@ func doMessagesTesting(t *testing.T, isVerified bool, isBuffered bool) {
 			nb, _ := strconv.Atoi(string(callLog.(*channels.BufferOperationRequest).Operation.Payload))
 			checksum += nb
 		} else {
-			if callLog.(*channels.AddMessageRequest).Timestamp != nowTime ||
-				!reflect.DeepEqual(callLog.(*channels.AddMessageRequest).Signers, generateGenericSigners()) {
-				t.Errorf("Unexpected call made to messages subsystem. Call=%+v", callLog.(*channels.AddMessageRequest))
+			addMessageRequest := callLog.(*channels.AddMessageRequest)
+			if addMessageRequest.Timestamp != nowTime ||
+				!reflect.DeepEqual(addMessageRequest.Signers, generateGenericSigners()) ||
+				addMessageRequest.ChannelId != genericChannelId {
+				t.Errorf("Unexpected call made to messages subsystem. Request=%+v", addMessageRequest)
 				return
 			} else {
-				nb, _ := strconv.Atoi(string(callLog.(*channels.AddMessageRequest).Message))
+				nb, _ := strconv.Atoi(string(addMessageRequest.Message))
 				checksum += nb
 			}
 

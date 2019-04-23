@@ -31,6 +31,9 @@ func (sv *server) doAddChannel(wrappedRequest *executorRequest) {
 		return
 	}
 
+	// Set channel id from operation meta fields
+	request.Id = wrappedRequest.metaFields.ChannelId
+
 	// Get and RLock certifier user object
 	if wrappedRequest.signers == nil {
 		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{unverifiedChannelCreationError})
@@ -125,6 +128,9 @@ func (sv *server) doCloseChannel(wrappedRequest *executorRequest) {
 		return
 	}
 
+	// Set channel id from operation meta fields
+	request.Id = wrappedRequest.metaFields.ChannelId
+
 	// Lock channel
 	lockRequest := &locker.LockerRequest{
 		Type: locker.ChannelLock,
@@ -194,6 +200,7 @@ func (sv *server) doAddMessage(wrappedRequest *executorRequest) {
 	var requestErr error
 	if wrappedRequest.failedOperation == nil {
 		messageChannel, requestErr = sv.messageAdder(&channels.AddMessageRequest{
+			ChannelId: wrappedRequest.metaFields.ChannelId,
 			Timestamp: wrappedRequest.metaFields.Timestamp,
 			Signers:   wrappedRequest.signers,
 			Message:   wrappedRequest.request,

@@ -42,7 +42,7 @@ type ChannelPermissionsObject struct {
 	Users map[string]*ChannelPermissionObject `json:"users"`
 }
 type OpenChannelRequest struct {
-	Id          string                    `json:"id"`
+	Id          string
 	KeyId       string                    `json:"keyId"`
 	Key         []byte                    `json:"key"`
 	Permissions *ChannelPermissionsObject `json:"permissions"`
@@ -83,7 +83,7 @@ func (rq *OpenChannelRequest) sanitizeAndValidate() error {
 	Structure for close channel request
 */
 type CloseChannelRequest struct {
-	Id        string    `json:"id"`
+	Id        string
 	Timestamp time.Time `json:"timestamp"`
 }
 

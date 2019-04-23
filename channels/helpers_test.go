@@ -131,6 +131,7 @@ func multipleWorkersMessagesConfig() MessagesServerConfig {
 
 func makeValidAddMessageRequest() *AddMessageRequest {
 	return &AddMessageRequest{
+		ChannelId: genericChannelId,
 		Timestamp: time.Now(),
 		Signers: &core.VerifiedSigners{
 			IssuerId:    genericIssuerId,
