@@ -22,7 +22,7 @@ const (
 
 type Event struct {
 	Type      EventType `json:"type"`
-	Order     int       `json:"order"`
+	Position  int       `json:"position"`
 	Timestamp time.Time `json:"timestamp"`
 	Data      []byte    `json:"data"`
 }
@@ -30,7 +30,7 @@ type Event struct {
 func makeOpenEvent(timestamp time.Time) *Event {
 	return &Event{
 		Type:      Open,
-		Order:     0,
+		Position:  0,
 		Timestamp: timestamp,
 		Data:      nil,
 	}
@@ -39,16 +39,16 @@ func makeOpenEvent(timestamp time.Time) *Event {
 func makeCloseEvent(timestamp time.Time, validMessages int) *Event {
 	return &Event{
 		Type:      Close,
-		Order:     validMessages,
+		Position:  validMessages,
 		Timestamp: timestamp,
 		Data:      nil,
 	}
 }
 
-func makeMessageEvent(timestamp time.Time, order int, message []byte) *Event {
+func makeMessageEvent(timestamp time.Time, position int, message []byte) *Event {
 	return &Event{
 		Type:      Message,
-		Order:     order,
+		Position:  position,
 		Timestamp: timestamp,
 		Data:      message,
 	}

@@ -115,15 +115,40 @@ func (sv *messagesServer) Shutdown() error {
 	return nil
 }
 
-func (sv *messagesServer) Work(rq *gofarm.Request) *gofarm.Response {
+func (sv *messagesServer) Work(rqInterface *gofarm.Request) *gofarm.Response {
 	log.Debugf(messagesRunningRequestLogMsg)
 
-	// Handle different requests
-	switch (*rq).(type) {
-	case AddMessageRequest:
-	case BufferOperationRequest:
+	var statusCode MessagesStatusCode = MessagesSuccess
+
+	switch (*rqInterface).(type) {
+	case *AddMessageRequest:
+		rq := (*rqInterface).(*AddMessageRequest)
+
+		// Get/Lock channel
+		channelRecord := createOrGetChannel(channelsStore, rq.ChannelId)
+		channelRecord.Lock()
+		defer func() { channelRecord.Unlock() }()
+
+		// Try to add message
+		actionRecord := &channelActionRecord{
+			issuerId:    rq.Signers.IssuerId,
+			certifierId: rq.Signers.CertifierId,
+			timestamp:   rq.Timestamp,
+		}
+		messagePosition, addSuccess := channelRecord.addMessage(actionRecord)
+		if !addSuccess {
+			statusCode = MessagesDropped
+			break
+		}
+
+		// Notify listeners of message
+		notifyListeners(listenersStore, rq.ChannelId, makeMessageEvent(rq.Timestamp, messagePosition, rq.Message))
+
+	case *BufferOperationRequest:
 	}
 
-	var resp gofarm.Response = &MessagesResponse{}
+	var resp gofarm.Response = &MessagesResponse{
+		Result: statusCode,
+	}
 	return &resp
 }
