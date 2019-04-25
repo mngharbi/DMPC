@@ -2,6 +2,7 @@ package channels
 
 import (
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/memstore"
 	"sync"
 )
 
@@ -12,6 +13,23 @@ type channelBufferRecord struct {
 	id         string
 	operations []*core.Operation
 	lock       *sync.Mutex
+}
+
+/*
+	Utilities
+*/
+
+func createEmptyChannelBufferRecord(id string) *channelBufferRecord {
+	return &channelBufferRecord{
+		id:         id,
+		operations: []*core.Operation{},
+		lock:       &sync.Mutex{},
+	}
+}
+
+func createOrGetChannelBuffer(channelbufferStore *memstore.Memstore, id string) *channelBufferRecord {
+	newRecord := createEmptyChannelBufferRecord(id)
+	return channelbufferStore.AddOrGet(newRecord).(*channelBufferRecord)
 }
 
 /*
@@ -54,15 +72,4 @@ func getChannelBufferIndexes() (res []string) {
 		res = append(res, k)
 	}
 	return res
-}
-
-/*
-	Utilities
-*/
-func makeEmptyChannelBufferRecord(id string) *channelBufferRecord {
-	return &channelBufferRecord{
-		id:         id,
-		operations: []*core.Operation{},
-		lock:       &sync.Mutex{},
-	}
 }

@@ -20,6 +20,7 @@ func TestTryOpen(t *testing.T) {
 		&channelPermissionsRecord{users: map[string]*channelPermissionRecord{
 			genericUserId: {true, true, true},
 		}},
+		genericKeyId,
 	) {
 		t.Error("Opening a buffered channel with an invalid opening record should fail")
 	}
@@ -30,6 +31,7 @@ func TestTryOpen(t *testing.T) {
 		&channelPermissionsRecord{users: map[string]*channelPermissionRecord{
 			genericUserId: {true, true, true},
 		}},
+		genericKeyId,
 	) {
 		t.Error("Opening a buffered channel with a zero opening time should fail")
 	}
@@ -38,6 +40,7 @@ func TestTryOpen(t *testing.T) {
 		genericChannelId,
 		&channelActionRecord{genericIssuerId, genericCertifierId, time.Now()},
 		nil,
+		genericKeyId,
 	) {
 		t.Error("Opening a buffered channel with no permissions record should fail")
 	}
@@ -46,8 +49,20 @@ func TestTryOpen(t *testing.T) {
 		genericChannelId,
 		&channelActionRecord{genericIssuerId, genericCertifierId, time.Now()},
 		&channelPermissionsRecord{users: map[string]*channelPermissionRecord{}},
+		genericKeyId,
 	) {
 		t.Error("Opening a buffered channel with no users should fail")
+	}
+
+	if rec.tryOpen(
+		genericChannelId,
+		&channelActionRecord{genericIssuerId, genericCertifierId, time.Now()},
+		&channelPermissionsRecord{users: map[string]*channelPermissionRecord{
+			genericUserId: {true, true, true},
+		}},
+		"",
+	) {
+		t.Error("Opening a buffered channel with an empty key id should fail")
 	}
 
 	if !rec.tryOpen(
@@ -56,6 +71,7 @@ func TestTryOpen(t *testing.T) {
 		&channelPermissionsRecord{users: map[string]*channelPermissionRecord{
 			genericUserId: {true, true, true},
 		}},
+		genericKeyId,
 	) {
 		t.Error("Opening a buffered channel should not fail")
 	}
@@ -69,6 +85,7 @@ func TestTryOpen(t *testing.T) {
 		&channelPermissionsRecord{users: map[string]*channelPermissionRecord{
 			genericUserId: {true, true, true},
 		}},
+		genericKeyId,
 	) {
 		t.Error("Reopening a channel should fail")
 	}
@@ -79,9 +96,9 @@ func TestTryClose(t *testing.T) {
 	rec := &channelRecord{
 		state: channelBufferedState,
 	}
-	if !rec.tryClose(
+	if _, ok := rec.tryClose(
 		&channelActionRecord{genericIssuerId, genericCertifierId, time.Now()},
-	) {
+	); !ok {
 		t.Error("Closing a buffered channel should not fail")
 	}
 	if rec.computeState() != channelBufferedState ||
@@ -89,40 +106,60 @@ func TestTryClose(t *testing.T) {
 		t.Error("Closing a buffered channel should add closure attempt")
 	}
 
+	currentTime := time.Now()
+
 	if !rec.tryOpen(
 		genericChannelId,
-		&channelActionRecord{genericIssuerId, genericCertifierId, time.Now()},
+		&channelActionRecord{genericIssuerId, genericCertifierId, currentTime},
 		&channelPermissionsRecord{users: map[string]*channelPermissionRecord{
-			genericUserId: {true, true, true},
+			genericIssuerId:    {false, false, false},
+			genericCertifierId: {true, true, true},
 		}},
+		genericKeyId,
 	) {
 		t.Error("Opening a buffered channel should not fail")
 	}
 
+	// Add a message after a minute of opening
+	if _, ok := rec.addMessage(
+		&channelActionRecord{genericIssuerId, genericCertifierId, currentTime.Add(time.Minute)},
+	); !ok {
+		t.Error("Adding a valid message should not fail")
+	}
+
+	// Add a message after 2 hours of opening
+	if _, ok := rec.addMessage(
+		&channelActionRecord{genericIssuerId, genericCertifierId, currentTime.Add(2 * time.Hour)},
+	); !ok {
+		t.Error("Adding a valid message should not fail")
+	}
+
 	// Close an open record
-	if rec.tryClose(
-		nil,
-	) {
+	if _, ok := rec.tryClose(nil); ok {
 		t.Error("Closing a channel without closure record should fail")
 	}
-	if rec.tryClose(
-		&channelActionRecord{genericIssuerId, genericIssuerId, time.Now()},
-	) {
+	if _, ok := rec.tryClose(
+		&channelActionRecord{genericIssuerId, genericIssuerId, currentTime},
+	); ok {
 		t.Error("Closing a channel by user that doesn't have permissions should fail")
 	}
-	if rec.tryClose(
-		&channelActionRecord{genericUserId, genericUserId, time.Now().Add(-1 * time.Hour)},
-	) {
+	if _, ok := rec.tryClose(
+		&channelActionRecord{genericIssuerId, genericCertifierId, currentTime.Add(-1 * time.Hour)},
+	); ok {
 		t.Error("Closing a channel before its opening time should fail")
 	}
-	if !rec.tryClose(
-		&channelActionRecord{genericUserId, genericUserId, time.Now()},
-	) {
+	remainingMessages, closeOk := rec.tryClose(
+		&channelActionRecord{genericIssuerId, genericCertifierId, currentTime.Add(time.Hour)},
+	)
+	if !closeOk {
 		t.Error("Closing a channel should not fail")
 	}
 	if rec.computeState() != channelClosedState ||
 		rec.closure == nil {
 		t.Error("Closing an open channel should move it to closed state ")
+	}
+	if remainingMessages != 1 {
+		t.Error("Closing an open channel with messages should remove late messages")
 	}
 }
 
@@ -135,9 +172,9 @@ func TestApplyCloseAttemptsInvalid(t *testing.T) {
 	}
 
 	// Add invalid close attempt (no permissions)
-	if !rec.tryClose(
+	if _, ok := rec.tryClose(
 		&channelActionRecord{genericIssuerId, genericIssuerId, currentTime.Add(1 * time.Hour)},
-	) {
+	); !ok {
 		t.Error("Attempting to close a buffered channel should not fail")
 	}
 
@@ -147,9 +184,9 @@ func TestApplyCloseAttemptsInvalid(t *testing.T) {
 	}
 
 	// Add invalid close attempt again
-	if !rec.tryClose(
+	if _, ok := rec.tryClose(
 		&channelActionRecord{genericIssuerId, genericIssuerId, currentTime.Add(1 * time.Hour)},
-	) {
+	); !ok {
 		t.Error("Attempting to close a buffered channel should not fail")
 	}
 	// Open channel
@@ -159,6 +196,7 @@ func TestApplyCloseAttemptsInvalid(t *testing.T) {
 		&channelPermissionsRecord{users: map[string]*channelPermissionRecord{
 			genericUserId: {true, true, true},
 		}},
+		genericKeyId,
 	) {
 		t.Error("Opening a buffered channel should not fail")
 	}
@@ -180,9 +218,9 @@ func TestApplyCloseAttempts(t *testing.T) {
 	// Add valid attempts
 	attempts := 5
 	for i := attempts; i > 0; i-- {
-		if !rec.tryClose(
+		if _, ok := rec.tryClose(
 			&channelActionRecord{genericUserId, genericUserId, currentTime.Add(time.Duration(i) * time.Hour)},
-		) {
+		); !ok {
 			t.Error("Attempting to close a buffered channel should not fail")
 		}
 	}
@@ -198,6 +236,7 @@ func TestApplyCloseAttempts(t *testing.T) {
 		&channelPermissionsRecord{users: map[string]*channelPermissionRecord{
 			genericUserId: {true, true, true},
 		}},
+		genericKeyId,
 	) {
 		t.Error("Opening a buffered channel should not fail")
 	}
@@ -216,54 +255,102 @@ func TestApplyCloseAttempts(t *testing.T) {
 	Test add message
 */
 func TestAddMessage(t *testing.T) {
-	// Build record with 3 timestamps
-	recVal := channelRecord{
-		messageTimestamps: []time.Time{},
-	}
-	curTime := time.Now()
-	pos1Time := curTime.Add(time.Minute)
-	for i := 0; i < 3; i++ {
-		recVal.messageTimestamps = append(recVal.messageTimestamps, curTime)
-		curTime = curTime.Add(time.Hour)
-	}
-	rec := &channelRecord{}
-	*rec = recVal
+	currentTime := time.Now()
 
-	// Test valid add message with open state
-	*rec = recVal
-	rec.state = channelOpenState
-	if pos, ok := rec.addMessage(pos1Time); !ok || pos != 1 {
-		t.Error("Adding valid message to an open channel should not fail")
+	// Define valid add message action
+	validAddMessageActionPtr := &channelActionRecord{
+		issuerId:    genericIssuerId,
+		certifierId: genericCertifierId,
+		timestamp:   currentTime,
 	}
 
-	// Test valid add message with closed state
-	*rec = recVal
-	rec.state = channelClosedState
-	if pos, ok := rec.addMessage(pos1Time); !ok || pos != 1 {
-		t.Error("Adding valid message to a closed channel should not fail")
+	// Create buffered channel
+	rec := &channelRecord{
+		state: channelBufferedState,
 	}
 
-	// Test two valid add message with open state
-	*rec = recVal
-	rec.state = channelOpenState
-	if pos, ok := rec.addMessage(pos1Time); !ok || pos != 1 {
-		t.Error("Adding valid message to an open channel should not fail")
-	}
-	if pos, ok := rec.addMessage(pos1Time.Add(time.Minute)); !ok || pos != 2 {
-		t.Error("Adding second valid message should update ordering")
-	}
-
-	// Add to a buffered record
-	*rec = recVal
-	rec.state = channelBufferedState
-	if _, ok := rec.addMessage(pos1Time); ok {
+	// Adding message to buffered channel
+	if _, ok := rec.addMessage(validAddMessageActionPtr); ok {
 		t.Error("Adding message to a buffered channel should fail")
 	}
 
-	// Add zero timestamp message
-	*rec = recVal
-	rec.state = channelOpenState
-	if _, ok := rec.addMessage(time.Time{}); ok {
-		t.Error("Adding message with zero timestamp should fail")
+	// Open channel (-1 hour)
+	if !rec.tryOpen(
+		genericChannelId,
+		&channelActionRecord{genericIssuerId, genericCertifierId, currentTime.Add(-1 * time.Hour)},
+		&channelPermissionsRecord{users: map[string]*channelPermissionRecord{
+			genericCertifierId: {true, true, true},
+		}},
+		genericKeyId,
+	) {
+		t.Error("Opening a buffered channel should not fail")
+	}
+
+	// Adding 3 valid messages with 1 minute interval should not fail
+	tmpTime := currentTime
+	tmpChannelAction := &channelActionRecord{}
+	*tmpChannelAction = *validAddMessageActionPtr
+	for i := 0; i < 3; i++ {
+		tmpChannelAction.timestamp = tmpTime
+		if pos, ok := rec.addMessage(tmpChannelAction); !ok || pos != i {
+			t.Error("Adding valid message to an open channel should not fail")
+		}
+		tmpTime = tmpTime.Add(time.Minute)
+	}
+
+	// Adding valid message with no permissions should fail
+	*tmpChannelAction = *validAddMessageActionPtr
+	tmpChannelAction.certifierId = genericIssuerId
+	if _, ok := rec.addMessage(tmpChannelAction); ok {
+		t.Error("Adding valid message without permissions should fail")
+	}
+
+	// Adding message with invalid timestamp should fail
+	*tmpChannelAction = *validAddMessageActionPtr
+	tmpChannelAction.timestamp = time.Time{}
+	if _, ok := rec.addMessage(tmpChannelAction); ok {
+		t.Error("Adding message with invalid timestamp should fail")
+	}
+
+	// Adding message before opening time
+	*tmpChannelAction = *validAddMessageActionPtr
+	tmpChannelAction.timestamp = currentTime.Add(-2 * time.Hour)
+	if _, ok := rec.addMessage(tmpChannelAction); ok {
+		t.Error("Adding message to open channel should fail if it's before opening time")
+	}
+
+	// Adding message at opening time
+	*tmpChannelAction = *validAddMessageActionPtr
+	tmpChannelAction.timestamp = currentTime.Add(-1 * time.Hour)
+	if _, ok := rec.addMessage(tmpChannelAction); !ok {
+		t.Error("Adding message to open channel should not fail if it's at opening time")
+	}
+
+	// Close channel (+1 hour)
+	if _, ok := rec.tryClose(
+		&channelActionRecord{genericIssuerId, genericCertifierId, currentTime.Add(1 * time.Hour)},
+	); !ok {
+		t.Error("Attempting to close an open channel should not fail")
+	}
+
+	// Adding message to closed channel before closing time (+1 second)
+	*tmpChannelAction = *validAddMessageActionPtr
+	tmpChannelAction.timestamp = currentTime.Add(time.Second)
+	if pos, ok := rec.addMessage(tmpChannelAction); !ok || pos != 2 {
+		t.Error("Adding message to closed channel should not fail if it's before closure")
+	}
+
+	// Adding message to closed channel at closing time
+	*tmpChannelAction = *validAddMessageActionPtr
+	tmpChannelAction.timestamp = currentTime.Add(time.Hour)
+	if _, ok := rec.addMessage(tmpChannelAction); !ok {
+		t.Error("Adding message to closed channel should not fail if it's at closure")
+	}
+
+	// Adding message to closed channel after closing time (+2 hour)
+	*tmpChannelAction = *validAddMessageActionPtr
+	tmpChannelAction.timestamp = currentTime.Add(2 * time.Hour)
+	if _, ok := rec.addMessage(tmpChannelAction); ok {
+		t.Error("Adding message to closed channel should fail if it's after closure")
 	}
 }

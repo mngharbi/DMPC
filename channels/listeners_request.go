@@ -5,5 +5,5 @@ package channels
 */
 type listenersRequest struct {
 	id      string
-	channel MessageChannel
+	channel EventChannel
 }

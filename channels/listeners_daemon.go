@@ -54,9 +54,9 @@ func shutdownListenersServer() {
 	Functional API
 */
 
-func AddListener(id string) (MessageChannel, error) {
+func AddListener(id string) (EventChannel, error) {
 	// Make channel to be passed to daemon and back to the caller
-	channel := make(MessageChannel, 0)
+	channel := make(EventChannel, 0)
 
 	// Make request
 	_, err := listenersServerHandler.MakeRequest(&listenersRequest{

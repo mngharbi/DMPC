@@ -14,6 +14,8 @@ type ChannelsStatusCode int
 
 const (
 	ChannelsSuccess ChannelsStatusCode = iota
+	ChannelsFailure
+	BufferError
 )
 
 type ChannelsResponse struct {
