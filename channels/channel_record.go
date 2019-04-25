@@ -94,8 +94,9 @@ type channelRecord struct {
 
 func makeEmptyChannelRecord(id string) *channelRecord {
 	return &channelRecord{
-		id:   id,
-		lock: &sync.RWMutex{},
+		id:    id,
+		lock:  &sync.RWMutex{},
+		state: channelBufferedState,
 	}
 }
 

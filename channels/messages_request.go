@@ -14,6 +14,7 @@ type MessagesStatusCode int
 const (
 	MessagesSuccess MessagesStatusCode = iota
 	MessagesDropped
+	MessagesBufferError
 )
 
 type MessagesResponse struct {

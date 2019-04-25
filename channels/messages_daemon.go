@@ -145,6 +145,33 @@ func (sv *messagesServer) Work(rqInterface *gofarm.Request) *gofarm.Response {
 		notifyListeners(listenersStore, rq.ChannelId, makeMessageEvent(rq.Timestamp, messagePosition, rq.Message))
 
 	case *BufferOperationRequest:
+		rq := (*rqInterface).(*BufferOperationRequest)
+
+		// Get/Lock channel
+		channelRecord := createOrGetChannel(channelsStore, rq.Operation.Meta.ChannelId)
+		channelRecord.Lock()
+		defer func() { channelRecord.Unlock() }()
+
+		/*
+			In case of a race condition between open and buffer, buffer could happen on an open channel
+			Directly buffer it in that case
+		*/
+		if channelRecord.state != channelBufferedState {
+			respChannel, _ := messagesServerSingleton.operationQueuer(rq.Operation)
+			_, ok := <-respChannel
+			if !ok {
+				// This occurs when decryptor is shut down prematurely
+				// @TODO: handle this gracefully
+				statusCode = MessagesBufferError
+			}
+			break
+		}
+
+		// Add operation to buffer record
+		bufferRecord := createOrGetChannelBuffer(bufferStore, rq.Operation.Meta.ChannelId)
+		bufferRecord.Lock()
+		defer func() { bufferRecord.Unlock() }()
+		bufferRecord.operations = append(bufferRecord.operations, rq.Operation)
 	}
 
 	var resp gofarm.Response = &MessagesResponse{
