@@ -211,3 +211,59 @@ func TestApplyCloseAttempts(t *testing.T) {
 		t.Error("Applying close attempts should apply them in ascending time ordering")
 	}
 }
+
+/*
+	Test add message
+*/
+func TestAddMessage(t *testing.T) {
+	// Build record with 3 timestamps
+	recVal := channelRecord{
+		messageTimestamps: []time.Time{},
+	}
+	curTime := time.Now()
+	pos1Time := curTime.Add(time.Minute)
+	for i := 0; i < 3; i++ {
+		recVal.messageTimestamps = append(recVal.messageTimestamps, curTime)
+		curTime = curTime.Add(time.Hour)
+	}
+	rec := &channelRecord{}
+	*rec = recVal
+
+	// Test valid add message with open state
+	*rec = recVal
+	rec.state = channelOpenState
+	if pos, ok := rec.addMessage(pos1Time); !ok || pos != 1 {
+		t.Error("Adding valid message to an open channel should not fail")
+	}
+
+	// Test valid add message with closed state
+	*rec = recVal
+	rec.state = channelClosedState
+	if pos, ok := rec.addMessage(pos1Time); !ok || pos != 1 {
+		t.Error("Adding valid message to a closed channel should not fail")
+	}
+
+	// Test two valid add message with open state
+	*rec = recVal
+	rec.state = channelOpenState
+	if pos, ok := rec.addMessage(pos1Time); !ok || pos != 1 {
+		t.Error("Adding valid message to an open channel should not fail")
+	}
+	if pos, ok := rec.addMessage(pos1Time.Add(time.Minute)); !ok || pos != 2 {
+		t.Error("Adding second valid message should update ordering")
+	}
+
+	// Add to a buffered record
+	*rec = recVal
+	rec.state = channelBufferedState
+	if _, ok := rec.addMessage(pos1Time); ok {
+		t.Error("Adding message to a buffered channel should fail")
+	}
+
+	// Add zero timestamp message
+	*rec = recVal
+	rec.state = channelOpenState
+	if _, ok := rec.addMessage(time.Time{}); ok {
+		t.Error("Adding message with zero timestamp should fail")
+	}
+}

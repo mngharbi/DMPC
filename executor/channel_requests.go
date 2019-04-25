@@ -183,12 +183,12 @@ func (sv *server) doCloseChannel(wrappedRequest *executorRequest) {
 */
 
 func (sv *server) doAddMessage(wrappedRequest *executorRequest) {
-	// Read Lock channel
+	// Lock channel
 	lockRequest := &locker.LockerRequest{
 		Type: locker.ChannelLock,
 		Needs: []core.LockNeed{
 			{
-				LockType: core.ReadLockType,
+				LockType: core.WriteLockType,
 				Id:       wrappedRequest.metaFields.ChannelId,
 			},
 		},

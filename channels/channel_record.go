@@ -68,6 +68,10 @@ type channelRecord struct {
 	closure         *channelActionRecord
 	closureAttempts channelActionCollection
 
+	// Message timestamps (to determine order)
+	// @TODO: Use a tree for O(log n) add message
+	messageTimestamps []time.Time
+
 	// State management
 	state channelState
 	lock  *sync.RWMutex
@@ -158,6 +162,28 @@ func (rec *channelRecord) applyCloseAttempts() bool {
 	}
 
 	return false
+}
+
+/*
+	Add message to channel
+	Returns position of message
+	@TODO: Switch to vector clock -> timestamp -> message hash for sorting
+*/
+func (rec *channelRecord) addMessage(messageTimestamp time.Time) (int, bool) {
+	if rec.state == channelBufferedState ||
+		rec.state == channelInconsistentState ||
+		messageTimestamp.IsZero() {
+		return 0, false
+	}
+
+	messagePosition := 0
+	for _, timestamp := range rec.messageTimestamps {
+		if timestamp.Before(messageTimestamp) {
+			messagePosition++
+		}
+	}
+	rec.messageTimestamps = append(rec.messageTimestamps, messageTimestamp)
+	return messagePosition, true
 }
 
 /*

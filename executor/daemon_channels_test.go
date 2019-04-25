@@ -234,7 +234,7 @@ func doMessagesTesting(t *testing.T, isVerified bool, isBuffered bool) {
 	}
 
 	// Check channel read lock/unlock
-	checkChannelLocking(t, lockerCalls, core.ReadLockType)
+	checkChannelLocking(t, lockerCalls, core.WriteLockType)
 
 	// Test with channel closed from channels subsystem closure
 	if isBuffered {
@@ -267,7 +267,7 @@ func doMessagesTesting(t *testing.T, isVerified bool, isBuffered bool) {
 	}
 
 	// Check channel read lock/unlock
-	checkChannelLocking(t, lockerCalls, core.ReadLockType)
+	checkChannelLocking(t, lockerCalls, core.WriteLockType)
 
 	// Test with failed requests
 	if isBuffered {
@@ -300,7 +300,7 @@ func doMessagesTesting(t *testing.T, isVerified bool, isBuffered bool) {
 	}
 
 	// Check channel read lock/unlock
-	checkChannelLocking(t, lockerCalls, core.ReadLockType)
+	checkChannelLocking(t, lockerCalls, core.WriteLockType)
 
 	// Test with one successful request
 	if isBuffered {
@@ -389,7 +389,7 @@ func doMessagesTesting(t *testing.T, isVerified bool, isBuffered bool) {
 			}
 
 			// Check channel read lock/unlock
-			checkChannelLocking(t, lockerCalls, core.ReadLockType)
+			checkChannelLocking(t, lockerCalls, core.WriteLockType)
 		}
 	}
 	if checksum != checksumExpected {
