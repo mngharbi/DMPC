@@ -137,7 +137,7 @@ func (rec *channelRecord) tryOpen(id string, opening *channelActionRecord, permi
 	@TODO: Handle cutting out messages that fall outside duration
 */
 func (rec *channelRecord) tryClose(closure *channelActionRecord) (int, bool) {
-	if rec.state == channelClosedState ||
+	if rec.state == channelInconsistentState ||
 		closure == nil ||
 		closure.timestamp.IsZero() {
 		return 0, false
@@ -160,6 +160,18 @@ func (rec *channelRecord) tryClose(closure *channelActionRecord) (int, bool) {
 		canClose = permissionRecord.close
 	}
 	if !canClose {
+		return 0, false
+	}
+
+	// Determine if there were earlier closure attempts (if channel is closed already)
+	if rec.state == channelClosedState && rec.duration.closed.Before(closure.timestamp) {
+		return 0, false
+	}
+
+	// If timestamp is equal, rely on issuer id as tiebreaker
+	if rec.state == channelClosedState &&
+		rec.duration.closed.Equal(closure.timestamp) &&
+		rec.closure.issuerId <= closure.issuerId {
 		return 0, false
 	}
 

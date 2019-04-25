@@ -21,11 +21,13 @@ import (
 */
 
 const (
-	genericChannelId   string = "channelId"
-	genericKeyId       string = "keyId"
-	genericUserId      string = "USER_1"
-	genericIssuerId    string = "IssuerId"
-	genericCertifierId string = "CertifierId"
+	genericChannelId      string = "channelId"
+	genericKeyId          string = "keyId"
+	genericUserId         string = "USER_1"
+	genericIssuerId       string = "IssuerId"
+	genericIssuerIdBefore string = "AssuerId"
+	genericIssuerIdAfter  string = "ZssuerId"
+	genericCertifierId    string = "CertifierId"
 )
 
 /*

@@ -161,6 +161,35 @@ func TestTryClose(t *testing.T) {
 	if remainingMessages != 1 {
 		t.Error("Closing an open channel with messages should remove late messages")
 	}
+
+	// Try to close after first close
+	if _, ok := rec.tryClose(
+		&channelActionRecord{genericIssuerId, genericCertifierId, currentTime.Add(2 * time.Hour)},
+	); ok {
+		t.Error("Closing a channel after its closing time should fail")
+	}
+
+	// Try to close at the same time with different issuer (alphanumerically higher)
+	if _, ok := rec.tryClose(
+		&channelActionRecord{genericIssuerIdAfter, genericCertifierId, currentTime.Add(time.Hour)},
+	); ok {
+		t.Error("Closing a channel again at its closing time with higher issuer id should fail")
+	}
+
+	// Try to close at the same time with different issuer (alphanumerically lower)
+	if _, ok := rec.tryClose(
+		&channelActionRecord{genericIssuerIdBefore, genericCertifierId, currentTime.Add(time.Hour)},
+	); !ok {
+		t.Error("Closing a channel again at its closing time with lower issuer id should not fail")
+	}
+
+	// Try to close before first close
+	if remainingMessages, ok := rec.tryClose(
+		&channelActionRecord{genericIssuerId, genericCertifierId, currentTime.Add(time.Minute)},
+	); !ok || remainingMessages != 0 {
+		t.Error("Closing a channel before its closing time should not fail")
+	}
+
 }
 
 func TestApplyCloseAttemptsInvalid(t *testing.T) {
