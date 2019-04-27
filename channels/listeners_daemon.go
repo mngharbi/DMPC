@@ -1,8 +1,8 @@
 package channels
 
 import (
+	"errors"
 	"github.com/mngharbi/gofarm"
-	"github.com/mngharbi/memstore"
 	"sync"
 )
 
@@ -21,7 +21,6 @@ type listenersServer struct {
 var (
 	listenersServerSingleton listenersServer
 	listenersServerHandler   *gofarm.ServerHandler
-	listenersStore           *memstore.Memstore
 )
 
 /*
@@ -54,21 +53,35 @@ func shutdownListenersServer() {
 	Functional API
 */
 
-func AddListener(id string) (EventChannel, error) {
-	// Make channel to be passed to daemon and back to the caller
-	channel := make(EventChannel, 0)
+func ListenerAction(request interface{}) (chan *ListenersResponse, error) {
+	// Sanitize and validate request
+	var sanitizingErr error
+	switch request.(type) {
+	case *SubscribeRequest:
+		sanitizingErr = request.(*SubscribeRequest).sanitizeAndValidate()
+	case *UnsubscribeRequest:
+		sanitizingErr = nil
+	default:
+		return nil, errors.New("Unrecognized listeners action")
+	}
+	if sanitizingErr != nil {
+		return nil, sanitizingErr
+	}
 
-	// Make request
-	_, err := listenersServerHandler.MakeRequest(&listenersRequest{
-		id:      id,
-		channel: channel,
-	})
-
+	// Make request to server
+	nativeResponseChannel, err := listenersServerHandler.MakeRequest(request)
 	if err != nil {
 		return nil, err
-	} else {
-		return channel, nil
 	}
+
+	// Pass through result
+	responseChannel := make(chan *ListenersResponse)
+	go func() {
+		nativeResponse := <-nativeResponseChannel
+		responseChannel <- (*nativeResponse).(*ListenersResponse)
+	}()
+
+	return responseChannel, nil
 }
 
 /*
@@ -76,9 +89,8 @@ func AddListener(id string) (EventChannel, error) {
 */
 
 func (sv *listenersServer) Start(_ gofarm.Config, isFirstStart bool) error {
-	// Initialize store (only if starting for the first time)
 	if isFirstStart {
-		listenersStore = memstore.New(getListenersIndexes())
+		listenersStore = &sync.Map{}
 	}
 	log.Debugf(listenersDaemonStartLogMsg)
 	return nil
@@ -89,10 +101,49 @@ func (sv *listenersServer) Shutdown() error {
 	return nil
 }
 
-func (sv *listenersServer) Work(rq *gofarm.Request) (dummyReturnVal *gofarm.Response) {
+func (sv *listenersServer) Work(rqInterface *gofarm.Request) *gofarm.Response {
 	log.Debugf(listenersRunningRequestLogMsg)
 
-	dummyReturnVal = nil
+	resp := &ListenersResponse{
+		Result: ListenersSuccess,
+	}
 
-	return
+	switch (*rqInterface).(type) {
+	case *SubscribeRequest:
+		rq := (*rqInterface).(*SubscribeRequest)
+
+		// Get/Lock channel record
+		channelRecord := createOrGetChannel(channelsStore, rq.ChannelId)
+		channelRecord.Lock()
+		defer func() { channelRecord.Unlock() }()
+
+		// Check certifier read permissions
+		authorized := true
+		if channelRecord.permissions != nil {
+			certifierPermissions, certifierFound := channelRecord.permissions.users[rq.Signers.CertifierId]
+			authorized = certifierFound && certifierPermissions.read
+		}
+		if !authorized {
+			resp.Result = ListenersUnauthorized
+			break
+		}
+
+		resp.Channel, resp.SubscriberId = subscribe(rq.ChannelId, rq.Signers.CertifierId)
+
+	case *UnsubscribeRequest:
+		rq := (*rqInterface).(*UnsubscribeRequest)
+
+		// Get/Lock channel record
+		channelRecord := createOrGetChannel(channelsStore, rq.ChannelId)
+		channelRecord.Lock()
+		defer func() { channelRecord.Unlock() }()
+
+		if err := unsubscribe(rq.ChannelId, rq.SubscriberId); err != nil {
+			resp.Result = ListenersFailure
+			break
+		}
+	}
+
+	var nativeResponse gofarm.Response = resp
+	return &nativeResponse
 }

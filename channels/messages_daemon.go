@@ -142,7 +142,7 @@ func (sv *messagesServer) Work(rqInterface *gofarm.Request) *gofarm.Response {
 		}
 
 		// Notify listeners of message
-		notifyListeners(listenersStore, rq.ChannelId, makeMessageEvent(rq.Timestamp, messagePosition, rq.Message))
+		publish(rq.ChannelId, makeMessageEvent(rq.Timestamp, messagePosition, rq.Message))
 
 	case *BufferOperationRequest:
 		rq := (*rqInterface).(*BufferOperationRequest)

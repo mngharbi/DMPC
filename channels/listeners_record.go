@@ -1,97 +1,102 @@
 package channels
 
 import (
-	"github.com/mngharbi/memstore"
+	"errors"
+	"github.com/mngharbi/eventqueue"
 	"sync"
 )
+
+/*
+	Errors
+*/
+
+var (
+	unrecognizedChannelId error = errors.New("Unrecognized channel id")
+)
+
+/*
+	Definitions
+*/
+
+var (
+	listenersStore *sync.Map
+)
+
+type listenersRecord struct {
+	eventQueue        *eventqueue.EventQueue
+	listenerCertifier map[string]string
+}
 
 // Alias for a channel of events
 type EventChannel chan *Event
 
 /*
-	Structure storing message channels
+	Pubsub operations
 */
-type listenersRecord struct {
-	id       string
-	lock     *sync.Mutex
-	channels []EventChannel
+
+func getOrMakeListenersRecord(channelId string) *listenersRecord {
+	listenersRecInterface, _ := listenersStore.LoadOrStore(channelId, &listenersRecord{
+		eventQueue:        eventqueue.New(),
+		listenerCertifier: make(map[string]string),
+	})
+	return listenersRecInterface.(*listenersRecord)
 }
 
-/*
-	Utilities
-*/
+func subscribe(channelId string, certifierId string) (EventChannel, string) {
+	// Make channel to be passed to daemon and back to the caller
+	channel := make(EventChannel, 0)
 
-func makeEmptyListenersRecord(id string) *listenersRecord {
-	return &listenersRecord{
-		id:       id,
-		lock:     &sync.Mutex{},
-		channels: []EventChannel{},
+	// Get or make listeners record
+	listenersRec := getOrMakeListenersRecord(channelId)
+
+	// Subscribe and track subscriber certifier id
+	genericChannel, subscriberId := listenersRec.eventQueue.Subscribe()
+	listenersRec.listenerCertifier[subscriberId] = certifierId
+
+	// Pass through result
+	go func() {
+		for event := range genericChannel {
+			channel <- event.(*Event)
+		}
+		close(channel)
+	}()
+
+	return channel, subscriberId
+}
+
+func unsubscribe(channelId string, subscriberId string) error {
+	// Get listeners record
+	listenersRecInterface, ok := listenersStore.Load(channelId)
+	if !ok {
+		return unrecognizedChannelId
+	}
+	listenersRec := listenersRecInterface.(*listenersRecord)
+
+	// Unsubscribe and delete certifier
+	delete(listenersRec.listenerCertifier, subscriberId)
+	return listenersRec.eventQueue.Unsubscribe(subscriberId)
+}
+
+func unsubscribeUnauthorized(channelId string, permissions *channelPermissionsRecord) {
+	// Get or make listeners record
+	listenersRec := getOrMakeListenersRecord(channelId)
+
+	// Search for unauthorized subscribers
+	unauthorizedSubscriberIds := []string{}
+	for subscriberId, certifierId := range listenersRec.listenerCertifier {
+		certifierPermissions, certifierFound := permissions.users[certifierId]
+		if !certifierFound || !certifierPermissions.read {
+			unauthorizedSubscriberIds = append(unauthorizedSubscriberIds, subscriberId)
+		}
+	}
+
+	for _, subscriberId := range unauthorizedSubscriberIds {
+		delete(listenersRec.listenerCertifier, subscriberId)
+		listenersRec.eventQueue.Unsubscribe(subscriberId)
 	}
 }
 
-func createOrGetListenersRecord(listenersStore *memstore.Memstore, id string) *listenersRecord {
-	newRecord := makeEmptyListenersRecord(id)
-	return listenersStore.AddOrGet(newRecord).(*listenersRecord)
-}
-
-func notifyListeners(listenersStore *memstore.Memstore, id string, event *Event) {
-	// Create/Get records
-	listenersRecord := createOrGetListenersRecord(listenersStore, id)
-
-	// Lock then unlock at the end
-	listenersRecord.Lock()
-	defer func() { listenersRecord.Unlock() }()
-
-	// Send event to all listeners
-	for _, listenerChannel := range listenersRecord.channels {
-		listenerChannel <- event
-	}
-}
-
-func makeSearchListenersRecord(id string) *listenersRecord {
-	return &listenersRecord{
-		id: id,
-	}
-}
-
-/*
-	Comparison
-*/
-func (rec *listenersRecord) Less(index string, than interface{}) bool {
-	switch index {
-	case listenersIndexId:
-		return rec.id < than.(*listenersRecord).id
-	}
-	return false
-}
-
-/*
-	Listener record locking
-*/
-func (rec *listenersRecord) Lock() {
-	rec.lock.Lock()
-}
-
-func (rec *listenersRecord) Unlock() {
-	rec.lock.Unlock()
-}
-func (rec *listenersRecord) RLock()   {}
-func (rec *listenersRecord) RUnlock() {}
-
-/*
-	Indexing
-*/
-const (
-	listenersIndexId string = "id"
-)
-
-var listenersIndexesMap map[string]bool = map[string]bool{
-	listenersIndexId: true,
-}
-
-func getListenersIndexes() (res []string) {
-	for k := range listenersIndexesMap {
-		res = append(res, k)
-	}
-	return res
+func publish(id string, event *Event) error {
+	channelEventQueue, _ := listenersStore.Load(id)
+	return channelEventQueue.(*eventqueue.EventQueue).Publish(event)
 }

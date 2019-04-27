@@ -9,7 +9,6 @@ import (
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/gofarm"
-	"github.com/mngharbi/memstore"
 	intrand "math/rand"
 	"sync"
 	"testing"
@@ -226,14 +225,6 @@ func multipleWorkersListenersConfig() ListenersServerConfig {
 	return ListenersServerConfig{
 		NumWorkers: 6,
 	}
-}
-
-func getListenersRecordById(mem *memstore.Memstore, id string) *listenersRecord {
-	item := mem.Get(makeSearchListenersRecord(id), listenersIndexId)
-	if item != nil {
-		return item.(*listenersRecord)
-	}
-	return nil
 }
 
 /*

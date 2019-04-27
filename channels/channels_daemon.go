@@ -154,12 +154,15 @@ func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gof
 		// Empty buffer
 		channelBuffer.operations = nil
 
+		// Remove unauthorized listeners
+		unsubscribeUnauthorized(channelRecord.id, channelRecord.permissions)
+
 		// Notify (early) listeners of channel opening
-		notifyListeners(listenersStore, rq.Id, makeOpenEvent(channelRecord.duration.opened))
+		publish(rq.Id, makeOpenEvent(channelRecord.duration.opened))
 
 		// Apply early closures
 		if channelRecord.applyCloseAttempts() {
-			notifyListeners(listenersStore, rq.Id, makeCloseEvent(channelRecord.duration.closed, 0))
+			publish(rq.Id, makeCloseEvent(channelRecord.duration.closed, 0))
 		}
 
 	case *CloseChannelRequest:
@@ -184,7 +187,7 @@ func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gof
 
 		// Only notify if channel is closed now
 		if channelRecord.state == channelClosedState {
-			notifyListeners(listenersStore, rq.Id, makeCloseEvent(channelRecord.duration.closed, remainingMessages))
+			publish(rq.Id, makeCloseEvent(channelRecord.duration.closed, remainingMessages))
 		}
 	}
 
