@@ -43,6 +43,8 @@ func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.
 	switch wrappedRequest.metaFields.RequestType {
 	case core.UsersRequestType:
 		sv.doGenericUsersRequest(wrappedRequest)
+	case core.ReadChannelType:
+		sv.doReadChannel(wrappedRequest)
 	case core.AddChannelType:
 		sv.doAddChannel(wrappedRequest)
 	case core.CloseChannelType:

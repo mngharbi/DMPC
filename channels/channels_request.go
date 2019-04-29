@@ -38,7 +38,7 @@ func (resp *ChannelsResponse) Encode() ([]byte, error) {
 	Structure for read channel request
 */
 type ReadChannelRequest struct {
-	Id string `json:"id"`
+	Id string
 }
 
 // *ReadChannelRequest -> Json

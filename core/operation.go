@@ -13,6 +13,7 @@ type RequestType int
 const (
 	UsersRequestType RequestType = iota
 	AddMessageType
+	ReadChannelType
 	AddChannelType
 	CloseChannelType
 )

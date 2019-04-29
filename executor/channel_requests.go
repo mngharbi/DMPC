@@ -20,6 +20,45 @@ var (
 )
 
 /*
+	Helpers
+*/
+
+func (sv *server) channelActionPassthrough(wrappedRequest *executorRequest, request interface{}) {
+	channelResponseChannel, err := sv.channelActionRequester(request)
+	if err != nil {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestRejectedError})
+		return
+	}
+	channelResponsePtr, ok := <-channelResponseChannel
+	if !ok {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{subsystemChannelClosed})
+	} else {
+		channelResponseEncoded, _ := channelResponsePtr.Encode()
+		sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, channelResponseEncoded, nil)
+	}
+}
+
+/*
+	Read channel
+*/
+
+func (sv *server) doReadChannel(wrappedRequest *executorRequest) {
+	// Parse request
+	request := &channels.ReadChannelRequest{}
+	err := request.Decode(wrappedRequest.request)
+	if err != nil {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{err})
+		return
+	}
+
+	// Set channel id from operation meta fields
+	request.Id = wrappedRequest.metaFields.ChannelId
+
+	// Pass request through to channels subsystem
+	sv.channelActionPassthrough(wrappedRequest, request)
+}
+
+/*
 	Add channel
 */
 
@@ -37,8 +76,6 @@ func (sv *server) doAddChannel(wrappedRequest *executorRequest) {
 		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{channelOpenNilChannelError})
 		return
 	}
-
-	// @TODO: check channel id format
 
 	// Set channel id from operation meta fields
 	request.Channel.Id = wrappedRequest.metaFields.ChannelId
@@ -113,18 +150,7 @@ func (sv *server) doAddChannel(wrappedRequest *executorRequest) {
 	}
 
 	// Send request through to channels subsystem
-	channelResponseChannel, err := sv.channelActionRequester(request)
-	if err != nil {
-		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestRejectedError})
-		return
-	}
-	channelResponsePtr, ok := <-channelResponseChannel
-	if !ok {
-		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{subsystemChannelClosed})
-	} else {
-		channelResponseEncoded, _ := channelResponsePtr.Encode()
-		sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, channelResponseEncoded, nil)
-	}
+	sv.channelActionPassthrough(wrappedRequest, request)
 }
 
 /*
@@ -139,8 +165,6 @@ func (sv *server) doCloseChannel(wrappedRequest *executorRequest) {
 		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{err})
 		return
 	}
-
-	// @TODO: check channel id format
 
 	// Set channel id from operation meta fields
 	request.Id = wrappedRequest.metaFields.ChannelId
@@ -175,18 +199,7 @@ func (sv *server) doCloseChannel(wrappedRequest *executorRequest) {
 	}()
 
 	// Send request through to channels subsystem
-	channelResponseChannel, err := sv.channelActionRequester(request)
-	if err != nil {
-		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestRejectedError})
-		return
-	}
-	channelResponsePtr, ok := <-channelResponseChannel
-	if !ok {
-		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{subsystemChannelClosed})
-	} else {
-		channelResponseEncoded, _ := channelResponsePtr.Encode()
-		sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, channelResponseEncoded, nil)
-	}
+	sv.channelActionPassthrough(wrappedRequest, request)
 }
 
 /*
