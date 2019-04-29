@@ -161,8 +161,8 @@ type RWRecordLocker interface {
 /*
 	Generates a functor that (r)locks/(r)unlocks RWRecordLocker
 */
-func lockingFunctorGenerator(lockType LockType, lockingType LockingType) func(memstore.Item) (memstore.Item, bool) {
-	return func(obj memstore.Item) (memstore.Item, bool) {
+func lockingFunctorGenerator(lockType LockType, lockingType LockingType) func(memstore.Item) bool {
+	return func(obj memstore.Item) bool {
 		rwlocker := obj.(RWRecordLocker)
 
 		if lockType == WriteLockType {
@@ -178,7 +178,7 @@ func lockingFunctorGenerator(lockType LockType, lockingType LockingType) func(me
 				rwlocker.RUnlock()
 			}
 		}
-		return obj, true
+		return true
 	}
 }
 
@@ -195,7 +195,7 @@ func RecordLockingFunctorGenerator(
 ) func(string, LockType) bool {
 	return func(id string, lockType LockType) bool {
 		searchRecord := makeSearchRecordFunctor(id)
-		memstoreItem := mem.UpdateData(searchRecord, indexString, lockingFunctorGenerator(lockType, lockingType))
+		memstoreItem := mem.ApplyData(searchRecord, indexString, lockingFunctorGenerator(lockType, lockingType))
 		if memstoreItem == nil {
 			return false
 		} else if save {
