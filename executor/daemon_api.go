@@ -41,15 +41,16 @@ var (
 
 type server struct {
 	// Requester lambdas
-	usersRequester           users.Requester
-	usersRequesterUnverified users.Requester
-	messageAdder             channels.MessageAdder
-	operationBufferer        channels.OperationBufferer
-	channelActionRequester   channels.ChannelActionRequester
-	lockerRequester          locker.Requester
-	keyAdder                 core.KeyAdder
-	responseReporter         status.Reporter
-	ticketGenerator          status.TicketGenerator
+	usersRequester            users.Requester
+	usersRequesterUnverified  users.Requester
+	messageAdder              channels.MessageAdder
+	operationBufferer         channels.OperationBufferer
+	channelActionRequester    channels.ChannelActionRequester
+	channelListenersRequester channels.ListenersRequester
+	lockerRequester           locker.Requester
+	keyAdder                  core.KeyAdder
+	responseReporter          status.Reporter
+	ticketGenerator           status.TicketGenerator
 }
 
 func InitializeServer(
@@ -58,6 +59,7 @@ func InitializeServer(
 	messageAdder channels.MessageAdder,
 	operationBufferer channels.OperationBufferer,
 	channelActionRequester channels.ChannelActionRequester,
+	channelListenersRequester channels.ListenersRequester,
 	lockerRequester locker.Requester,
 	keyAdder core.KeyAdder,
 	responseReporter status.Reporter,
@@ -71,6 +73,7 @@ func InitializeServer(
 	serverSingleton.messageAdder = messageAdder
 	serverSingleton.operationBufferer = operationBufferer
 	serverSingleton.channelActionRequester = channelActionRequester
+	serverSingleton.channelListenersRequester = channelListenersRequester
 	serverSingleton.lockerRequester = lockerRequester
 	serverSingleton.keyAdder = keyAdder
 	serverSingleton.responseReporter = responseReporter

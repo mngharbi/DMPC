@@ -1,7 +1,6 @@
 package channels
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/mngharbi/DMPC/core"
 	"time"
@@ -30,23 +29,6 @@ type ListenersResponse struct {
 type SubscribeRequest struct {
 	ChannelId string
 	Signers   *core.VerifiedSigners
-	Timestamp time.Time `json:"timestamp"`
-}
-
-// *SubscribeRequest -> Json
-func (rq *SubscribeRequest) Encode() ([]byte, error) {
-	jsonStream, err := json.Marshal(rq)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return jsonStream, nil
-}
-
-// Json -> *SubscribeRequest
-func (rq *SubscribeRequest) Decode(stream []byte) error {
-	return json.Unmarshal(stream, rq)
 }
 
 /*

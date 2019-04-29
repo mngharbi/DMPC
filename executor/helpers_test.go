@@ -249,6 +249,38 @@ func createDummyChannelActionFunctor(responseCodeReturned channels.ChannelsStatu
 }
 
 /*
+	Channel listeners dummy
+*/
+
+func sendListenersResponseAfterRandomDelay(channel chan *channels.ListenersResponse, responseCode channels.ListenersStatusCode) {
+	waitForRandomDuration()
+	listenersReponsePtr := &channels.ListenersResponse{
+		Result: responseCode,
+	}
+	channel <- listenersReponsePtr
+}
+
+func createDummyListenersRequesterFunctor(responseCodeReturned channels.ListenersStatusCode, errReturned error, closeChannel bool) (channels.ListenersRequester, chan interface{}) {
+	callsChannel := make(chan interface{}, 0)
+	requester := func(request interface{}) (chan *channels.ListenersResponse, error) {
+		go (func() {
+			callsChannel <- request
+		})()
+		if errReturned != nil {
+			return nil, errReturned
+		}
+		responseChannel := make(chan *channels.ListenersResponse)
+		if closeChannel {
+			close(responseChannel)
+		} else {
+			go sendListenersResponseAfterRandomDelay(responseChannel, responseCodeReturned)
+		}
+		return responseChannel, nil
+	}
+	return requester, callsChannel
+}
+
+/*
 	Locker dummies
 */
 
@@ -313,13 +345,14 @@ func resetAndStartServer(
 	messageAdder channels.MessageAdder,
 	operationBufferer channels.OperationBufferer,
 	channelActionRequester channels.ChannelActionRequester,
+	channelListenersRequester channels.ListenersRequester,
 	lockerRequester locker.Requester,
 	keyAdder core.KeyAdder,
 	responseReporter status.Reporter,
 	ticketGenerator status.TicketGenerator,
 ) bool {
 	serverSingleton = server{}
-	InitializeServer(usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator, log, shutdownProgram)
+	InitializeServer(usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator, log, shutdownProgram)
 	err := StartServer(conf)
 	if err != nil {
 		t.Errorf(err.Error())

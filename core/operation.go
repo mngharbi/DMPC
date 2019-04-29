@@ -16,6 +16,7 @@ const (
 	ReadChannelType
 	AddChannelType
 	CloseChannelType
+	SubscribeChannelType
 )
 
 /*

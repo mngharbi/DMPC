@@ -14,9 +14,10 @@ import (
 */
 
 var (
-	unverifiedChannelOpenError   error = errors.New("Channel open request cannot be unverified.")
-	channelOpenUnauthorizedError error = errors.New("Channel open request is not authorized.")
-	channelOpenNilChannelError   error = errors.New("Channel open request must have channel object.")
+	unverifiedChannelOpenError      error = errors.New("Channel open request cannot be unverified.")
+	channelOpenUnauthorizedError    error = errors.New("Channel open request is not authorized.")
+	channelOpenNilChannelError      error = errors.New("Channel open request must have channel object.")
+	unverifiedChannelSubscribeError error = errors.New("Channel subscribe request cannot be unverified.")
 )
 
 /*
@@ -263,5 +264,36 @@ func (sv *server) doAddMessage(wrappedRequest *executorRequest) {
 		sv.responseReporter(wrappedRequest.ticket, status.FailedStatus, status.FailedReason, nil, nil)
 	} else {
 		sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, nil, nil)
+	}
+}
+
+/*
+	Subscribe to channel
+*/
+
+func (sv *server) doSubscribeChannel(wrappedRequest *executorRequest) {
+	request := &channels.SubscribeRequest{}
+
+	// Set channel id from operation meta fields
+	request.ChannelId = wrappedRequest.metaFields.ChannelId
+
+	// Set signers from decryptor
+	if wrappedRequest.signers == nil {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{unverifiedChannelSubscribeError})
+		return
+	}
+	request.Signers = wrappedRequest.signers
+
+	// Make request to channels subsystem
+	listenersResponseChannel, err := sv.channelListenersRequester(request)
+	if err != nil {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestRejectedError})
+		return
+	}
+	listenersResponsePtr, ok := <-listenersResponseChannel
+	if !ok {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{subsystemChannelClosed})
+	} else {
+		sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, listenersResponsePtr, nil)
 	}
 }

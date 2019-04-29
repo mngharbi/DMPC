@@ -10,6 +10,8 @@ import (
 	Server definitions
 */
 
+type ListenersRequester func(request interface{}) (chan *ListenersResponse, error)
+
 type ListenersServerConfig struct {
 	NumWorkers int
 }
