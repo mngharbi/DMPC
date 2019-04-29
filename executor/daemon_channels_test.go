@@ -47,17 +47,18 @@ func TestAddChannelRequest(t *testing.T) {
 	ticketGenerator := createDummyTicketGeneratorFunctor()
 
 	rq := &channels.OpenChannelRequest{
-		KeyId:     genericKeyId,
+		Channel: &channels.ChannelObject{
+			KeyId: genericKeyId,
+		},
 		Key:       genericKey,
 		Timestamp: nowTime,
 	}
-	rqEncoded, _ := rq.Encode()
-
 	meta := &core.OperationMetaFields{
 		RequestType: core.AddChannelType,
 		ChannelId:   genericChannelId,
 		Timestamp:   nowTime,
 	}
+	rqEncoded, _ := rq.Encode()
 
 	// Test valid request
 	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBufferer, channelActionRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
@@ -106,10 +107,56 @@ func TestAddChannelRequest(t *testing.T) {
 	channelActionCall := (<-channelActionCalls).(*channels.OpenChannelRequest)
 	expectedRq := &channels.OpenChannelRequest{}
 	expectedRq.Decode(rqEncoded)
-	expectedRq.Id = genericChannelId
+	expectedRq.Channel.Id = genericChannelId
 	expectedRq.Signers = generateGenericSigners()
 	if !reflect.DeepEqual(channelActionCall, expectedRq) {
 		t.Errorf("Channel add request should be forwarded to channel action subsystem. expected=%+v, found=%+v", expectedRq, channelActionCall)
+	}
+}
+
+func TestInvalidAddChannelRequest(t *testing.T) {
+	usersRequesterDummy, _ := createDummyUsersRequesterFunctor(users.Success, userObjectsWithPermissions, nil, false)
+	operationBufferer, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
+	messageAdder, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
+	channelActionRequester, _ := createDummyChannelActionFunctor(channels.ChannelsSuccess, nil, false)
+	lockerRequester, _ := createDummyLockerFunctor(true, nil, false)
+	keyAdder, _ := createDummyKeyAdderFunctor(nil)
+	responseReporter, reg := createDummyResposeReporterFunctor(true)
+	ticketGenerator := createDummyTicketGeneratorFunctor()
+
+	// Test request with nil channel object
+	rq := &channels.OpenChannelRequest{
+		Channel:   nil,
+		Key:       genericKey,
+		Timestamp: nowTime,
+	}
+	meta := &core.OperationMetaFields{
+		RequestType: core.AddChannelType,
+		ChannelId:   genericChannelId,
+		Timestamp:   nowTime,
+	}
+	rqEncoded, _ := rq.Encode()
+
+	// Make request
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBufferer, channelActionRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+		return
+	}
+	ticketId, err := MakeRequest(true, meta, generateGenericSigners(), rqEncoded, nil)
+	if err != nil {
+		t.Error("Request should not be rejected.")
+		ShutdownServer()
+		return
+	}
+	ShutdownServer()
+
+	// Check status
+	if len(reg.ticketLogs[ticketId]) != 3 ||
+		reg.ticketLogs[ticketId][0].status != status.QueuedStatus ||
+		reg.ticketLogs[ticketId][1].status != status.RunningStatus ||
+		reg.ticketLogs[ticketId][2].status != status.FailedStatus ||
+		reg.ticketLogs[ticketId][2].failureReason != status.RejectedReason ||
+		!reflect.DeepEqual(reg.ticketLogs[ticketId][2].errors, []error{channelOpenNilChannelError}) {
+		t.Errorf("Request should fail and statuses should be reported correctly.")
 	}
 }
 

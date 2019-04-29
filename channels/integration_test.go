@@ -158,37 +158,39 @@ func TestSync(t *testing.T) {
 
 	// Opening request
 	openReq := &OpenChannelRequest{
-		Id: genericChannelId,
+		Channel: &ChannelObject{
+			Id:    genericChannelId,
+			KeyId: genericKeyId,
+			Permissions: &ChannelPermissionsObject{
+				Users: map[string]*ChannelPermissionObject{
+					genericNoopId: {
+						Read:  false,
+						Write: false,
+						Close: false,
+					},
+					genericReaderId: {
+						Read:  true,
+						Write: false,
+						Close: false,
+					},
+					genericWriterId: {
+						Read:  false,
+						Write: true,
+						Close: false,
+					},
+					genericCloserId: {
+						Read:  false,
+						Write: false,
+						Close: true,
+					},
+				},
+			},
+		},
 		Signers: &core.VerifiedSigners{
 			IssuerId:    genericNoopId,
 			CertifierId: genericNoopId,
 		},
-		KeyId: genericKeyId,
-		Key:   generateRandomBytes(core.SymmetricKeySize),
-		Permissions: &ChannelPermissionsObject{
-			Users: map[string]*ChannelPermissionObject{
-				genericNoopId: {
-					Read:  false,
-					Write: false,
-					Close: false,
-				},
-				genericReaderId: {
-					Read:  true,
-					Write: false,
-					Close: false,
-				},
-				genericWriterId: {
-					Read:  false,
-					Write: true,
-					Close: false,
-				},
-				genericCloserId: {
-					Read:  false,
-					Write: false,
-					Close: true,
-				},
-			},
-		},
+		Key:       generateRandomBytes(core.SymmetricKeySize),
 		Timestamp: openingTime,
 	}
 

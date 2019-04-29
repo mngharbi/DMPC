@@ -14,8 +14,9 @@ import (
 */
 
 var (
-	unverifiedChannelCreationError   error = errors.New("Channel creation cannot be unverified.")
-	channelCreationUnauthorizedError error = errors.New("Channel creation is not authorized.")
+	unverifiedChannelOpenError   error = errors.New("Channel open request cannot be unverified.")
+	channelOpenUnauthorizedError error = errors.New("Channel open request is not authorized.")
+	channelOpenNilChannelError   error = errors.New("Channel open request must have channel object.")
 )
 
 /*
@@ -31,12 +32,20 @@ func (sv *server) doAddChannel(wrappedRequest *executorRequest) {
 		return
 	}
 
+	// Make sure channel is defined
+	if request.Channel == nil {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{channelOpenNilChannelError})
+		return
+	}
+
+	// @TODO: check channel id format
+
 	// Set channel id from operation meta fields
-	request.Id = wrappedRequest.metaFields.ChannelId
+	request.Channel.Id = wrappedRequest.metaFields.ChannelId
 
 	// Set signers from decryptor
 	if wrappedRequest.signers == nil {
-		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{unverifiedChannelCreationError})
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{unverifiedChannelOpenError})
 		return
 	}
 	request.Signers = wrappedRequest.signers
@@ -71,7 +80,7 @@ func (sv *server) doAddChannel(wrappedRequest *executorRequest) {
 
 	certifierCheckSuccess := len(userResponsePtr.Data) == 1 && userResponsePtr.Data[0].Permissions.Channel.Add
 	if !certifierCheckSuccess {
-		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{channelCreationUnauthorizedError})
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{channelOpenUnauthorizedError})
 		return
 	}
 
@@ -81,7 +90,7 @@ func (sv *server) doAddChannel(wrappedRequest *executorRequest) {
 		Needs: []core.LockNeed{
 			{
 				LockType: core.WriteLockType,
-				Id:       request.Id,
+				Id:       request.Channel.Id,
 			},
 		},
 	}
@@ -98,7 +107,7 @@ func (sv *server) doAddChannel(wrappedRequest *executorRequest) {
 	}()
 
 	// Add key to keys subsystems
-	if keyAddError := sv.keyAdder(request.KeyId, request.Key); keyAddError != nil {
+	if keyAddError := sv.keyAdder(request.Channel.KeyId, request.Key); keyAddError != nil {
 		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{keyAddError})
 		return
 	}
@@ -131,12 +140,14 @@ func (sv *server) doCloseChannel(wrappedRequest *executorRequest) {
 		return
 	}
 
+	// @TODO: check channel id format
+
 	// Set channel id from operation meta fields
 	request.Id = wrappedRequest.metaFields.ChannelId
 
 	// Set signers from decryptor
 	if wrappedRequest.signers == nil {
-		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{unverifiedChannelCreationError})
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{unverifiedChannelOpenError})
 		return
 	}
 	request.Signers = wrappedRequest.signers

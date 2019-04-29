@@ -114,7 +114,7 @@ func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gof
 	switch (*rqInterface).(type) {
 	case *OpenChannelRequest:
 		rq := (*rqInterface).(*OpenChannelRequest)
-		channelRecord := createOrGetChannel(channelsStore, rq.Id)
+		channelRecord := createOrGetChannel(channelsStore, rq.Channel.Id)
 		channelRecord.Lock()
 		defer func() { channelRecord.Unlock() }()
 
@@ -125,8 +125,8 @@ func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gof
 			timestamp:   rq.Timestamp,
 		}
 		permissionsRecord := &channelPermissionsRecord{}
-		permissionsRecord.build(rq.Permissions)
-		openSuccess := channelRecord.tryOpen(rq.Id, actionRecord, permissionsRecord, rq.KeyId)
+		permissionsRecord.build(rq.Channel.Permissions)
+		openSuccess := channelRecord.tryOpen(rq.Channel.Id, actionRecord, permissionsRecord, rq.Channel.KeyId)
 		if !openSuccess {
 			statusCode = ChannelsFailure
 			break
@@ -135,7 +135,7 @@ func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gof
 		// Feed buffered operations into decryptor
 		// @TODO: move buffer queuer outside of server object
 		// @TODO: make requests concurrently
-		channelBuffer := createOrGetChannelBuffer(bufferStore, rq.Id)
+		channelBuffer := createOrGetChannelBuffer(bufferStore, rq.Channel.Id)
 		channelBuffer.Lock()
 		defer func() { channelBuffer.Unlock() }()
 		for _, operationPtr := range channelBuffer.operations {
@@ -158,11 +158,11 @@ func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gof
 		unsubscribeUnauthorized(channelRecord.id, channelRecord.permissions)
 
 		// Notify (early) listeners of channel opening
-		publish(rq.Id, makeOpenEvent(channelRecord.duration.opened))
+		publish(rq.Channel.Id, makeOpenEvent(channelRecord.duration.opened))
 
 		// Apply early closures
 		if channelRecord.applyCloseAttempts() {
-			publish(rq.Id, makeCloseEvent(channelRecord.duration.closed, 0))
+			publish(rq.Channel.Id, makeCloseEvent(channelRecord.duration.closed, 0))
 		}
 
 	case *CloseChannelRequest:

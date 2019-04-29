@@ -36,21 +36,11 @@ func (resp *ChannelsResponse) Encode() ([]byte, error) {
 /*
 	Structure for open channel request
 */
-type ChannelPermissionObject struct {
-	Read  bool `json:"read"`
-	Write bool `json:"write"`
-	Close bool `json:"close"`
-}
-type ChannelPermissionsObject struct {
-	Users map[string]*ChannelPermissionObject `json:"users"`
-}
 type OpenChannelRequest struct {
-	Id          string
-	Signers     *core.VerifiedSigners
-	KeyId       string                    `json:"keyId"`
-	Key         []byte                    `json:"key"`
-	Permissions *ChannelPermissionsObject `json:"permissions"`
-	Timestamp   time.Time                 `json:"timestamp"`
+	Channel   *ChannelObject `json:"channel"`
+	Signers   *core.VerifiedSigners
+	Key       []byte    `json:"key"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // *OpenChannelRequest -> Json
@@ -73,10 +63,11 @@ func (rq *OpenChannelRequest) Decode(stream []byte) error {
 	Validates and sanitizes request
 */
 func (rq *OpenChannelRequest) sanitizeAndValidate() error {
-	if len(rq.Id) == 0 ||
-		len(rq.KeyId) == 0 ||
-		rq.Permissions == nil ||
-		len(rq.Permissions.Users) == 0 ||
+	if rq.Channel == nil ||
+		len(rq.Channel.Id) == 0 ||
+		len(rq.Channel.KeyId) == 0 ||
+		rq.Channel.Permissions == nil ||
+		len(rq.Channel.Permissions.Users) == 0 ||
 		len(rq.Key) == 0 {
 		return errors.New("Open channel request is invalid.")
 	}
