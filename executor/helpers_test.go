@@ -127,7 +127,7 @@ func createDummyTicketGeneratorFunctor() status.TicketGenerator {
 type dummyStatusEntry struct {
 	status        status.StatusCode
 	failureReason status.FailReasonCode
-	result        []byte
+	result        interface{}
 	errors        []error
 }
 
@@ -143,7 +143,7 @@ func createDummyResposeReporterFunctor(success bool) (status.Reporter, *dummySta
 		ticketLogs: map[status.Ticket][]dummyStatusEntry{},
 		lock:       &sync.Mutex{},
 	}
-	reporter := func(ticketId status.Ticket, status status.StatusCode, failureReason status.FailReasonCode, result []byte, errs []error) error {
+	reporter := func(ticketId status.Ticket, status status.StatusCode, failureReason status.FailReasonCode, result interface{}, errs []error) error {
 		if !success {
 			return responseReporterError
 		}

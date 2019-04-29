@@ -46,7 +46,7 @@ type StatusRecord struct {
 	Id         Ticket
 	Status     StatusCode
 	FailReason FailReasonCode
-	Payload    []byte
+	Payload    interface{}
 	Errs       []error
 	lock       *sync.RWMutex
 }

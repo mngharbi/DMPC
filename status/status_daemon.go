@@ -8,7 +8,7 @@ import (
 /*
 	Function to make a status update
 */
-type Reporter func(Ticket, StatusCode, FailReasonCode, []byte, []error) error
+type Reporter func(Ticket, StatusCode, FailReasonCode, interface{}, []error) error
 
 /*
 	Server API
@@ -41,7 +41,7 @@ func shutdownStatusServer() {
 	statusServerHandler.ShutdownServer()
 }
 
-func UpdateStatus(ticket Ticket, status StatusCode, failReason FailReasonCode, payload []byte, errs []error) error {
+func UpdateStatus(ticket Ticket, status StatusCode, failReason FailReasonCode, payload interface{}, errs []error) error {
 	log.Debugf(updateReceivedRequestLogMsg)
 
 	statusRecord := &StatusRecord{
