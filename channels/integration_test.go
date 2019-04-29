@@ -22,8 +22,30 @@ func TestStartShutdownServers(t *testing.T) {
 }
 
 /*
+	Common definitions
+*/
+
+var (
+	openingTime                time.Time = time.Now()
+	beforeOpeningTime          time.Time = openingTime.Add(-1 * time.Hour)
+	secondAfterOpeningTime     time.Time = openingTime.Add(time.Second)
+	twoSecondsAfterOpeningTime time.Time = openingTime.Add(2 * time.Second)
+	minuteAfterOpeningTime     time.Time = openingTime.Add(time.Minute)
+	twoMinutesAfterOpeningTime time.Time = openingTime.Add(2 * time.Minute)
+	hourAfterOpeningTime       time.Time = openingTime.Add(time.Hour)
+	twoHoursAfterOpeningTime   time.Time = openingTime.Add(2 * time.Hour)
+	threeHoursAfterOpeningTime time.Time = openingTime.Add(3 * time.Hour)
+)
+
+/*
 	Helpers
 */
+
+func makeGenericReadRequest(channelId string) *ReadChannelRequest {
+	return &ReadChannelRequest{
+		Id: channelId,
+	}
+}
 
 func makeGenericCloseRequest(channelId string, userId string, timestamp time.Time) *CloseChannelRequest {
 	return &CloseChannelRequest{
@@ -101,23 +123,7 @@ func makeChannelsRequestAndWait(t *testing.T, request interface{}) *ChannelsResp
 	return msg
 }
 
-func TestSync(t *testing.T) {
-	openingTime := time.Now()
-	beforeOpeningTime := openingTime.Add(-1 * time.Hour)
-	secondAfterOpeningTime := openingTime.Add(time.Second)
-	twoSecondsAfterOpeningTime := openingTime.Add(2 * time.Second)
-	minuteAfterOpeningTime := openingTime.Add(time.Minute)
-	twoMinutesAfterOpeningTime := openingTime.Add(2 * time.Minute)
-	hourAfterOpeningTime := openingTime.Add(time.Hour)
-	twoHoursAfterOpeningTime := openingTime.Add(2 * time.Hour)
-	threeHoursAfterOpeningTime := openingTime.Add(3 * time.Hour)
-	genericChannelId := "CHANNEL_ID"
-	inexistentChannelId := "NOT_FOUNT_CHANNEL_ID"
-	genericKeyId := "CHANNEL_KEY_ID"
-	genericNoopId := "NOOP_USER_ID"
-	genericReaderId := "READER_USER_ID"
-	genericWriterId := "WRITER_USER_ID"
-	genericCloserId := "CLOSER_USER_ID"
+func TestFullIntegration(t *testing.T) {
 	genericMessages := [][]byte{
 		[]byte("message_0"),
 		[]byte("message_1"),
@@ -474,6 +480,118 @@ func TestSync(t *testing.T) {
 		if event, ok := <-subscriberChannel; ok {
 			t.Errorf("Subscriber channels should be closed after unsubscribing. Read event=%+v", event)
 		}
+	}
+
+	ShutdownServers()
+}
+
+func TestReadRequest(t *testing.T) {
+	operationQueuerDummy, _ := createDummyOperationQueuerFunctor(status.RequestNewTicket(), nil, false)
+	if !resetAndStartBothServers(t, multipleWorkersChannelsConfig(), multipleWorkersMessagesConfig(), multipleWorkersListenersConfig(), operationQueuerDummy) {
+		return
+	}
+
+	// Read before channel has any operations, expect nil
+	earlyReadResp := makeChannelsRequestAndWait(t, makeGenericReadRequest(genericChannelId))
+	if earlyReadResp.Result != ChannelsFailure ||
+		earlyReadResp.Channel != nil {
+		t.Errorf("Reading a channel that had no operations done on it should fail. response=%+v", earlyReadResp)
+	}
+
+	// Early close (switch to buffered state)
+	earlyValidCloseReq := makeGenericCloseRequest(genericChannelId, genericCloserId, beforeOpeningTime)
+	earlyValidCloseResp := makeChannelsRequestAndWait(t, earlyValidCloseReq)
+	if earlyValidCloseResp.Result != ChannelsSuccess {
+		t.Errorf("Early valid close request should succeed. response=%+v", earlyValidCloseResp)
+	}
+
+	// Read and expect to be buffered
+	bufferedReadResp := makeChannelsRequestAndWait(t, makeGenericReadRequest(genericChannelId))
+	expectedObject := &ChannelObject{
+		Id:    genericChannelId,
+		State: ChannelObjectBufferedState,
+	}
+	if bufferedReadResp.Result != ChannelsSuccess ||
+		!reflect.DeepEqual(bufferedReadResp.Channel, expectedObject) {
+		t.Errorf("Buffered read channel does not match. channel=%+v, expected=%+v", bufferedReadResp.Channel, expectedObject)
+	}
+
+	// Define perms
+	perms := &ChannelPermissionsObject{
+		Users: map[string]*ChannelPermissionObject{
+			genericNoopId: {
+				Read:  false,
+				Write: false,
+				Close: false,
+			},
+			genericReaderId: {
+				Read:  true,
+				Write: false,
+				Close: false,
+			},
+			genericWriterId: {
+				Read:  false,
+				Write: true,
+				Close: false,
+			},
+			genericCloserId: {
+				Read:  false,
+				Write: false,
+				Close: true,
+			},
+		},
+	}
+
+	// Open channel
+	openReq := &OpenChannelRequest{
+		Channel: &ChannelObject{
+			Id:          genericChannelId,
+			KeyId:       genericKeyId,
+			Permissions: perms,
+		},
+		Signers: &core.VerifiedSigners{
+			IssuerId:    genericNoopId,
+			CertifierId: genericNoopId,
+		},
+		Key:       generateRandomBytes(core.SymmetricKeySize),
+		Timestamp: openingTime,
+	}
+	openResp := makeChannelsRequestAndWait(t, openReq)
+	if openResp.Result != ChannelsSuccess {
+		t.Errorf("Opening request should succeed. response=%+v", openResp)
+	}
+
+	// Read and expect to be opened
+	openReadResp := makeChannelsRequestAndWait(t, makeGenericReadRequest(genericChannelId))
+	expectedObject = &ChannelObject{
+		Id:          genericChannelId,
+		KeyId:       genericKeyId,
+		Permissions: perms,
+		State:       ChannelObjectOpenState,
+	}
+	if openReadResp.Result != ChannelsSuccess ||
+		!reflect.DeepEqual(openReadResp.Channel, expectedObject) {
+		t.Errorf("Open read channel does not match. channel=%+v, expected=%+v", openReadResp.Channel, expectedObject)
+	}
+
+	// Close channel
+	validCloseReq := makeGenericCloseRequest(genericChannelId, genericCloserId, hourAfterOpeningTime)
+	validCloseResp := makeChannelsRequestAndWait(t, validCloseReq)
+	if validCloseResp.Result != ChannelsSuccess {
+		t.Errorf("Valid close request should succeed. response=%+v", validCloseResp)
+	}
+
+	// Read and expect to be buffered
+	closedReadResp := makeChannelsRequestAndWait(t, makeGenericReadRequest(genericChannelId))
+	expectedObject = &ChannelObject{
+		Id:          genericChannelId,
+		KeyId:       genericKeyId,
+		Permissions: perms,
+		State:       ChannelObjectClosedState,
+	}
+	if closedReadResp.Result != ChannelsSuccess ||
+		!reflect.DeepEqual(closedReadResp.Channel, expectedObject) {
+		t.Errorf("Closed read channel does not match. channel=%+v, expected=%+v", closedReadResp.Channel, expectedObject)
 	}
 
 	ShutdownServers()

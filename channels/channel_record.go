@@ -65,6 +65,13 @@ const (
 	channelInconsistentState
 )
 
+var objectStateMapping []ChannelObjectState = []ChannelObjectState{
+	ChannelObjectBufferedState,
+	ChannelObjectOpenState,
+	ChannelObjectClosedState,
+	ChannelObjectInconsistentState,
+}
+
 /*
 	Structure of a channel
 */
@@ -98,6 +105,16 @@ func makeEmptyChannelRecord(id string) *channelRecord {
 		id:    id,
 		lock:  &sync.RWMutex{},
 		state: channelBufferedState,
+	}
+}
+
+func getChannel(channelsStore *memstore.Memstore, id string) *channelRecord {
+	newRecord := makeEmptyChannelRecord(id)
+	channelRec := channelsStore.Get(newRecord, channelIndexId)
+	if channelRec != nil {
+		return channelRec.(*channelRecord)
+	} else {
+		return nil
 	}
 }
 

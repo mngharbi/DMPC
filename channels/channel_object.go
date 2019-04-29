@@ -35,8 +35,8 @@ type ChannelObject struct {
 }
 
 // *ChannelObject -> Json
-func (rq *ChannelObject) Encode() ([]byte, error) {
-	jsonStream, err := json.Marshal(rq)
+func (obj *ChannelObject) Encode() ([]byte, error) {
+	jsonStream, err := json.Marshal(obj)
 
 	if err != nil {
 		return nil, err
@@ -46,6 +46,31 @@ func (rq *ChannelObject) Encode() ([]byte, error) {
 }
 
 // Json -> *ChannelObject
-func (rq *ChannelObject) Decode(stream []byte) error {
-	return json.Unmarshal(stream, rq)
+func (obj *ChannelObject) Decode(stream []byte) error {
+	return json.Unmarshal(stream, obj)
+}
+
+/*
+	Utilities
+*/
+
+func (obj *ChannelObject) buildFromRecord(rec *channelRecord) {
+	obj.Id = rec.id
+	obj.KeyId = rec.keyId
+	if rec.permissions != nil {
+		obj.Permissions = &ChannelPermissionsObject{}
+		obj.Permissions.buildFromRecord(rec.permissions)
+	}
+	obj.State = objectStateMapping[rec.state]
+}
+
+func (obj *ChannelPermissionsObject) buildFromRecord(rec *channelPermissionsRecord) {
+	obj.Users = map[string]*ChannelPermissionObject{}
+	for userId, userPermissionsRec := range rec.users {
+		obj.Users[userId] = &ChannelPermissionObject{
+			Read:  userPermissionsRec.read,
+			Write: userPermissionsRec.write,
+			Close: userPermissionsRec.close,
+		}
+	}
 }

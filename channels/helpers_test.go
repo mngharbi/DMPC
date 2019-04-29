@@ -21,8 +21,13 @@ import (
 
 const (
 	genericChannelId      string = "channelId"
+	inexistentChannelId   string = "notFoundChannelId"
+	genericNoopId         string = "noopUserId"
+	genericReaderId       string = "readerUserId"
+	genericWriterId       string = "writerUserId"
+	genericCloserId       string = "closerUserId"
 	genericKeyId          string = "keyId"
-	genericUserId         string = "USER_1"
+	genericUserId         string = "user1"
 	genericIssuerId       string = "IssuerId"
 	genericIssuerIdBefore string = "AssuerId"
 	genericIssuerIdAfter  string = "ZssuerId"

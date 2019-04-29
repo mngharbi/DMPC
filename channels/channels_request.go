@@ -19,7 +19,8 @@ const (
 )
 
 type ChannelsResponse struct {
-	Result ChannelsStatusCode `json:"result"`
+	Result  ChannelsStatusCode `json:"result"`
+	Channel *ChannelObject     `json:"channel"`
 }
 
 // *ChannelsResponse -> Json
@@ -31,6 +32,39 @@ func (resp *ChannelsResponse) Encode() ([]byte, error) {
 	}
 
 	return jsonStream, nil
+}
+
+/*
+	Structure for read channel request
+*/
+type ReadChannelRequest struct {
+	Id string `json:"id"`
+}
+
+// *ReadChannelRequest -> Json
+func (rq *ReadChannelRequest) Encode() ([]byte, error) {
+	jsonStream, err := json.Marshal(rq)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonStream, nil
+}
+
+// Json -> *ReadChannelRequest
+func (rq *ReadChannelRequest) Decode(stream []byte) error {
+	return json.Unmarshal(stream, rq)
+}
+
+/*
+	Validates and sanitizes request
+*/
+func (rq *ReadChannelRequest) sanitizeAndValidate() error {
+	if len(rq.Id) == 0 {
+		return errors.New("Read channel request is invalid.")
+	}
+	return nil
 }
 
 /*

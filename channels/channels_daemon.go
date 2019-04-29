@@ -61,6 +61,8 @@ func ChannelAction(request interface{}) (chan *ChannelsResponse, error) {
 	// Sanitize and validate request
 	var sanitizingErr error
 	switch request.(type) {
+	case *ReadChannelRequest:
+		sanitizingErr = request.(*ReadChannelRequest).sanitizeAndValidate()
 	case *OpenChannelRequest:
 		sanitizingErr = request.(*OpenChannelRequest).sanitizeAndValidate()
 	case *CloseChannelRequest:
@@ -109,9 +111,27 @@ func (sv *channelsServer) Shutdown() error {
 func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gofarm.Response) {
 	log.Debugf(channelsRunningRequestLogMsg)
 
-	var statusCode ChannelsStatusCode = ChannelsSuccess
+	resp := &ChannelsResponse{
+		Result: ChannelsSuccess,
+	}
 
 	switch (*rqInterface).(type) {
+	case *ReadChannelRequest:
+		rq := (*rqInterface).(*ReadChannelRequest)
+
+		// Get/Lock channel
+		channelRecord := getChannel(channelsStore, rq.Id)
+		if channelRecord == nil {
+			resp.Result = ChannelsFailure
+			break
+		}
+		channelRecord.RLock()
+		defer func() { channelRecord.RUnlock() }()
+
+		// Build object
+		resp.Channel = &ChannelObject{}
+		resp.Channel.buildFromRecord(channelRecord)
+
 	case *OpenChannelRequest:
 		rq := (*rqInterface).(*OpenChannelRequest)
 		channelRecord := createOrGetChannel(channelsStore, rq.Channel.Id)
@@ -128,7 +148,7 @@ func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gof
 		permissionsRecord.build(rq.Channel.Permissions)
 		openSuccess := channelRecord.tryOpen(rq.Channel.Id, actionRecord, permissionsRecord, rq.Channel.KeyId)
 		if !openSuccess {
-			statusCode = ChannelsFailure
+			resp.Result = ChannelsFailure
 			break
 		}
 
@@ -143,11 +163,11 @@ func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gof
 			_, ok := <-respChannel
 			if !ok {
 				// This occurs when decryptor is shut down prematurely
-				statusCode = BufferError
+				resp.Result = BufferError
 				break
 			}
 		}
-		if statusCode == BufferError {
+		if resp.Result == BufferError {
 			break
 		}
 
@@ -181,7 +201,7 @@ func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gof
 		}
 		remainingMessages, closeSuccess := channelRecord.tryClose(actionRecord)
 		if !closeSuccess {
-			statusCode = ChannelsFailure
+			resp.Result = ChannelsFailure
 			break
 		}
 
@@ -191,8 +211,6 @@ func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gof
 		}
 	}
 
-	var resp gofarm.Response = &ChannelsResponse{
-		Result: statusCode,
-	}
-	return &resp
+	var respInterface gofarm.Response = resp
+	return &respInterface
 }
