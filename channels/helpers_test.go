@@ -227,6 +227,11 @@ func multipleWorkersListenersConfig() ListenersServerConfig {
 	}
 }
 
+func waitUntilEmpty(id string) {
+	listenersRecInterface, _ := listenersStore.Load(id)
+	listenersRecInterface.(*listenersRecord).eventQueue.WaitUntilEmpty()
+}
+
 /*
 	Server utilities
 */

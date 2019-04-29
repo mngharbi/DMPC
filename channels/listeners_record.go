@@ -97,6 +97,6 @@ func unsubscribeUnauthorized(channelId string, permissions *channelPermissionsRe
 }
 
 func publish(id string, event *Event) error {
-	channelEventQueue, _ := listenersStore.Load(id)
-	return channelEventQueue.(*eventqueue.EventQueue).Publish(event)
+	listenersRecInterface, _ := listenersStore.Load(id)
+	return listenersRecInterface.(*listenersRecord).eventQueue.Publish(event)
 }

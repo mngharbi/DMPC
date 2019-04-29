@@ -20,6 +20,7 @@ type channelPermissionsRecord struct {
 }
 
 func (rec *channelPermissionsRecord) build(obj *ChannelPermissionsObject) {
+	rec.users = map[string]*channelPermissionRecord{}
 	for userId, userPermissions := range obj.Users {
 		rec.users[userId] = &channelPermissionRecord{
 			read:  userPermissions.Read,
