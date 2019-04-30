@@ -5,8 +5,8 @@ package daemon
 */
 
 import (
+	"github.com/mngharbi/DMPC/cli"
 	"github.com/mngharbi/DMPC/core"
-	"github.com/mngharbi/DMPC/startup"
 )
 
 /*
@@ -32,13 +32,13 @@ const (
 
 // Checks if DMPC was set up
 func checkInstall() {
-	if !startup.IsFunctional() {
+	if !cli.IsFunctional() {
 		log.Fatalf(setupErrorMsg)
 	}
 }
 
 // Main function for startup
-func doSetup() (conf *startup.Config) {
+func doSetup() (conf *cli.Config) {
 	// Initialize logging
 	log = core.InitializeLogging()
 	log.SetLogLevel(core.INFO)
@@ -49,7 +49,7 @@ func doSetup() (conf *startup.Config) {
 
 	// Get configuration structure
 	log.Debugf(parsingConfigurationLogMsg)
-	conf = startup.GetConfig()
+	conf = cli.GetConfig()
 
 	// Set log level from configuration
 	log.SetLogLevel(conf.LogLevel)

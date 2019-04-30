@@ -1,4 +1,4 @@
-package startup
+package cli
 
 import (
 	"github.com/mngharbi/DMPC/core"

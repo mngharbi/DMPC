@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/mngharbi/DMPC/daemon"
-	"github.com/mngharbi/DMPC/startup"
+	dmpcCli "github.com/mngharbi/DMPC/cli"
 	"github.com/urfave/cli"
 	"log"
 	"os"
@@ -31,7 +31,7 @@ func main() {
 			Aliases: []string{"i"},
 			Usage:   "Configure DMPC",
 			Action: func(c *cli.Context) error {
-				startup.Install()
+				dmpcCli.Install()
 				return nil
 			},
 		},

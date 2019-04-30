@@ -1,4 +1,4 @@
-package startup
+package cli
 
 /*
 	Utilities/Definitions for conf

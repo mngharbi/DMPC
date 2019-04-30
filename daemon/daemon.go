@@ -2,18 +2,18 @@ package daemon
 
 import (
 	"github.com/mngharbi/DMPC/channels"
+	"github.com/mngharbi/DMPC/cli"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/executor"
 	"github.com/mngharbi/DMPC/keys"
 	"github.com/mngharbi/DMPC/locker"
 	"github.com/mngharbi/DMPC/pipeline"
-	"github.com/mngharbi/DMPC/startup"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 )
 
-func startDaemons(conf *startup.Config, shutdownLambda core.ShutdownLambda) {
+func startDaemons(conf *cli.Config, shutdownLambda core.ShutdownLambda) {
 	// Start locker subsystem
 	log.Debugf(startingLockerSubsystemLogMsg)
 	lockerSubsystemConfig := conf.GetLockerSubsystemConfig()
