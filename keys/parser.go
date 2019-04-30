@@ -11,6 +11,7 @@ type keyRequestType int
 
 const (
 	AddKeyRequest keyRequestType = iota
+	EncryptRequest
 	DecryptRequest
 )
 
@@ -53,6 +54,8 @@ func (req *keyRequest) validate() bool {
 		return len(req.Payload) == core.SymmetricKeySize
 	case DecryptRequest:
 		return len(req.Nonce) == core.SymmetricNonceSize
+	case EncryptRequest:
+		return true
 	}
 
 	return false
@@ -66,9 +69,10 @@ type keyResponseCode int
 const (
 	Success keyResponseCode = iota
 	DecryptionFailure
+	EncryptionFailure
 )
 
 type keyResponse struct {
-	Result    keyResponseCode
-	Decrypted []byte
+	Result  keyResponseCode
+	Payload []byte
 }

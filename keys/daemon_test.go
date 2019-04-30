@@ -56,6 +56,70 @@ func TestAddKeyDuplicate(t *testing.T) {
 }
 
 /*
+	Encryption
+*/
+
+func TestEncryptServerDown(t *testing.T) {
+	key := getKeysCollection()[keyId1]
+	plain, _, _ := getPlainNonceCipher(key)
+	if _, _, err := Encrypt(keyId1, plain); err == nil {
+		t.Error("Encrypting while server is down should fail")
+	}
+}
+
+func TestEncryptInvalidKeyId(t *testing.T) {
+	if !resetAndStartServer(t) {
+		return
+	}
+
+	key := getKeysCollection()[keyId1]
+	plain, _, _ := getPlainNonceCipher(key)
+	if _, _, err := Encrypt(invalidKeyId, plain); err != invalidRequestFormatError {
+		t.Error("Encrypting with invalid key id should fail")
+	}
+
+	ShutdownServer()
+}
+
+func TestEncryptInexistentKey(t *testing.T) {
+	if !resetAndStartServer(t) {
+		return
+	}
+
+	key := getKeysCollection()[keyId1]
+	plain, _, _ := getPlainNonceCipher(key)
+	if _, _, err := Encrypt(keyId1, plain); err != encryptionFailedError {
+		t.Error("Encrypting with inexistent key id should fail")
+	}
+
+	ShutdownServer()
+}
+
+func TestValidEncrypt(t *testing.T) {
+	if !resetAndStartServer(t) {
+		return
+	}
+
+	key := getKeysCollection()[keyId1]
+	if AddKey(keyId1, key) != nil {
+		t.Error("Adding valid key should not fail")
+	}
+
+	plain, _, _ := getPlainNonceCipher(key)
+	cipher, nonce, err := Encrypt(keyId1, plain)
+	if err != nil {
+		t.Error("Encrypting with existent key id should not fail")
+	}
+
+	expectedCipher := encrypt(key, plain, nonce)
+	if !reflect.DeepEqual(cipher, expectedCipher) {
+		t.Error("Encrypting doesn't match expected.")
+	}
+
+	ShutdownServer()
+}
+
+/*
 	Decryption
 */
 func TestDecryptServerDown(t *testing.T) {
@@ -101,7 +165,7 @@ func TestDecryptInexistentKey(t *testing.T) {
 
 	key := getKeysCollection()[keyId1]
 	_, _, cipher := getPlainNonceCipher(key)
-	if _, err := Decrypt(keyId1, validNonce(), cipher); err != decryptionFailedError {
+	if _, err := Decrypt(keyId1, validNonce(), cipher); err != encryptionFailedError {
 		t.Error("Decrypting with inexistent key id should fail")
 	}
 

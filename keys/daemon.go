@@ -13,7 +13,7 @@ import (
 var (
 	invalidRequestFormatError error = errors.New("Invalid request format.")
 	addingKeyFailedError      error = errors.New("Failed to add key.")
-	decryptionFailedError     error = errors.New("Failed to decrypt ciphertext.")
+	encryptionFailedError     error = errors.New("Failed to do encryption operation.")
 )
 
 /*
@@ -67,6 +67,25 @@ func makeGenericRequest(rqPtr *keyRequest) (chan *gofarm.Response, error) {
 	return nativeResponseChannel, nil
 }
 
+func makeGenericEncryptionRequest(request *keyRequest) ([]byte, error) {
+	// Make request
+	nativeResponseChannel, err := makeGenericRequest(request)
+	if err != nil {
+		return nil, err
+	}
+
+	// Wait and pass through result
+	nativeResponse, ok := <-nativeResponseChannel
+	if ok {
+		resp := (*nativeResponse).(*keyResponse)
+		if resp.Result == Success {
+			return resp.Payload, nil
+		}
+	}
+
+	return nil, encryptionFailedError
+}
+
 /*
 	Server API
 */
@@ -111,27 +130,34 @@ func AddKey(keyId string, key []byte) error {
 	return addingKeyFailedError
 }
 
+func Encrypt(keyId string, plaintext []byte) ([]byte, []byte, error) {
+	nonce := core.GenerateSymmetricNonce()
+
+	encrypted, err := makeGenericEncryptionRequest(&keyRequest{
+		Type:    EncryptRequest,
+		KeyId:   keyId,
+		Payload: plaintext,
+		Nonce:   nonce,
+	})
+
+	if encrypted == nil {
+		return nil, nil, err
+	}
+	return encrypted, nonce, nil
+}
+
 func Decrypt(keyId string, nonce []byte, ciphertext []byte) ([]byte, error) {
-	nativeResponseChannel, err := makeGenericRequest(&keyRequest{
+	decrypted, err := makeGenericEncryptionRequest(&keyRequest{
 		Type:    DecryptRequest,
 		KeyId:   keyId,
 		Payload: ciphertext,
 		Nonce:   nonce,
 	})
-	if err != nil {
+
+	if decrypted == nil {
 		return nil, err
 	}
-
-	// Wait and pass through result
-	nativeResponse, ok := <-nativeResponseChannel
-	if ok {
-		resp := (*nativeResponse).(*keyResponse)
-		if resp.Result == Success {
-			return resp.Decrypted, nil
-		}
-	}
-
-	return nil, decryptionFailedError
+	return decrypted, nil
 }
 
 /*
@@ -184,6 +210,22 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 		} else {
 			return successRequest(decrypted)
 		}
+	case EncryptRequest:
+		// Get key
+		storedRecord := sv.store.Get(rqPtr.makeSearchRecord(), recordIdIndex)
+		if storedRecord == nil {
+			return failRequest(EncryptionFailure)
+		}
+
+		// Encrypt
+		aead, _ := core.NewAead(storedRecord.(*keyRecord).Key)
+		payloadCiphertext := core.SymmetricEncrypt(
+			aead,
+			rqPtr.Payload[:0],
+			rqPtr.Nonce,
+			rqPtr.Payload,
+		)
+		return successRequest(payloadCiphertext)
 	}
 
 	return nil
@@ -198,11 +240,11 @@ func failRequest(responseCode keyResponseCode) *gofarm.Response {
 	return &nativeResp
 }
 
-func successRequest(decrypted []byte) *gofarm.Response {
+func successRequest(payload []byte) *gofarm.Response {
 	log.Debugf(successRequestLogMsg)
 	userRespPtr := &keyResponse{
-		Result:    Success,
-		Decrypted: decrypted,
+		Result:  Success,
+		Payload: payload,
 	}
 	var nativeResp gofarm.Response = userRespPtr
 	return &nativeResp
