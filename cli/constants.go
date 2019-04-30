@@ -25,7 +25,8 @@ const (
 var defaultUserObject users.UserObject = users.UserObject{
 	Permissions: users.PermissionsObject{
 		Channel: users.ChannelPermissionsObject{
-			Add: true,
+			Add:  true,
+			Read: true,
 		},
 		User: users.UserPermissionsObject{
 			Add:               true,
