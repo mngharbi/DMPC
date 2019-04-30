@@ -31,13 +31,29 @@ func checkChannelLocking(t *testing.T, lockerCalls chan interface{}, expectedLoc
 	return true
 }
 
+func checkUserLocking(t *testing.T, userCalls chan userRequesterCall) bool {
+	for i := 0; i < 2; i++ {
+		userCall := <-userCalls
+		userCallRq := &users.UserRequest{}
+		userCallRq.Decode(userCall.request)
+		if userCallRq.Type != users.ReadRequest ||
+			len(userCallRq.Fields) != 1 ||
+			userCallRq.Fields[0] != genericCertifierId ||
+			userCall.readLock && userCall.readUnlock ||
+			!userCall.readLock && !userCall.readUnlock {
+			t.Error("Channel add request should read lock/unlock user.")
+		}
+	}
+	return true
+}
+
 /*
 	Read channel request
 */
 
 func TestReadChannelRequest(t *testing.T) {
 	// Set up context needed
-	usersRequesterDummy, _ := createDummyUsersRequesterFunctor(users.Success, userObjectsWithPermissions, nil, false)
+	usersRequesterDummy, userCalls := createDummyUsersRequesterFunctor(users.Success, userObjectsWithPermissions, nil, false)
 	operationBufferer, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
 	messageAdder, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
 	channelActionRequester, channelActionCalls := createDummyChannelActionFunctor(channels.ChannelsSuccess, nil, false)
@@ -76,6 +92,9 @@ func TestReadChannelRequest(t *testing.T) {
 		reg.ticketLogs[ticketId][2].status != status.SuccessStatus {
 		t.Errorf("Request should succeed and statuses should be reported correctly.")
 	}
+
+	// Expect user read locking
+	checkUserLocking(t, userCalls)
 
 	// Check channel subsystem call
 	channelActionCall := (<-channelActionCalls).(*channels.ReadChannelRequest)
@@ -139,18 +158,7 @@ func TestAddChannelRequest(t *testing.T) {
 	}
 
 	// Check user read lock/unlock
-	for i := 0; i < 2; i++ {
-		userCall := <-userCalls
-		userCallRq := &users.UserRequest{}
-		userCallRq.Decode(userCall.request)
-		if userCallRq.Type != users.ReadRequest ||
-			len(userCallRq.Fields) != 1 ||
-			userCallRq.Fields[0] != genericCertifierId ||
-			userCall.readLock && userCall.readUnlock ||
-			!userCall.readLock && !userCall.readUnlock {
-			t.Error("Channel add request should read lock/unlock user.")
-		}
-	}
+	checkUserLocking(t, userCalls)
 
 	// Check channel write lock/unlock
 	checkChannelLocking(t, lockerCalls, core.WriteLockType)

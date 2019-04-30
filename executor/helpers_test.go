@@ -65,7 +65,8 @@ var (
 		{
 			Permissions: users.PermissionsObject{
 				Channel: users.ChannelPermissionsObject{
-					Add: true,
+					Add:  true,
+					Read: true,
 				},
 			},
 		},

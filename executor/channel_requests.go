@@ -18,6 +18,7 @@ var (
 	channelOpenUnauthorizedError    error = errors.New("Channel open request is not authorized.")
 	channelOpenNilChannelError      error = errors.New("Channel open request must have channel object.")
 	unverifiedChannelSubscribeError error = errors.New("Channel subscribe request cannot be unverified.")
+	channelReadUnauthorizedError    error = errors.New("Channel read request is not authorized.")
 )
 
 /*
@@ -49,6 +50,41 @@ func (sv *server) doReadChannel(wrappedRequest *executorRequest) {
 	err := request.Decode(wrappedRequest.request)
 	if err != nil {
 		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{err})
+		return
+	}
+
+	// Get and RLock certifier user object
+	usersRequest := &users.UserRequest{
+		Type:      users.ReadRequest,
+		Timestamp: wrappedRequest.metaFields.Timestamp,
+		Fields:    []string{wrappedRequest.signers.CertifierId},
+	}
+	encodedUsersRequest, _ := usersRequest.Encode()
+	usersSubsystemResponse, errs := sv.usersRequesterUnverified(nil, true, false, encodedUsersRequest)
+	if len(errs) != 0 {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestRejectedError})
+		return
+	}
+	userResponsePtr, ok := <-usersSubsystemResponse
+	if !ok {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{subsystemChannelClosed})
+		return
+	}
+	if userResponsePtr.Result != users.Success {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestRejectedError})
+		return
+	}
+
+	// RUnlock at the end
+	defer func() {
+		usersSubsystemResponse, _ = sv.usersRequesterUnverified(nil, false, true, encodedUsersRequest)
+		_ = <-usersSubsystemResponse
+	}()
+
+	// Check read channels permission
+	certifierCheckSuccess := len(userResponsePtr.Data) == 1 && userResponsePtr.Data[0].Permissions.Channel.Read
+	if !certifierCheckSuccess {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{channelReadUnauthorizedError})
 		return
 	}
 
