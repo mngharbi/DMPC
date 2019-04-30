@@ -12,8 +12,8 @@ func makeUsers(t *testing.T) bool {
 
 	// Create issuer and certifier
 	if !createIssuerAndCertifier(t,
-		false, true, false, false, false, false,
-		false, true, false, false, false, false,
+		false, false, true, false, false, false, false,
+		false, false, true, false, false, false, false,
 	) {
 		return false
 	}
@@ -22,7 +22,7 @@ func makeUsers(t *testing.T) bool {
 	for i := 0; i < 3; i++ {
 		userSuffix := "_" + strconv.Itoa(i)
 		_, success := createUser(
-			t, false, "ISSUER", "CERTIFIER", "USER"+userSuffix, false, true, false, false, false, false,
+			t, false, "ISSUER", "CERTIFIER", "USER"+userSuffix, false, false, true, false, false, false, false,
 		)
 		if !success {
 			return false

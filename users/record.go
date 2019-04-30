@@ -27,6 +27,7 @@ type permissionsRecord struct {
 
 type channelPermissionsRecord struct {
 	Add       booleanRecord
+	Read      booleanRecord
 	UpdatedAt time.Time
 }
 
@@ -78,6 +79,12 @@ func (record *userRecord) applyUpdateRequest(req *UserRequest) {
 			}
 		case "permissions.channel.add":
 			if record.Permissions.Channel.Add.update(req.Data.Permissions.Channel.Add, req.Timestamp) {
+				record.UpdatedAt = req.Timestamp
+				record.Permissions.UpdatedAt = req.Timestamp
+				record.Permissions.Channel.UpdatedAt = req.Timestamp
+			}
+		case "permissions.channel.read":
+			if record.Permissions.Channel.Read.update(req.Data.Permissions.Channel.Read, req.Timestamp) {
 				record.UpdatedAt = req.Timestamp
 				record.Permissions.UpdatedAt = req.Timestamp
 				record.Permissions.Channel.UpdatedAt = req.Timestamp
@@ -158,6 +165,9 @@ func (record *userRecord) create(req *UserRequest) {
 	// Permissions: Channel add
 	record.Permissions.Channel.Add.update(req.Data.Permissions.Channel.Add, req.Timestamp)
 
+	// Permissions: Channel read
+	record.Permissions.Channel.Read.update(req.Data.Permissions.Channel.Read, req.Timestamp)
+
 	// Permissions: User add
 	record.Permissions.User.Add.update(req.Data.Permissions.User.Add, req.Timestamp)
 
@@ -208,7 +218,7 @@ func (record *userRecord) isAuthorized(req *UserRequest) bool {
 				result = record.Permissions.User.EncKeyUpdate.Ok || isSameUser
 			case "signKey":
 				result = record.Permissions.User.SignKeyUpdate.Ok || isSameUser
-			case "permissions.channel.add", "permissions.user.add",
+			case "permissions.channel.add", "permissions.channel.read", "permissions.user.add",
 				"permissions.user.remove", "permissions.user.encKeyUpdate",
 				"permissions.user.signKeyUpdate", "permissions.user.permissionsUpdate":
 				result = record.Permissions.User.PermissionsUpdate.Ok

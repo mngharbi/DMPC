@@ -41,6 +41,7 @@ func testRecord(permissionDefault bool) userRecord {
 		Permissions: permissionsRecord{
 			Channel: channelPermissionsRecord{
 				Add:       generateBoolRecord(permissionDefault),
+				Read:      generateBoolRecord(permissionDefault),
 				UpdatedAt: testRecordTime(),
 			},
 			User: userPermissionsRecord{
@@ -212,6 +213,43 @@ func TestUpdateRequestPermissionsChannelAddSkipped(t *testing.T) {
 
 	if !reflect.DeepEqual(obj, expected) {
 		t.Errorf("Updating channel add permission with stale request didn't fail.\n result: %v\n expected: %v\n", obj, expected)
+	}
+}
+
+func TestUpdateRequestPermissionsChannelRead(t *testing.T) {
+	obj := testRecord(true)
+
+	expected := obj
+	expected.Permissions.Channel.Read.Ok = false
+	expected.Permissions.Channel.Read.UpdatedAt = testReqTime()
+	expected.Permissions.Channel.UpdatedAt = testReqTime()
+	expected.Permissions.UpdatedAt = testReqTime()
+	expected.UpdatedAt = testReqTime()
+
+	req := testRequest(UpdateRequest, false)
+	req.Data.Permissions.Channel.Read = false
+	req.Fields = []string{"permissions.channel.read"}
+
+	obj.applyUpdateRequest(&req)
+
+	if !reflect.DeepEqual(obj, expected) {
+		t.Errorf("Updating channel read permission failed.\n result: %v\n expected: %v\n", obj, expected)
+	}
+}
+
+func TestUpdateRequestPermissionsChannelReadSkipped(t *testing.T) {
+	obj := testRecord(true)
+
+	expected := obj
+
+	req := testRequest(UpdateRequest, true)
+	req.Data.Permissions.Channel.Read = false
+	req.Fields = []string{"permissions.channel.read"}
+
+	obj.applyUpdateRequest(&req)
+
+	if !reflect.DeepEqual(obj, expected) {
+		t.Errorf("Updating channel read permission with stale request didn't fail.\n result: %v\n expected: %v\n", obj, expected)
 	}
 }
 
@@ -428,6 +466,7 @@ func TestCreateRequest(t *testing.T) {
 	signKeyCopy := expected.SignKey.Key
 	req.Data.signKeyObject = &signKeyCopy
 	req.Data.Permissions.Channel.Add = true
+	req.Data.Permissions.Channel.Read = true
 	req.Data.Permissions.User.Add = true
 	req.Data.Permissions.User.Remove = true
 	req.Data.Permissions.User.EncKeyUpdate = true
@@ -454,6 +493,7 @@ func TestAuthorizationCreate(t *testing.T) {
 	signKeyCopy := obj.SignKey.Key
 	req.Data.signKeyObject = &signKeyCopy
 	req.Data.Permissions.Channel.Add = true
+	req.Data.Permissions.Channel.Read = true
 	req.Data.Permissions.User.Add = true
 	req.Data.Permissions.User.Remove = true
 	req.Data.Permissions.User.EncKeyUpdate = true
@@ -483,6 +523,7 @@ func TestAuthorizationUpdate(t *testing.T) {
 	signKeyCopy := obj.SignKey.Key
 	req.Data.signKeyObject = &signKeyCopy
 	req.Data.Permissions.Channel.Add = true
+	req.Data.Permissions.Channel.Read = true
 	req.Data.Permissions.User.Add = true
 	req.Data.Permissions.User.Remove = true
 	req.Data.Permissions.User.EncKeyUpdate = true
@@ -549,7 +590,7 @@ func TestAuthorizationUpdate(t *testing.T) {
 
 	req.Data.Id = "notId"
 
-	permissionsFields := []string{"permissions.channel.add", "permissions.user.add",
+	permissionsFields := []string{"permissions.channel.add", "permissions.channel.read", "permissions.user.add",
 		"permissions.user.remove", "permissions.user.encKeyUpdate",
 		"permissions.user.signKeyUpdate", "permissions.user.permissionsUpdate"}
 

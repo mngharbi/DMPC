@@ -25,7 +25,8 @@ const (
 	External structure of a user
 */
 type ChannelPermissionsObject struct {
-	Add bool `json:"add"`
+	Add  bool `json:"add"`
+	Read bool `json:"read"`
 }
 
 type UserPermissionsObject struct {
@@ -190,6 +191,7 @@ var sanitizeFieldsUpdatedAllowed map[string]bool = map[string]bool{
 	"encKey":                             true,
 	"signKey":                            true,
 	"permissions.channel.add":            true,
+	"permissions.channel.read":           true,
 	"permissions.user.add":               true,
 	"permissions.user.remove":            true,
 	"permissions.user.encKeyUpdate":      true,
