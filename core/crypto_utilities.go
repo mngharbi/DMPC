@@ -113,6 +113,15 @@ func PrivateStringToAsymKey(rsaString string) (*rsa.PrivateKey, error) {
 /*
 	Key generation
 */
+
+func GenerateSymmetricKey() []byte {
+	return generateRandomBytes(SymmetricKeySize)
+}
+
+func GenerateSymmetricNonce() []byte {
+	return generateRandomBytes(SymmetricNonceSize)
+}
+
 func GeneratePrivateKey() *rsa.PrivateKey {
 	priv, _ := rsa.GenerateKey(rand.Reader, AsymmetricKeySizeBits)
 	return priv
@@ -158,8 +167,8 @@ func GenerateTransactionWithEncryption(
 	recipientKey *rsa.PrivateKey,
 ) (*Transaction, *rsa.PrivateKey) {
 	// Make temporary key and nonce
-	temporaryNonce := generateRandomBytes(SymmetricNonceSize)
-	temporaryKey := generateRandomBytes(SymmetricKeySize)
+	temporaryNonce := GenerateSymmetricNonce()
+	temporaryKey := GenerateSymmetricKey()
 
 	// Encrypt challenge string and payload using temporary symmetric key
 	aead, _ := NewAead(temporaryKey)
