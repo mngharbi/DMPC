@@ -8,6 +8,7 @@ import (
 	"errors"
 	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/keys"
 	"github.com/mngharbi/DMPC/locker"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
@@ -22,6 +23,7 @@ import (
 */
 
 const (
+	genericChannelId2  string = "CHANNEL_ID2"
 	genericChannelId   string = "CHANNEL_ID"
 	genericKeyId       string = "KEY_ID"
 	genericIssuerId    string = "ISSUER_ID"
@@ -225,6 +227,18 @@ func sendChannelsResponseAfterRandomDelay(channel chan *channels.ChannelsRespons
 	waitForRandomDuration()
 	channelsReponsePtr := &channels.ChannelsResponse{
 		Result: responseCode,
+		Channel: &channels.ChannelObject{
+			Id:    genericChannelId,
+			KeyId: genericKeyId,
+			State: channels.ChannelObjectOpenState,
+			Permissions: &channels.ChannelPermissionsObject{
+				Users: map[string]*channels.ChannelPermissionObject{
+					genericCertifierId: {
+						Write: true,
+					},
+				},
+			},
+		},
 	}
 	channel <- channelsReponsePtr
 }
@@ -335,6 +349,30 @@ func createDummyKeyAdderFunctor(response error) (core.KeyAdder, chan interface{}
 }
 
 /*
+	Key encryptor dummy
+*/
+
+type keyEncryptorCall struct {
+	keyId   string
+	payload []byte
+}
+
+func createDummyKeyEncryptorFunctor(response error) (keys.Encryptor, chan interface{}) {
+	callsChannel := make(chan interface{}, 0)
+	requester := func(keyId string, payload []byte) ([]byte, []byte, error) {
+		go (func() {
+			callsChannel <- keyEncryptorCall{
+				keyId:   keyId,
+				payload: payload,
+			}
+		})()
+
+		return generateRandomBytes(10), core.GenerateSymmetricNonce(), response
+	}
+	return requester, callsChannel
+}
+
+/*
 	Server
 */
 
@@ -349,11 +387,12 @@ func resetAndStartServer(
 	channelListenersRequester channels.ListenersRequester,
 	lockerRequester locker.Requester,
 	keyAdder core.KeyAdder,
+	keyEncryptor keys.Encryptor,
 	responseReporter status.Reporter,
 	ticketGenerator status.TicketGenerator,
 ) bool {
 	serverSingleton = server{}
-	InitializeServer(usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator, log, shutdownProgram)
+	InitializeServer(usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator, log, shutdownProgram)
 	err := StartServer(conf)
 	if err != nil {
 		t.Errorf(err.Error())

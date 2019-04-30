@@ -3,6 +3,7 @@ package executor
 import (
 	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
+	"github.com/mngharbi/DMPC/keys"
 	"github.com/mngharbi/DMPC/locker"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
@@ -49,6 +50,7 @@ type server struct {
 	channelListenersRequester channels.ListenersRequester
 	lockerRequester           locker.Requester
 	keyAdder                  core.KeyAdder
+	keyEncryptor              keys.Encryptor
 	responseReporter          status.Reporter
 	ticketGenerator           status.TicketGenerator
 }
@@ -62,6 +64,7 @@ func InitializeServer(
 	channelListenersRequester channels.ListenersRequester,
 	lockerRequester locker.Requester,
 	keyAdder core.KeyAdder,
+	keyEncryptor keys.Encryptor,
 	responseReporter status.Reporter,
 	ticketGenerator status.TicketGenerator,
 	loggingHandler *core.LoggingHandler,
@@ -76,6 +79,7 @@ func InitializeServer(
 	serverSingleton.channelListenersRequester = channelListenersRequester
 	serverSingleton.lockerRequester = lockerRequester
 	serverSingleton.keyAdder = keyAdder
+	serverSingleton.keyEncryptor = keyEncryptor
 	serverSingleton.responseReporter = responseReporter
 	serverSingleton.ticketGenerator = ticketGenerator
 	log = loggingHandler

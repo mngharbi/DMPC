@@ -53,15 +53,7 @@ func checkUserLocking(t *testing.T, userCalls chan userRequesterCall) bool {
 
 func TestReadChannelRequest(t *testing.T) {
 	// Set up context needed
-	usersRequesterDummy, userCalls := createDummyUsersRequesterFunctor(users.Success, userObjectsWithPermissions, nil, false)
-	operationBufferer, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
-	messageAdder, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
-	channelActionRequester, channelActionCalls := createDummyChannelActionFunctor(channels.ChannelsSuccess, nil, false)
-	channelListenersRequester, _ := createDummyListenersRequesterFunctor(channels.ListenersSuccess, nil, false)
-	lockerRequester, _ := createDummyLockerFunctor(true, nil, false)
-	keyAdder, _ := createDummyKeyAdderFunctor(nil)
-	responseReporter, reg := createDummyResposeReporterFunctor(true)
-	ticketGenerator := createDummyTicketGeneratorFunctor()
+	usersRequester, _, usersRequesterUnverified, userCalls, messageAdder, _, operationBufferer, _, channelActionRequester, channelActionCalls, channelListenersRequester, _, lockerRequester, _, keyAdder, _, keyEncryptor, _, responseReporter, reg, ticketGenerator := createDummies(true)
 
 	rq := &channels.ReadChannelRequest{}
 	meta := &core.OperationMetaFields{
@@ -72,7 +64,7 @@ func TestReadChannelRequest(t *testing.T) {
 	rqEncoded, _ := rq.Encode()
 
 	// Test valid request
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 		return
 	}
 
@@ -112,15 +104,7 @@ func TestReadChannelRequest(t *testing.T) {
 
 func TestAddChannelRequest(t *testing.T) {
 	// Set up context needed
-	usersRequesterDummy, userCalls := createDummyUsersRequesterFunctor(users.Success, userObjectsWithPermissions, nil, false)
-	operationBufferer, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
-	messageAdder, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
-	channelActionRequester, channelActionCalls := createDummyChannelActionFunctor(channels.ChannelsSuccess, nil, false)
-	channelListenersRequester, _ := createDummyListenersRequesterFunctor(channels.ListenersSuccess, nil, false)
-	lockerRequester, lockerCalls := createDummyLockerFunctor(true, nil, false)
-	keyAdder, keyAdderCalls := createDummyKeyAdderFunctor(nil)
-	responseReporter, reg := createDummyResposeReporterFunctor(true)
-	ticketGenerator := createDummyTicketGeneratorFunctor()
+	usersRequester, _, usersRequesterUnverified, userCalls, messageAdder, _, operationBufferer, _, channelActionRequester, channelActionCalls, channelListenersRequester, _, lockerRequester, lockerCalls, keyAdder, keyAdderCalls, keyEncryptor, _, responseReporter, reg, ticketGenerator := createDummies(true)
 
 	rq := &channels.OpenChannelRequest{
 		Channel: &channels.ChannelObject{
@@ -137,7 +121,7 @@ func TestAddChannelRequest(t *testing.T) {
 	rqEncoded, _ := rq.Encode()
 
 	// Test valid request
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 		return
 	}
 
@@ -180,15 +164,7 @@ func TestAddChannelRequest(t *testing.T) {
 }
 
 func TestInvalidAddChannelRequest(t *testing.T) {
-	usersRequesterDummy, _ := createDummyUsersRequesterFunctor(users.Success, userObjectsWithPermissions, nil, false)
-	operationBufferer, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
-	messageAdder, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
-	channelActionRequester, _ := createDummyChannelActionFunctor(channels.ChannelsSuccess, nil, false)
-	channelListenersRequester, _ := createDummyListenersRequesterFunctor(channels.ListenersSuccess, nil, false)
-	lockerRequester, _ := createDummyLockerFunctor(true, nil, false)
-	keyAdder, _ := createDummyKeyAdderFunctor(nil)
-	responseReporter, reg := createDummyResposeReporterFunctor(true)
-	ticketGenerator := createDummyTicketGeneratorFunctor()
+	usersRequester, _, usersRequesterUnverified, _, messageAdder, _, operationBufferer, _, channelActionRequester, _, channelListenersRequester, _, lockerRequester, _, keyAdder, _, keyEncryptor, _, responseReporter, reg, ticketGenerator := createDummies(true)
 
 	// Test request with nil channel object
 	rq := &channels.OpenChannelRequest{
@@ -204,7 +180,7 @@ func TestInvalidAddChannelRequest(t *testing.T) {
 	rqEncoded, _ := rq.Encode()
 
 	// Make request
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 		return
 	}
 	ticketId, err := MakeRequest(true, meta, generateGenericSigners(), rqEncoded, nil)
@@ -228,15 +204,7 @@ func TestInvalidAddChannelRequest(t *testing.T) {
 
 func TestCloseChannelRequest(t *testing.T) {
 	// Set up context needed
-	usersRequesterDummy, _ := createDummyUsersRequesterFunctor(users.Success, nil, nil, false)
-	operationBufferer, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
-	messageAdder, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
-	channelActionRequester, channelActionCalls := createDummyChannelActionFunctor(channels.ChannelsSuccess, nil, false)
-	channelListenersRequester, _ := createDummyListenersRequesterFunctor(channels.ListenersSuccess, nil, false)
-	lockerRequester, lockerCalls := createDummyLockerFunctor(true, nil, false)
-	keyAdder, _ := createDummyKeyAdderFunctor(nil)
-	responseReporter, reg := createDummyResposeReporterFunctor(true)
-	ticketGenerator := createDummyTicketGeneratorFunctor()
+	usersRequester, _, usersRequesterUnverified, _, messageAdder, _, operationBufferer, _, channelActionRequester, channelActionCalls, channelListenersRequester, _, lockerRequester, lockerCalls, keyAdder, _, keyEncryptor, _, responseReporter, reg, ticketGenerator := createDummies(true)
 
 	rq := &channels.CloseChannelRequest{
 		Timestamp: nowTime,
@@ -250,7 +218,7 @@ func TestCloseChannelRequest(t *testing.T) {
 	}
 
 	// Test valid request
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 		return
 	}
 
@@ -289,15 +257,7 @@ func TestCloseChannelRequest(t *testing.T) {
 
 func doMessagesTesting(t *testing.T, isVerified bool, isBuffered bool) {
 	// Set up context needed
-	usersRequesterDummy, _ := createDummyUsersRequesterFunctor(users.Success, nil, nil, false)
-	operationBufferer, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
-	messageAdder, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
-	channelActionRequester, _ := createDummyChannelActionFunctor(channels.ChannelsSuccess, nil, false)
-	channelListenersRequester, _ := createDummyListenersRequesterFunctor(channels.ListenersSuccess, nil, false)
-	lockerRequester, lockerCalls := createDummyLockerFunctor(true, nil, false)
-	keyAdder, _ := createDummyKeyAdderFunctor(nil)
-	responseReporter, reg := createDummyResposeReporterFunctor(true)
-	ticketGenerator := createDummyTicketGeneratorFunctor()
+	usersRequester, _, usersRequesterUnverified, _, messageAdder, _, operationBufferer, _, channelActionRequester, _, channelListenersRequester, _, lockerRequester, lockerCalls, keyAdder, _, keyEncryptor, _, responseReporter, reg, ticketGenerator := createDummies(true)
 
 	// Generic meta fields definition
 	metaFields := core.OperationMetaFields{
@@ -322,12 +282,12 @@ func doMessagesTesting(t *testing.T, isVerified bool, isBuffered bool) {
 	requestError := errors.New("Request Failed.")
 	if isBuffered {
 		operationBuffererFailing, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, requestError, false)
-		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBuffererFailing, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBuffererFailing, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 			return
 		}
 	} else {
 		messageAdderFailing, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, requestError, false)
-		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdderFailing, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdderFailing, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 			return
 		}
 	}
@@ -355,12 +315,12 @@ func doMessagesTesting(t *testing.T, isVerified bool, isBuffered bool) {
 	if isBuffered {
 		operationBuffererFailing, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, true)
 		*requestOperation = requestOperationDefault
-		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBuffererFailing, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBuffererFailing, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 			return
 		}
 	} else {
 		messageAdderFailing, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, true)
-		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdderFailing, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdderFailing, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 			return
 		}
 	}
@@ -388,12 +348,12 @@ func doMessagesTesting(t *testing.T, isVerified bool, isBuffered bool) {
 	if isBuffered {
 		operationBuffererFailing, _ := createDummyOperationBuffererFunctor(1+channels.MessagesSuccess, nil, false)
 		*requestOperation = requestOperationDefault
-		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBuffererFailing, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBuffererFailing, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 			return
 		}
 	} else {
 		messageAdderFailing, _ := createDummyMessageAdderFunctor(1+channels.MessagesSuccess, nil, false)
-		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdderFailing, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdderFailing, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 			return
 		}
 	}
@@ -421,12 +381,12 @@ func doMessagesTesting(t *testing.T, isVerified bool, isBuffered bool) {
 	if isBuffered {
 		operationBuffererFailing, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
 		*requestOperation = requestOperationDefault
-		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBuffererFailing, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBuffererFailing, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 			return
 		}
 	} else {
 		messageAdderFailing, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
-		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdderFailing, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdderFailing, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 			return
 		}
 	}
@@ -450,13 +410,13 @@ func doMessagesTesting(t *testing.T, isVerified bool, isBuffered bool) {
 	if isBuffered {
 		var operationBuffererFailing channels.OperationBufferer
 		operationBuffererFailing, callsChannel = createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
-		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBuffererFailing, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBuffererFailing, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 			return
 		}
 	} else {
 		var messageAdderFailing channels.MessageAdder
 		messageAdderFailing, callsChannel = createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
-		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdderFailing, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+		if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdderFailing, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 			return
 		}
 	}
@@ -530,15 +490,7 @@ func TestVerifiedBufferOperation(t *testing.T) {
 
 func TestSubscribeRequest(t *testing.T) {
 	// Set up context needed
-	usersRequesterDummy, _ := createDummyUsersRequesterFunctor(users.Success, userObjectsWithPermissions, nil, false)
-	operationBufferer, _ := createDummyOperationBuffererFunctor(channels.MessagesSuccess, nil, false)
-	messageAdder, _ := createDummyMessageAdderFunctor(channels.MessagesSuccess, nil, false)
-	channelActionRequester, _ := createDummyChannelActionFunctor(channels.ChannelsSuccess, nil, false)
-	channelListenersRequester, subscribeCalls := createDummyListenersRequesterFunctor(channels.ListenersSuccess, nil, false)
-	lockerRequester, _ := createDummyLockerFunctor(true, nil, false)
-	keyAdder, _ := createDummyKeyAdderFunctor(nil)
-	responseReporter, reg := createDummyResposeReporterFunctor(true)
-	ticketGenerator := createDummyTicketGeneratorFunctor()
+	usersRequester, _, usersRequesterUnverified, _, messageAdder, _, operationBufferer, _, channelActionRequester, _, channelListenersRequester, subscribeCalls, lockerRequester, _, keyAdder, _, keyEncryptor, _, responseReporter, reg, ticketGenerator := createDummies(true)
 
 	meta := &core.OperationMetaFields{
 		RequestType: core.SubscribeChannelType,
@@ -547,7 +499,7 @@ func TestSubscribeRequest(t *testing.T) {
 	}
 
 	// Test valid request
-	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequesterDummy, usersRequesterDummy, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, responseReporter, ticketGenerator) {
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
 		return
 	}
 
@@ -582,5 +534,76 @@ func TestSubscribeRequest(t *testing.T) {
 	}
 	if !reflect.DeepEqual(subscribeCall, expectedRq) {
 		t.Errorf("Channel subscribe request should be forwarded to channel listeners subsystem. expected=%+v, found=%+v", expectedRq, subscribeCall)
+	}
+}
+
+func TestChannelEncryptRequest(t *testing.T) {
+	// Set up context needed
+	usersRequester, _, usersRequesterUnverified, _, messageAdder, _, operationBufferer, _, channelActionRequester, channelActionCalls, channelListenersRequester, _, lockerRequester, lockerCalls, keyAdder, _, keyEncryptor, keyEncryptorCalls, responseReporter, reg, ticketGenerator := createDummies(true)
+
+	innerPlaintextBytes := []byte{25}
+	innerMeta := core.OperationMetaFields{
+		RequestType: core.AddMessageType,
+		ChannelId:   genericChannelId2,
+		Timestamp:   nowTime,
+	}
+	op := &core.Operation{
+		Meta:    innerMeta,
+		Payload: core.Base64EncodeToString(innerPlaintextBytes),
+	}
+	opEncoded, _ := op.Encode()
+
+	meta := &core.OperationMetaFields{
+		RequestType: core.ChannelEncryptType,
+		ChannelId:   genericChannelId,
+		Timestamp:   nowTime,
+	}
+
+	// Test valid request
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
+		return
+	}
+
+	ticketId, err := MakeRequest(true, meta, generateGenericSigners(), opEncoded, nil)
+	if err != nil {
+		t.Error("Request should not fail.")
+		ShutdownServer()
+		return
+	}
+
+	ShutdownServer()
+
+	if len(reg.ticketLogs[ticketId]) != 3 ||
+		reg.ticketLogs[ticketId][0].status != status.QueuedStatus ||
+		reg.ticketLogs[ticketId][1].status != status.RunningStatus ||
+		reg.ticketLogs[ticketId][2].status != status.SuccessStatus {
+		t.Errorf("Request should succeed and statuses should be reported correctly.")
+	}
+
+	// Check channel read lock/unlock
+	checkChannelLocking(t, lockerCalls, core.ReadLockType)
+
+	// Check channel read operation
+	channelActionCall := (<-channelActionCalls).(*channels.ReadChannelRequest)
+	expectedRq := &channels.ReadChannelRequest{
+		Id: genericChannelId,
+	}
+	if !reflect.DeepEqual(channelActionCall, expectedRq) {
+		t.Errorf("Channel encrypt request should read channel from channels subsystem. expected=%+v, found=%+v", expectedRq, channelActionCall)
+	}
+
+	// Check encryption calls
+	keyEncryptorCall := (<-keyEncryptorCalls).(keyEncryptorCall)
+	if keyEncryptorCall.keyId != genericKeyId ||
+		!reflect.DeepEqual(keyEncryptorCall.payload, innerPlaintextBytes) {
+		t.Error("Channel encrypt request should call keys subsystem with inner decoded payload to encrypt.")
+	}
+
+	// Check final operation
+	resultOp := reg.ticketLogs[ticketId][2].result.(core.Operation)
+	if !resultOp.Encryption.Encrypted ||
+		resultOp.Encryption.KeyId != genericKeyId ||
+		resultOp.Meta.ChannelId != genericChannelId {
+		t.Errorf("Channel encrypt should set fields correctly in resulting operation. resultOp=%+v", resultOp)
 	}
 }

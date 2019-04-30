@@ -53,6 +53,8 @@ func (sv *server) Work(nativeRequest *gofarm.Request) (dummyResponsePtr *gofarm.
 		sv.doAddMessage(wrappedRequest)
 	case core.SubscribeChannelType:
 		sv.doSubscribeChannel(wrappedRequest)
+	case core.ChannelEncryptType:
+		sv.doChannelEncrypt(wrappedRequest)
 	}
 
 	return

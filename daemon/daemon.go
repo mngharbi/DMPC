@@ -50,6 +50,7 @@ func startDaemons(conf *startup.Config, shutdownLambda core.ShutdownLambda) {
 		channels.ListenerAction,
 		locker.RequestLock,
 		keys.AddKey,
+		keys.Encrypt,
 		status.UpdateStatus,
 		status.RequestNewTicket,
 		log,

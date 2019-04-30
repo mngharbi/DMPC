@@ -28,8 +28,9 @@ type ChannelPermissionsObject struct {
 	Users map[string]*ChannelPermissionObject `json:"users"`
 }
 type ChannelObject struct {
-	Id          string                    `json:"id"`
-	KeyId       string                    `json:"keyId"`
+	Id    string `json:"id"`
+	KeyId string `json:"keyId"`
+	// @TODO: change to object instead of pointer
 	Permissions *ChannelPermissionsObject `json:"permissions"`
 	State       ChannelObjectState        `json:"state"`
 }

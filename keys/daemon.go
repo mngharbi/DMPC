@@ -28,6 +28,8 @@ var (
 	Server definitions
 */
 
+type Encryptor func(keyId string, plain []byte) ([]byte, []byte, error)
+
 type Config struct {
 	NumWorkers int
 }
