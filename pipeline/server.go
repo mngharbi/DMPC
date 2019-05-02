@@ -3,7 +3,9 @@ package pipeline
 import (
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/decryptor"
+	"github.com/mngharbi/DMPC/status"
 	"net"
 	"net/http"
 )
@@ -21,17 +23,19 @@ type Config struct {
 	Server structure
 */
 type server struct {
-	isRunning     bool
-	isInitialized bool
-	handler       *http.Server
-	listener      net.Listener
-	requester     decryptor.Requester
+	isRunning        bool
+	isInitialized    bool
+	handler          *http.Server
+	listener         net.Listener
+	requester        decryptor.Requester
+	unsubscriber     channels.ListenersRequester
+	statusSubscriber status.Subscriber
 }
 
 /*
 	Resets listener and handlers
 */
-func (sv *server) reset(config Config, requester decryptor.Requester) {
+func (sv *server) reset(config Config, requester decryptor.Requester, unsubscriber channels.ListenersRequester, statusSubscriber status.Subscriber) {
 	// Initialize handler
 	if !sv.isInitialized {
 		upgrader := makeUpgrader(config)
@@ -52,6 +56,8 @@ func (sv *server) reset(config Config, requester decryptor.Requester) {
 	}
 	sv.handler = serverHandler
 	sv.requester = requester
+	sv.unsubscriber = unsubscriber
+	sv.statusSubscriber = statusSubscriber
 
 	// Server should start listening on address
 	var err error
@@ -70,10 +76,10 @@ func (sv *server) reset(config Config, requester decryptor.Requester) {
 /*
 	Starts server by resetting it if it's not already running
 */
-func (sv *server) start(config Config, requester decryptor.Requester) {
+func (sv *server) start(config Config, requester decryptor.Requester, unsubscriber channels.ListenersRequester, statusSubscriber status.Subscriber) {
 	if !sv.isRunning {
 		log.Debugf(startLogMsg)
-		sv.reset(config, requester)
+		sv.reset(config, requester, unsubscriber, statusSubscriber)
 		log.Infof(startListeningInfoMsg, config.Port)
 	}
 }

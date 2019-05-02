@@ -6,6 +6,7 @@
 package status
 
 import (
+	"reflect"
 	"sync"
 	"testing"
 )
@@ -184,7 +185,7 @@ func TestConcurrentUpdates(t *testing.T) {
 	numTickets := 10
 	numListeners := 100
 	numListenersTotal := numTickets * numListeners
-	numStatusUpdates := numTickets * (SuccessStatus - QueuedStatus + 1)
+	numStatusUpdates := numTickets * (len(statusCodes) - 1)
 	group.Add(numListenersTotal + numStatusUpdates)
 
 	// Generate tickets
@@ -196,8 +197,8 @@ func TestConcurrentUpdates(t *testing.T) {
 	// Generate all possible status updates
 	statusUpdates := []*StatusRecord{}
 	for _, ticket := range tickets {
-		for status := QueuedStatus; status <= SuccessStatus; status++ {
-			statusCode := StatusCode(status)
+		for status_idx := 0; status_idx < len(statusCodes)-1; status_idx++ {
+			statusCode := StatusCode(statusCodes[status_idx])
 			statusUpdates = append(statusUpdates, &StatusRecord{
 				Id:         ticket,
 				Status:     statusCode,
@@ -263,4 +264,123 @@ func TestConcurrentUpdates(t *testing.T) {
 			t.Errorf("Final update should always be sent to listener channel.")
 		}
 	}
+}
+
+func TestGetResponse(t *testing.T) {
+	if !resetAndStartBothServers(t, multipleWorkersStatusConfig(), multipleWorkersListenersConfig(), false) {
+		return
+	}
+	tickets := []Ticket{}
+	channels := []UpdateChannel{}
+	for i := 0; i < 3; i++ {
+		tickets = append(tickets, RequestNewTicket())
+		channel, _ := AddListener(tickets[i])
+		channels = append(channels, channel)
+	}
+
+	// Make queued update to all
+	for ticketIdx, ticket := range tickets {
+		expectedStatusUpdate := &StatusRecord{
+			Id:         ticket,
+			Status:     QueuedStatus,
+			FailReason: NoReason,
+			Payload:    nil,
+			Errs:       nil,
+		}
+		expectedStatusUpdateEncoded, _ := expectedStatusUpdate.Encode()
+		_ = UpdateStatus(ticket, expectedStatusUpdate.Status, expectedStatusUpdate.FailReason, expectedStatusUpdate.Payload, expectedStatusUpdate.Errs)
+		statusUpdate, isOpen := <-channels[ticketIdx]
+		var statusUpdateResponse []byte
+		if isOpen {
+			statusUpdateResponse, isOpen = statusUpdate.GetResponse()
+		}
+		if !isOpen || !reflect.DeepEqual(statusUpdateResponse, expectedStatusUpdateEncoded) {
+			t.Errorf("Queued update should have endoded update. \n found=%+v\n expected=%+v", statusUpdateResponse, expectedStatusUpdateEncoded)
+		}
+		_, hasSubscriber := statusUpdate.GetSubscriberId()
+		if hasSubscriber {
+			t.Error("Queued update should not have subscriber.")
+		}
+	}
+
+	/*
+		Test final updates
+	*/
+	expectedStatusUpdate := &StatusRecord{
+		Status:     SuccessStatus,
+		FailReason: NoReason,
+		Payload:    nil,
+		Errs:       nil,
+	}
+
+	encodedIdx := 0
+	encodableIdx := 1
+	withChannelIdx := 2
+
+	/// With encoded result
+	encodedResult := []byte{3}
+	expectedStatusUpdate.Id = tickets[encodedIdx]
+	expectedStatusUpdate.Payload = encodedResult
+	_ = UpdateStatus(tickets[encodedIdx], expectedStatusUpdate.Status, expectedStatusUpdate.FailReason, expectedStatusUpdate.Payload, expectedStatusUpdate.Errs)
+	statusUpdate, _ := <-channels[encodedIdx]
+	statusUpdateResponse, isOpen := statusUpdate.GetResponse()
+	if isOpen || !reflect.DeepEqual(statusUpdateResponse, encodedResult) {
+		t.Errorf("Encoded result should be read directly. \n found=%+v\n expected=%+v", statusUpdateResponse, encodedResult)
+	}
+	_, hasSubscriber := statusUpdate.GetSubscriberId()
+	if hasSubscriber {
+		t.Error("Encoded result should not have subscriber.")
+	}
+
+	/// With encodable result
+	encodable := &encodableTestStruct{
+		Id: 3,
+	}
+	encodedResult, _ = encodable.Encode()
+	expectedStatusUpdate.Id = tickets[encodableIdx]
+	expectedStatusUpdate.Payload = encodable
+	_ = UpdateStatus(tickets[encodableIdx], expectedStatusUpdate.Status, expectedStatusUpdate.FailReason, expectedStatusUpdate.Payload, expectedStatusUpdate.Errs)
+	statusUpdate, _ = <-channels[encodableIdx]
+	statusUpdateResponse, isOpen = statusUpdate.GetResponse()
+	if isOpen || !reflect.DeepEqual(statusUpdateResponse, encodedResult) {
+		t.Errorf("Encodable result should be read after encoding. \n found=%+v\n expected=%+v", statusUpdateResponse, encodedResult)
+	}
+	_, hasSubscriber = statusUpdate.GetSubscriberId()
+	if hasSubscriber {
+		t.Error("Encodable result should not have subscriber.")
+	}
+
+	/// With channel result
+	subId := "SUBSCRIBER_ID"
+	channelResp := &channelTestStruct{
+		Channel:      make(chan []byte),
+		SubscriberId: subId,
+	}
+	numChannelVals := 3
+	go func() {
+		for i := 0; i < numChannelVals; i++ {
+			channelResp.Channel <- []byte{byte(i)}
+		}
+		close(channelResp.Channel)
+	}()
+	expectedStatusUpdate.Payload = channelResp
+	_ = UpdateStatus(tickets[withChannelIdx], expectedStatusUpdate.Status, expectedStatusUpdate.FailReason, expectedStatusUpdate.Payload, expectedStatusUpdate.Errs)
+	statusUpdate, _ = <-channels[withChannelIdx]
+	for i := 0; i < numChannelVals; i++ {
+		statusUpdateResponse, isOpen = statusUpdate.GetResponse()
+		expectedBytes := []byte{byte(i)}
+		if !isOpen || !reflect.DeepEqual(statusUpdateResponse, expectedBytes) {
+			t.Errorf("Channel result should be read from inner channel. \n found=%+v\n expected=%+v", statusUpdateResponse, expectedBytes)
+		}
+	}
+	_, isOpen = statusUpdate.GetResponse()
+	if isOpen {
+		t.Error("Channel result should be closed according to channel.")
+	}
+	subscriberId, hasSubscriber := statusUpdate.GetSubscriberId()
+	if !hasSubscriber || subscriberId != subId {
+		t.Error("Channel result should have subscriber.")
+	}
+
+	ShutdownServers()
 }

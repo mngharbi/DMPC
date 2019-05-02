@@ -18,6 +18,8 @@ func TestStartShutdownServer(t *testing.T) {
 			Port:        defaultPort,
 		},
 		generateDecryptorRequester(true, true),
+		createSuccessUnsubsriberNoCalls(),
+		createSuccessStatusSubscriberNoCalls(),
 		log,
 	)
 	ShutdownServer()
@@ -57,6 +59,8 @@ func TestSuccessfulOperations(t *testing.T) {
 			Port:        defaultPort,
 		},
 		generateDecryptorRequester(true, true),
+		createSuccessUnsubsriberNoCalls(),
+		createSuccessStatusSubscriberNoCalls(),
 		log,
 	)
 
@@ -80,6 +84,8 @@ func TestInvalidOperation(t *testing.T) {
 			Port:        defaultPort,
 		},
 		generateDecryptorRequester(true, true),
+		createSuccessUnsubsriberNoCalls(),
+		createSuccessStatusSubscriberNoCalls(),
 		log,
 	)
 
@@ -115,6 +121,8 @@ func TestRejectedOperation(t *testing.T) {
 			Port:        defaultPort,
 		},
 		generateDecryptorRequester(false, true),
+		createSuccessUnsubsriberNoCalls(),
+		createSuccessStatusSubscriberNoCalls(),
 		log,
 	)
 
@@ -139,6 +147,8 @@ func TestRejectedOperation(t *testing.T) {
 			Port:        defaultPort,
 		},
 		generateDecryptorRequester(true, false),
+		createSuccessUnsubsriberNoCalls(),
+		createSuccessStatusSubscriberNoCalls(),
 		log,
 	)
 
@@ -163,6 +173,8 @@ func TestRejectedOperation(t *testing.T) {
 			Port:        defaultPort,
 		},
 		generateDecryptorRequester(true, true),
+		createSuccessUnsubsriberNoCalls(),
+		createSuccessStatusSubscriberNoCalls(),
 		log,
 	)
 

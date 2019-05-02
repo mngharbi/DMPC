@@ -11,6 +11,8 @@ import (
 */
 const DefaultChannelBufferSize = 3
 
+type Subscriber func(ticket Ticket) (UpdateChannel, error)
+
 /*
 	Server API
 */
@@ -89,7 +91,7 @@ func (sv *listenersServer) Shutdown() error {
 
 func doListenerServerWork(statusRecord *StatusRecord, channel UpdateChannel) {
 	// If status is done, we only need to put the last status
-	if statusRecord.isDone() {
+	if statusRecord.IsDone() {
 		channel <- statusRecord
 		close(channel)
 		return

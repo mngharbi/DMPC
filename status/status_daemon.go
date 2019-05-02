@@ -118,7 +118,7 @@ func doStatusUpdate(currentRecord *StatusRecord, changedRecord *StatusRecord) {
 	}
 
 	// If final update, close all listener channels and delete listener record
-	if currentRecord.isDone() {
+	if currentRecord.IsDone() {
 		for _, updateChannel := range listenersRecord.channels {
 			close(updateChannel)
 		}

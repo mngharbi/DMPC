@@ -7,14 +7,20 @@ package pipeline
 import (
 	"errors"
 	"github.com/gorilla/websocket"
+	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/gofarm"
+	"math/rand"
 	"net/url"
 	"testing"
 	"time"
 )
+
+/*
+	Decryptor dummy
+*/
 
 func generateDecryptorRequester(formatSuccess bool, responseSuccess bool) decryptor.Requester {
 	if formatSuccess {
@@ -37,6 +43,78 @@ func generateDecryptorRequester(formatSuccess bool, responseSuccess bool) decryp
 		}
 	}
 }
+
+/*
+	Unsubscriber dummy
+*/
+
+func waitForRandomDuration() {
+	duration := time.Duration(rand.Intn(100)) * time.Millisecond
+	timer := time.NewTimer(duration)
+	<-timer.C
+}
+
+func sendUnsubsriberResponseAfterRandomDelay(channel chan *channels.ListenersResponse, response channels.ListenersResponse) {
+	waitForRandomDuration()
+	listenersReponsePtr := &channels.ListenersResponse{}
+	*listenersReponsePtr = response
+	channel <- listenersReponsePtr
+}
+
+func createUnsubsriber(response channels.ListenersResponse, errReturned error, closeChannel bool) (channels.ListenersRequester, chan interface{}) {
+	callsChannel := make(chan interface{}, 0)
+	requester := func(request interface{}) (chan *channels.ListenersResponse, error) {
+		go (func() {
+			callsChannel <- request
+		})()
+		if errReturned != nil {
+			return nil, errReturned
+		}
+		responseChannel := make(chan *channels.ListenersResponse)
+		if closeChannel {
+			close(responseChannel)
+		} else {
+			go sendUnsubsriberResponseAfterRandomDelay(responseChannel, response)
+		}
+		return responseChannel, nil
+	}
+	return requester, callsChannel
+}
+
+func createSuccessUnsubsriberNoCalls() channels.ListenersRequester {
+	unsubscriber, _ := createUnsubsriber(channels.ListenersResponse{
+		Result: channels.ListenersSuccess,
+	}, nil, false)
+	return unsubscriber
+}
+
+/*
+	Status listener dummy
+*/
+
+func createStatusSubscriber(errReturned error) (status.Subscriber, chan interface{}) {
+	callsChannel := make(chan interface{}, 0)
+	requester := func(ticket status.Ticket) (status.UpdateChannel, error) {
+		go (func() {
+			callsChannel <- ticket
+		})()
+		if errReturned != nil {
+			return nil, errReturned
+		}
+		updateChannel := make(status.UpdateChannel)
+		return updateChannel, nil
+	}
+	return requester, callsChannel
+}
+
+func createSuccessStatusSubscriberNoCalls() status.Subscriber {
+	statusSubscriber, _ := createStatusSubscriber(nil)
+	return statusSubscriber
+}
+
+/*
+	Generators
+*/
 
 func generateValidOperationJson() []byte {
 	return []byte("{}")

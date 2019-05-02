@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -27,6 +28,22 @@ type Event struct {
 	Data      []byte    `json:"data"`
 }
 
+/*
+	Encoding
+*/
+func (ev *Event) Encode() ([]byte, error) {
+	jsonStream, err := json.Marshal(ev)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonStream, nil
+}
+
+/*
+	Helpers
+*/
 func makeOpenEvent(timestamp time.Time) *Event {
 	return &Event{
 		Type:      Open,

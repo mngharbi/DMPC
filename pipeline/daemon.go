@@ -1,8 +1,10 @@
 package pipeline
 
 import (
+	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
+	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/gofarm"
 	"sync"
 )
@@ -32,12 +34,12 @@ func passOperation(operation *core.Transaction) (channel chan *gofarm.Response, 
 	Server API
 */
 
-func StartServer(config Config, requester decryptor.Requester, loggingHandler *core.LoggingHandler) {
+func StartServer(config Config, requester decryptor.Requester, unsubscriber channels.ListenersRequester, statusSubscriber status.Subscriber, loggingHandler *core.LoggingHandler) {
 	if log == nil {
 		log = loggingHandler
 	}
 	serverLock.Lock()
-	serverSingleton.start(config, requester)
+	serverSingleton.start(config, requester, unsubscriber, statusSubscriber)
 	serverLock.Unlock()
 }
 

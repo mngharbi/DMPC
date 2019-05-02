@@ -79,7 +79,7 @@ func startDaemons(conf *cli.Config, shutdownLambda core.ShutdownLambda) {
 	// Start pipeline subsystem (websocket server)
 	log.Debugf(startingPipelineSubsystemLogMsg)
 	pipelineSubsystemConfig := conf.GetPipelineSubsystemConfig()
-	pipeline.StartServer(pipelineSubsystemConfig, decryptor.MakeTransactionRequest, log)
+	pipeline.StartServer(pipelineSubsystemConfig, decryptor.MakeTransactionRequest, channels.ListenerAction, status.AddListener, log)
 }
 
 func shutdownDaemons() {

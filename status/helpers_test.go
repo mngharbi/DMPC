@@ -5,6 +5,7 @@
 package status
 
 import (
+	"encoding/json"
 	"math/rand"
 	"sync"
 	"testing"
@@ -81,4 +82,34 @@ func resetAndStartBothServers(t *testing.T, statusConf StatusServerConfig, liste
 	statusServerSingleton = statusServer{}
 	listenersServerSingleton = listenersServer{}
 	return startBothServersAndTest(t, statusConf, listenersConf, ignoreError)
+}
+
+/*
+	Encodable type
+*/
+
+type encodableTestStruct struct {
+	Id int `json:"id"`
+}
+
+func (rec *encodableTestStruct) Encode() ([]byte, error) {
+	return json.Marshal(rec)
+}
+
+/*
+	Channel response type
+*/
+
+type channelTestStruct struct {
+	Channel      chan []byte
+	SubscriberId string
+}
+
+func (ch *channelTestStruct) GetResponse() ([]byte, bool) {
+	resp, ok := <-ch.Channel
+	return resp, ok
+}
+
+func (ch *channelTestStruct) GetSubscriberId() string {
+	return ch.SubscriberId
 }

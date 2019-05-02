@@ -3,7 +3,6 @@ package channels
 import (
 	"errors"
 	"github.com/mngharbi/DMPC/core"
-	"time"
 )
 
 /*
@@ -21,6 +20,19 @@ type ListenersResponse struct {
 	Result       ListenersStatusCode
 	Channel      EventChannel
 	SubscriberId string
+}
+
+func (resp *ListenersResponse) GetResponse() ([]byte, bool) {
+	if resp.Channel == nil {
+		return nil, false
+	}
+	event, ok := <-resp.Channel
+	encoded, _ := event.Encode()
+	return encoded, ok
+}
+
+func (resp *ListenersResponse) GetSubscriberId() string {
+	return resp.SubscriberId
 }
 
 /*
@@ -48,5 +60,4 @@ func (rq *SubscribeRequest) sanitizeAndValidate() error {
 type UnsubscribeRequest struct {
 	ChannelId    string
 	SubscriberId string
-	Timestamp    time.Time
 }

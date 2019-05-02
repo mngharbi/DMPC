@@ -12,12 +12,12 @@ func TestStatusStartShutdown(t *testing.T) {
 }
 
 func TestInvalidStatusUpdate(t *testing.T) {
-	err := UpdateStatus(RequestNewTicket(), FailedStatus+1, NoReason, nil, nil)
+	err := UpdateStatus(RequestNewTicket(), StatusCode("random_status"), NoReason, nil, nil)
 	if err != statusRangeError {
 		t.Errorf("Request with invalid status code should fail. err=%v", err)
 	}
 
-	err = UpdateStatus(RequestNewTicket(), FailedStatus, FailedReason+1, nil, nil)
+	err = UpdateStatus(RequestNewTicket(), FailedStatus, FailReasonCode("random_status"), nil, nil)
 	if err != failedRangeError {
 		t.Errorf("Request with invalid failure code should fail. err=%v", err)
 	}

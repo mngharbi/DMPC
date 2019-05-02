@@ -1,6 +1,7 @@
 package status
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/mngharbi/memstore"
 	"reflect"
@@ -18,37 +19,126 @@ var (
 /*
 	Status codes
 */
-type StatusCode int
+type StatusCode string
 
 const (
-	NoStatus = iota
-	QueuedStatus
-	RunningStatus
-	SuccessStatus
-	FailedStatus
+	NoStatus      StatusCode = "no_status"
+	QueuedStatus  StatusCode = "queued"
+	RunningStatus StatusCode = "running"
+	SuccessStatus StatusCode = "success"
+	FailedStatus  StatusCode = "failed"
+)
+
+var (
+	statusCodes [5]StatusCode = [5]StatusCode{
+		NoStatus,
+		QueuedStatus,
+		RunningStatus,
+		SuccessStatus,
+		FailedStatus,
+	}
+	statusCodesMap map[StatusCode]bool = map[StatusCode]bool{
+		NoStatus:      true,
+		QueuedStatus:  true,
+		RunningStatus: true,
+		SuccessStatus: true,
+		FailedStatus:  true,
+	}
 )
 
 /*
 	FailReason codes
 */
-type FailReasonCode int
+type FailReasonCode string
 
 const (
-	NoReason = iota
-	RejectedReason
-	FailedReason
+	NoReason       FailReasonCode = "no_failure"
+	RejectedReason FailReasonCode = "rejected"
+	FailedReason   FailReasonCode = "failed"
+)
+
+var (
+	failureReasons [5]FailReasonCode = [5]FailReasonCode{
+		NoReason,
+		RejectedReason,
+		FailedReason,
+	}
+	failureReasonsMap map[FailReasonCode]bool = map[FailReasonCode]bool{
+		NoReason:       true,
+		RejectedReason: true,
+		FailedReason:   true,
+	}
 )
 
 /*
 	Structure of a status record
 */
 type StatusRecord struct {
-	Id         Ticket
-	Status     StatusCode
-	FailReason FailReasonCode
+	Id         Ticket         `json:"ticket"`
+	Status     StatusCode     `json:"status"`
+	FailReason FailReasonCode `json:"fail_status"`
 	Payload    interface{}
-	Errs       []error
+	Errs       []error `json:"errors"`
 	lock       *sync.RWMutex
+}
+
+/*
+	Encoding
+*/
+
+type Encodable interface {
+	Encode() ([]byte, error)
+}
+
+type ChannelResponse interface {
+	GetResponse() ([]byte, bool)
+	GetSubscriberId() string
+}
+
+// *StatusRecord -> Json
+func (rec *StatusRecord) Encode() ([]byte, error) {
+	jsonStream, err := json.Marshal(rec)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonStream, nil
+}
+
+func (rec *StatusRecord) GetResponse() ([]byte, bool) {
+	if !rec.IsDone() {
+		encoded, _ := rec.Encode()
+		return encoded, true
+	}
+	if rec.Status == FailedStatus {
+		encoded, _ := rec.Encode()
+		return encoded, false
+	}
+	switch rec.Payload.(type) {
+	case Encodable:
+		encoded, _ := rec.Payload.(Encodable).Encode()
+		return encoded, false
+	case []byte:
+		return rec.Payload.([]byte), false
+	case ChannelResponse:
+		return rec.Payload.(ChannelResponse).GetResponse()
+	default:
+		return nil, false
+	}
+}
+
+func (rec *StatusRecord) GetSubscriberId() (string, bool) {
+	if rec.Status != SuccessStatus {
+		return "", false
+	}
+
+	switch rec.Payload.(type) {
+	case ChannelResponse:
+		return rec.Payload.(ChannelResponse).GetSubscriberId(), true
+	default:
+		return "", false
+	}
 }
 
 /*
@@ -100,12 +190,12 @@ func (rec *StatusRecord) Less(index string, than interface{}) bool {
 */
 func (rec *StatusRecord) check() error {
 	// Check status bounds
-	if !(QueuedStatus <= rec.Status && rec.Status <= FailedStatus) {
+	if _, ok := statusCodesMap[rec.Status]; !ok {
 		return statusRangeError
 	}
 
 	// Check fail reasons bounds
-	if !(NoReason <= rec.FailReason && rec.FailReason <= FailedReason) {
+	if _, ok := failureReasonsMap[rec.FailReason]; !ok {
 		return failedRangeError
 	}
 
@@ -138,12 +228,14 @@ func (rec *StatusRecord) createOrGet(mem *memstore.Memstore) *StatusRecord {
 	return mem.AddOrGet(rec).(*StatusRecord)
 }
 
-func (rec *StatusRecord) isDone() bool {
-	return rec.Status >= SuccessStatus
+func (rec *StatusRecord) IsDone() bool {
+	return rec.Status == SuccessStatus || rec.Status == FailedStatus
 }
 
 func makeStatusEmptyRecord(id Ticket) *StatusRecord {
 	return &StatusRecord{
-		Id: id,
+		Id:         id,
+		Status:     NoStatus,
+		FailReason: NoReason,
 	}
 }
