@@ -102,6 +102,7 @@ func (rec *encodableTestStruct) Encode() ([]byte, error) {
 
 type channelTestStruct struct {
 	Channel      chan []byte
+	ChannelId    string
 	SubscriberId string
 }
 
@@ -112,4 +113,8 @@ func (ch *channelTestStruct) GetResponse() ([]byte, bool) {
 
 func (ch *channelTestStruct) GetSubscriberId() string {
 	return ch.SubscriberId
+}
+
+func (ch *channelTestStruct) GetChannelId() string {
+	return ch.ChannelId
 }

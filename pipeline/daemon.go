@@ -1,12 +1,22 @@
 package pipeline
 
 import (
+	"errors"
 	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/decryptor"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/gofarm"
 	"sync"
+)
+
+/*
+	Errors
+*/
+
+var (
+	serverNotRunning  error = errors.New("Pipeline not running during the operation.")
+	subscriptionError error = errors.New("Failed to unsubscribe.")
 )
 
 /*
@@ -19,15 +29,59 @@ var (
 )
 
 /*
-	Used to pass operation to decryptor
+	Used to pass transaction to decryptor
 */
-func passOperation(operation *core.Transaction) (channel chan *gofarm.Response, errs []error) {
+func passTransaction(transaction *core.Transaction) (channel chan *gofarm.Response, errs []error) {
 	serverLock.RLock()
 	defer serverLock.RUnlock()
-	if serverSingleton.isRunning {
-		channel, errs = serverSingleton.requester(operation)
+	if !serverSingleton.isRunning {
+		return nil, []error{serverNotRunning}
 	}
-	return
+	return serverSingleton.requester(transaction)
+}
+
+/*
+	Used to get channel for status updates
+*/
+func getStatusUpdateChannel(ticket status.Ticket) (status.UpdateChannel, error) {
+	serverLock.RLock()
+	defer serverLock.RUnlock()
+	if !serverSingleton.isRunning {
+		return nil, serverNotRunning
+	}
+
+	return serverSingleton.statusSubscriber(ticket)
+}
+
+/*
+	Used to do channel unsubscribe
+*/
+func doUnsubscribe(channelId string, subscriberId string) error {
+	serverLock.RLock()
+	defer serverLock.RUnlock()
+
+	if !serverSingleton.isRunning {
+		return serverNotRunning
+	}
+
+	channel, err := serverSingleton.unsubscriber(&channels.UnsubscribeRequest{
+		ChannelId:    channelId,
+		SubscriberId: subscriberId,
+	})
+	if err != nil {
+		return err
+	}
+
+	resp, ok := <-channel
+	if !ok {
+		return subscriptionError
+	}
+
+	if resp == nil || resp.Result != channels.ListenersSuccess {
+		return subscriptionError
+	}
+	return nil
+
 }
 
 /*

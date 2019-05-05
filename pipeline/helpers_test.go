@@ -19,6 +19,15 @@ import (
 )
 
 /*
+	Constants
+*/
+
+const (
+	genericChannelId    string = "CHANNEL_ID"
+	genericSubscriberId string = "SUBSCRIBER_ID"
+)
+
+/*
 	Decryptor dummy
 */
 
@@ -64,9 +73,9 @@ func sendUnsubsriberResponseAfterRandomDelay(channel chan *channels.ListenersRes
 func createUnsubsriber(response channels.ListenersResponse, errReturned error, closeChannel bool) (channels.ListenersRequester, chan interface{}) {
 	callsChannel := make(chan interface{}, 0)
 	requester := func(request interface{}) (chan *channels.ListenersResponse, error) {
-		go (func() {
+		go func() {
 			callsChannel <- request
-		})()
+		}()
 		if errReturned != nil {
 			return nil, errReturned
 		}
@@ -81,18 +90,45 @@ func createUnsubsriber(response channels.ListenersResponse, errReturned error, c
 	return requester, callsChannel
 }
 
-func createSuccessUnsubsriberNoCalls() channels.ListenersRequester {
-	unsubscriber, _ := createUnsubsriber(channels.ListenersResponse{
+func createSuccessUnsubsriber() (channels.ListenersRequester, chan interface{}) {
+	return createUnsubsriber(channels.ListenersResponse{
 		Result: channels.ListenersSuccess,
 	}, nil, false)
+}
+
+func createSuccessUnsubsriberNoCalls() channels.ListenersRequester {
+	unsubscriber, _ := createSuccessUnsubsriber()
 	return unsubscriber
+}
+
+/*
+	Channel response type
+*/
+
+type channelTestStruct struct {
+	Channel      chan []byte
+	ChannelId    string
+	SubscriberId string
+}
+
+func (ch *channelTestStruct) GetResponse() ([]byte, bool) {
+	resp, ok := <-ch.Channel
+	return resp, ok
+}
+
+func (ch *channelTestStruct) GetSubscriberId() string {
+	return ch.SubscriberId
+}
+
+func (ch *channelTestStruct) GetChannelId() string {
+	return ch.ChannelId
 }
 
 /*
 	Status listener dummy
 */
 
-func createStatusSubscriber(errReturned error) (status.Subscriber, chan interface{}) {
+func createStatusSubscriber(errReturned error, eventFeeder func(status.Ticket) []*status.StatusRecord) (status.Subscriber, chan interface{}) {
 	callsChannel := make(chan interface{}, 0)
 	requester := func(ticket status.Ticket) (status.UpdateChannel, error) {
 		go (func() {
@@ -102,25 +138,95 @@ func createStatusSubscriber(errReturned error) (status.Subscriber, chan interfac
 			return nil, errReturned
 		}
 		updateChannel := make(status.UpdateChannel)
+		if eventFeeder != nil {
+			go func() {
+				events := eventFeeder(ticket)
+				for _, event := range events {
+					updateChannel <- event
+				}
+			}()
+		}
 		return updateChannel, nil
 	}
 	return requester, callsChannel
 }
 
-func createSuccessStatusSubscriberNoCalls() status.Subscriber {
-	statusSubscriber, _ := createStatusSubscriber(nil)
+func createGenericStatusSubscriberNoCalls(eventFeeder func(status.Ticket) []*status.StatusRecord) status.Subscriber {
+	statusSubscriber, _ := createStatusSubscriber(nil, eventFeeder)
 	return statusSubscriber
+}
+
+func createSuccessStatusSubscriberNoCalls() status.Subscriber {
+	return createGenericStatusSubscriberNoCalls(func(ticket status.Ticket) []*status.StatusRecord {
+		return []*status.StatusRecord{
+			generateQueuedUpdate(ticket),
+			generateRunningUpdate(ticket),
+			generateSuccessUpdate(ticket, []byte{32}),
+		}
+	})
 }
 
 /*
 	Generators
 */
 
-func generateValidOperationJson() []byte {
-	return []byte("{}")
+func generateQueuedUpdate(ticket status.Ticket) *status.StatusRecord {
+	return &status.StatusRecord{
+		Id:         ticket,
+		Status:     status.QueuedStatus,
+		FailReason: status.NoReason,
+		Payload:    nil,
+		Errs:       nil,
+	}
 }
 
-func generateInvalidOperationJson() []byte {
+func generateRunningUpdate(ticket status.Ticket) *status.StatusRecord {
+	return &status.StatusRecord{
+		Id:         ticket,
+		Status:     status.RunningStatus,
+		FailReason: status.NoReason,
+		Payload:    nil,
+		Errs:       nil,
+	}
+}
+
+func generateSuccessUpdate(ticket status.Ticket, payload interface{}) *status.StatusRecord {
+	return &status.StatusRecord{
+		Id:         ticket,
+		Status:     status.SuccessStatus,
+		FailReason: status.NoReason,
+		Payload:    payload,
+		Errs:       nil,
+	}
+}
+
+func generateRejectedUpdate(ticket status.Ticket) *status.StatusRecord {
+	return &status.StatusRecord{
+		Id:         ticket,
+		Status:     status.FailedStatus,
+		FailReason: status.RejectedReason,
+	}
+}
+
+func generateFailedUpdate(ticket status.Ticket) *status.StatusRecord {
+	return &status.StatusRecord{
+		Id:         ticket,
+		Status:     status.FailedStatus,
+		FailReason: status.FailedReason,
+	}
+}
+
+func generateValidTransactionJson(statusUpdates bool, result bool) []byte {
+	encoded, _ := (&core.Transaction{
+		Pipeline: core.PipelineConfig{
+			ReadStatusUpdates: statusUpdates,
+			ReadResult:        result,
+		},
+	}).Encode()
+	return encoded
+}
+
+func generateInvalidTransactionJson() []byte {
 	return []byte("}")
 }
 

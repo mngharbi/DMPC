@@ -301,6 +301,10 @@ func TestGetResponse(t *testing.T) {
 		if hasSubscriber {
 			t.Error("Queued update should not have subscriber.")
 		}
+		_, hasChannel := statusUpdate.GetChannelId()
+		if hasChannel {
+			t.Error("Queued update should not have channel id.")
+		}
 	}
 
 	/*
@@ -331,6 +335,10 @@ func TestGetResponse(t *testing.T) {
 	if hasSubscriber {
 		t.Error("Encoded result should not have subscriber.")
 	}
+	_, hasChannel := statusUpdate.GetChannelId()
+	if hasChannel {
+		t.Error("Encoded result should not have channel id.")
+	}
 
 	/// With encodable result
 	encodable := &encodableTestStruct{
@@ -349,11 +357,17 @@ func TestGetResponse(t *testing.T) {
 	if hasSubscriber {
 		t.Error("Encodable result should not have subscriber.")
 	}
+	_, hasChannel = statusUpdate.GetChannelId()
+	if hasChannel {
+		t.Error("Encodable result should not have channel id.")
+	}
 
 	/// With channel result
 	subId := "SUBSCRIBER_ID"
+	chId := "CHANNEL_ID"
 	channelResp := &channelTestStruct{
 		Channel:      make(chan []byte),
+		ChannelId:    chId,
 		SubscriberId: subId,
 	}
 	numChannelVals := 3
@@ -380,6 +394,10 @@ func TestGetResponse(t *testing.T) {
 	subscriberId, hasSubscriber := statusUpdate.GetSubscriberId()
 	if !hasSubscriber || subscriberId != subId {
 		t.Error("Channel result should have subscriber.")
+	}
+	channelId, hasChannel := statusUpdate.GetChannelId()
+	if !hasChannel || channelId != chId {
+		t.Error("Channel result should have channel id.")
 	}
 
 	ShutdownServers()

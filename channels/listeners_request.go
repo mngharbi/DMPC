@@ -20,6 +20,7 @@ type ListenersResponse struct {
 	Result       ListenersStatusCode
 	Channel      EventChannel
 	SubscriberId string
+	ChannelId    string
 }
 
 func (resp *ListenersResponse) GetResponse() ([]byte, bool) {
@@ -33,6 +34,10 @@ func (resp *ListenersResponse) GetResponse() ([]byte, bool) {
 
 func (resp *ListenersResponse) GetSubscriberId() string {
 	return resp.SubscriberId
+}
+
+func (resp *ListenersResponse) GetChannelId() string {
+	return resp.ChannelId
 }
 
 /*

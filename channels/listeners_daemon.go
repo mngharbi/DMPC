@@ -114,6 +114,8 @@ func (sv *listenersServer) Work(rqInterface *gofarm.Request) *gofarm.Response {
 	case *SubscribeRequest:
 		rq := (*rqInterface).(*SubscribeRequest)
 
+		resp.ChannelId = rq.ChannelId
+
 		// Get/Lock channel record
 		channelRecord := createOrGetChannel(channelsStore, rq.ChannelId)
 		channelRecord.Lock()
@@ -134,6 +136,8 @@ func (sv *listenersServer) Work(rqInterface *gofarm.Request) *gofarm.Response {
 
 	case *UnsubscribeRequest:
 		rq := (*rqInterface).(*UnsubscribeRequest)
+
+		resp.ChannelId = rq.ChannelId
 
 		// Get/Lock channel record
 		channelRecord := createOrGetChannel(channelsStore, rq.ChannelId)

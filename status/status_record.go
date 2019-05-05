@@ -93,6 +93,7 @@ type Encodable interface {
 type ChannelResponse interface {
 	GetResponse() ([]byte, bool)
 	GetSubscriberId() string
+	GetChannelId() string
 }
 
 // *StatusRecord -> Json
@@ -136,6 +137,19 @@ func (rec *StatusRecord) GetSubscriberId() (string, bool) {
 	switch rec.Payload.(type) {
 	case ChannelResponse:
 		return rec.Payload.(ChannelResponse).GetSubscriberId(), true
+	default:
+		return "", false
+	}
+}
+
+func (rec *StatusRecord) GetChannelId() (string, bool) {
+	if rec.Status != SuccessStatus {
+		return "", false
+	}
+
+	switch rec.Payload.(type) {
+	case ChannelResponse:
+		return rec.Payload.(ChannelResponse).GetChannelId(), true
 	default:
 		return "", false
 	}
