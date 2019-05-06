@@ -44,6 +44,24 @@ func main() {
 				return nil
 			},
 		},
+		{
+			Name:    "sign",
+			Usage:   "Sign operation as issuer/certifier",
+			Action: func(c *cli.Context) error {
+				dmpcCli.SignOperation(c.Bool("issue"), c.Bool("certify"))
+				return nil
+			},   
+			Flags: []cli.Flag{
+		    	cli.BoolFlag{
+		    		Name: "issue, i",
+		    		Usage: "Sign as issuer",
+		    	},
+		    	cli.BoolFlag{
+		    		Name: "certify, c",
+		    		Usage: "Sign as certifier",
+		    	},
+		    },
+		},
 	}
 
 	err := app.Run(os.Args)

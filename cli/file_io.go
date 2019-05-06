@@ -5,6 +5,8 @@
 package cli
 
 import (
+	"encoding/json"
+	"github.com/mngharbi/DMPC/core"
 	"io/ioutil"
 	"log"
 	"os"
@@ -28,6 +30,25 @@ func getRootDir() string {
 func PathExists(paths ...string) bool {
 	_, err := os.Stat(GetInstallPath(paths...))
 	return err == nil
+}
+
+/*
+	Read operation
+*/
+func ReadOperation() (op *core.Operation) {
+	op = &core.Operation{}
+	err := json.NewDecoder(os.Stdin).Decode(op)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	return
+}
+
+/*
+	Write operation
+*/
+func WriteOperation(op *core.Operation) {
+	json.NewEncoder(os.Stdout).Encode(op)
 }
 
 /*
