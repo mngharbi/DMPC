@@ -574,3 +574,133 @@ func TestPermanentInvalidCertifierSignature(t *testing.T) {
 		t.Errorf("Verify should fail with invalid base64 certifier signature. err=%v", err)
 	}
 }
+
+func TestOperationIssuerSign(t *testing.T) {
+	// Make valid non-encrypted certifier signed operation
+	issuerId := "ISSUER"
+	payload := generateRandomBytes(30)
+	payloadHashed := Hash(payload)
+	issuerKey := GeneratePrivateKey()
+	certifierKey := GeneratePrivateKey()
+	certifierSignature, _ := Sign(certifierKey, payloadHashed[:])
+	op := GenerateOperation(
+		false,
+		"",
+		nil,
+		false,
+		"",
+		nil,
+		false,
+		"CERTIFIER",
+		certifierSignature,
+		false,
+		1,
+		[]byte(payload),
+		false,
+	)
+
+	// Make sure verify fails first before issue signing
+	if err := op.Verify(&issuerKey.PublicKey, &certifierKey.PublicKey, payload); err == nil {
+		t.Error("Verify should fail if operation is not issue signed correctly.")
+	}
+
+	// Issue sign operation with invalid key
+	if err := op.IssuerSign(nil, issuerId); err == nil {
+		t.Error("IssuerSign should fail with invalid key.")
+	}
+
+	// Issue sign operation for encrypted operation
+	op.Encryption.Encrypted = true
+	if err := op.IssuerSign(issuerKey, issuerId); err == nil {
+		t.Error("IssuerSign should fail for encrypted operation.")
+	}
+	op.Encryption.Encrypted = false
+
+	// Issue sign operation with invalid payload
+	encodedPayload := op.Payload
+	op.Payload = invalidBase64string
+	if err := op.IssuerSign(issuerKey, issuerId); err == nil {
+		t.Error("IssuerSign should fail with invalid payload.")
+	}
+	op.Payload = encodedPayload
+
+	// Issue sign operation correctly
+	if err := op.IssuerSign(issuerKey, issuerId); err != nil {
+		t.Errorf("IssuerSign should not fail. err=%+v", err)
+	}
+
+	// Make sure verify passes after signing
+	if err := op.Verify(&issuerKey.PublicKey, &certifierKey.PublicKey, payload); err != nil {
+		t.Errorf("Verify should not fail after signging. err=%+v", err)
+	}
+
+	// Make sure issuer field is updated
+	if op.Issue.Id != issuerId {
+		t.Errorf("IssuerSign should update issuer id. id=%+v", op.Issue.Id)
+	}
+}
+
+func TestOperationCertifierSign(t *testing.T) {
+	// Make valid non-encrypted issuer signed operation
+	certifierId := "CERTIFIER"
+	payload := generateRandomBytes(30)
+	payloadHashed := Hash(payload)
+	issuerKey := GeneratePrivateKey()
+	certifierKey := GeneratePrivateKey()
+	issuerSignature, _ := Sign(issuerKey, payloadHashed[:])
+	op := GenerateOperation(
+		false,
+		"",
+		nil,
+		false,
+		"ISSUER",
+		issuerSignature,
+		false,
+		"",
+		nil,
+		false,
+		1,
+		[]byte(payload),
+		false,
+	)
+
+	// Make sure verify fails first before issue signing
+	if err := op.Verify(&issuerKey.PublicKey, &certifierKey.PublicKey, payload); err == nil {
+		t.Error("Verify should fail if operation is not certifier signed correctly.")
+	}
+
+	// Issue sign operation with invalid key
+	if err := op.CertifierSign(nil, certifierId); err == nil {
+		t.Error("CertifierSign should fail with invalid key.")
+	}
+
+	// Issue sign operation for encrypted operation
+	op.Encryption.Encrypted = true
+	if err := op.CertifierSign(certifierKey, certifierId); err == nil {
+		t.Error("CertifierSign should fail for encrypted operation.")
+	}
+	op.Encryption.Encrypted = false
+
+	// Issue sign operation with invalid payload
+	encodedPayload := op.Payload
+	op.Payload = invalidBase64string
+	if err := op.CertifierSign(certifierKey, certifierId); err == nil {
+		t.Error("CertifierSign should fail with invalid payload.")
+	}
+	op.Payload = encodedPayload
+
+	// Issue sign operation correctly
+	if err := op.CertifierSign(certifierKey, certifierId); err != nil {
+		t.Errorf("CertifierSign should not fail. err=%+v", err)
+	}
+
+	// Make sure verify passes after signing
+	if err := op.Verify(&issuerKey.PublicKey, &certifierKey.PublicKey, payload); err != nil {
+		t.Errorf("Verify should not fail after signging. err=%+v", err)
+	}
+
+	// Make sure issuer field is updated
+	if op.Certification.Id != certifierId {
+		t.Errorf("CertifierSign should update certifier id. id=%+v", op.Certification.Id)
+	}
+}

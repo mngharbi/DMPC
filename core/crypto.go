@@ -33,12 +33,13 @@ var (
 	base64DecodeError              error = errors.New("Error decoding base64.")
 	invalidNonceError              error = errors.New("Invalid nonce provided.")
 	invalidSymmetricKeyError       error = errors.New("Invalid key provided.")
+	invalidAsymmetricKeyError      error = errors.New("Invalid key provided.")
 	aeadCreationError              error = errors.New("Aead creation failed.")
 	noSymmetricKeyFoundError       error = errors.New("No symmetric key passed the challenge.")
 	signError                      error = errors.New("Signing failed.")
 	asymmetrictEncryptionError     error = errors.New("Asymmetric encryption failed.")
 	asymmetrictDecryptionError     error = errors.New("Asymmetric decryption failed.")
-	symmetrictDecryptionError      error = errors.New("Ssymmetric decryption failed.")
+	symmetrictDecryptionError      error = errors.New("Symmetric decryption failed.")
 	payloadDecodeError             error = errors.New("Payload decoding failed.")
 	payloadDecryptionError         error = errors.New("Payload decryption failed.")
 	invalidPayloadError            error = errors.New("Invalid payload provided.")
@@ -46,6 +47,7 @@ var (
 	invalidSignatureEncodingError  error = errors.New("Invalid signature encoding.")
 	invalidIssuerSignatureError    error = errors.New("Invalid issuer signature provided.")
 	invalidCertifierSignatureError error = errors.New("Invalid certifier signature provided.")
+	encryptedSignatureError        error = errors.New("Cannot sign encrypted payload.")
 )
 
 /*
@@ -232,8 +234,9 @@ func (op *Transaction) Decrypt(asymKey *rsa.PrivateKey) (*Operation, error) {
 }
 
 /*
-	Permanent decryption
+	Operation decryption
 */
+
 func (op *Operation) Decrypt(
 	decrypt Decryptor,
 ) ([]byte, error) {
@@ -262,6 +265,67 @@ func (op *Operation) Decrypt(
 	}
 
 	return payloadBytes, nil
+}
+
+/*
+	Operation signing
+*/
+
+func (op *Operation) getSignature(
+	key *rsa.PrivateKey,
+) ([]byte, error) {
+	if key == nil {
+		return nil, invalidAsymmetricKeyError
+	}
+
+	// Decode
+	payload, err := Base64DecodeString(op.Payload)
+	if err != nil {
+		return nil, payloadDecodeError
+	}
+
+	// Get signature
+	return Sign(key, Hash(payload))
+}
+
+func (op *Operation) doSign(
+	key *rsa.PrivateKey,
+	signer string,
+	isIssuer bool,
+) error {
+	if op.Encryption.Encrypted {
+		return encryptedSignatureError
+	}
+
+	// Get signature
+	signature, err := op.getSignature(key)
+	if err != nil {
+		return err
+	}
+
+	// Set fields accordingly
+	if isIssuer {
+		op.Issue.Id = signer
+		op.Issue.Signature = Base64EncodeToString(signature)
+	} else {
+		op.Certification.Id = signer
+		op.Certification.Signature = Base64EncodeToString(signature)
+	}
+	return nil
+}
+
+func (op *Operation) IssuerSign(
+	key *rsa.PrivateKey,
+	signer string,
+) error {
+	return op.doSign(key, signer, true)
+}
+
+func (op *Operation) CertifierSign(
+	key *rsa.PrivateKey,
+	signer string,
+) error {
+	return op.doSign(key, signer, false)
 }
 
 /*
