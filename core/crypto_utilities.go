@@ -154,7 +154,7 @@ func GenerateTransaction(
 	}
 
 	return &Transaction{
-		Version: 0.1,
+		Version: Version,
 		Encryption: TransactionEncryptionFields{
 			Encrypted:  encrypted,
 			Challenges: challenges,

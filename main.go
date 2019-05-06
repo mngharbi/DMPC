@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/mngharbi/DMPC/daemon"
+	"github.com/mngharbi/DMPC/core"
 	dmpcCli "github.com/mngharbi/DMPC/cli"
 	"github.com/urfave/cli"
 	"log"
@@ -12,7 +13,7 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Name = "DMPC"
-	app.Version = "0.0.1"
+	app.Version = core.VersionString
 	app.Compiled = time.Now()
 	app.EnableBashCompletion = true
 	app.Authors = []cli.Author{
