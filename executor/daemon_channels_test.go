@@ -549,7 +549,7 @@ func TestChannelEncryptRequest(t *testing.T) {
 	}
 	op := &core.Operation{
 		Meta:    innerMeta,
-		Payload: core.Base64EncodeToString(innerPlaintextBytes),
+		Payload: core.PlaintextEncodeToString(innerPlaintextBytes),
 	}
 	opEncoded, _ := op.Encode()
 

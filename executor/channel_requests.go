@@ -358,7 +358,7 @@ func (sv *server) doChannelEncrypt(wrappedRequest *executorRequest) {
 	}
 
 	// Decode operation payload
-	opPayloadBytes, err := core.Base64DecodeString(op.Payload)
+	opPayloadBytes, err := op.DecodePayload()
 	if err != nil {
 		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{channelEncryptOperationFormatError})
 		return
@@ -418,7 +418,7 @@ func (sv *server) doChannelEncrypt(wrappedRequest *executorRequest) {
 		Nonce:     core.Base64EncodeToString(nonce),
 	}
 	op.Meta.ChannelId = channelResponse.Channel.Id
-	op.Payload = core.Base64EncodeToString(encrypted)
+	op.Payload = core.CiphertextEncodeToString(encrypted)
 
 	sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, *op, nil)
 }

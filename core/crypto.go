@@ -56,6 +56,22 @@ var (
 
 var rng io.Reader = rand.Reader
 
+func PlaintextEncodeToString(src []byte) string {
+	return string(src)
+}
+
+func PlaintextDecodeString(src string) (res []byte, err error) {
+	return []byte(src), nil
+}
+
+func CiphertextEncodeToString(src []byte) string {
+	return Base64EncodeToString(src)
+}
+
+func CiphertextDecodeString(src string) (res []byte, err error) {
+	return Base64DecodeString(src)
+}
+
 func Base64EncodeToString(src []byte) string {
 	return base64.StdEncoding.EncodeToString(src)
 }
@@ -147,21 +163,37 @@ func SymmetricDecrypt(aead cipher.AEAD, dst []byte, nonce []byte, ciphertext []b
 }
 
 /*
-	Transaction decryption
+	Transaction decode
 */
-func (op *Transaction) Decrypt(asymKey *rsa.PrivateKey) (*Operation, error) {
-	// Base64 decode payload
-	payloadBytes, err := Base64DecodeString(op.Payload)
+
+func (ts *Transaction) DecodePayload() ([]byte, error) {
+	payloadDecoder := PlaintextDecodeString
+	if ts.Encryption.Encrypted {
+		payloadDecoder = CiphertextDecodeString
+	}
+	payloadBytes, err := payloadDecoder(ts.Payload)
 	if err != nil {
 		return nil, payloadDecodeError
+	}
+	return payloadBytes, nil
+}
+
+/*
+	Transaction decryption
+*/
+func (ts *Transaction) Decrypt(asymKey *rsa.PrivateKey) (*Operation, error) {
+	// Decode payload
+	payloadBytes, err := ts.DecodePayload()
+	if err != nil {
+		return nil, err
 	}
 
 	// Decrypt payload if encrypted
 	var aead cipher.AEAD = nil
-	if op.Encryption.Encrypted {
+	if ts.Encryption.Encrypted {
 
 		// Check nonce
-		symKeyNonceBytes, err := Base64DecodeString(op.Encryption.Nonce)
+		symKeyNonceBytes, err := Base64DecodeString(ts.Encryption.Nonce)
 		if err == nil {
 			err = ValidateNonce(symKeyNonceBytes)
 		}
@@ -170,7 +202,7 @@ func (op *Transaction) Decrypt(asymKey *rsa.PrivateKey) (*Operation, error) {
 		}
 
 		// Find a symmetric key that passes challenge
-		for symKeyCipher, symKeyChallenge := range op.Encryption.Challenges {
+		for symKeyCipher, symKeyChallenge := range ts.Encryption.Challenges {
 			// Decode symmetric key ciphertext
 			symKeyCipherBytes, err := Base64DecodeString(symKeyCipher)
 			if err != nil {
@@ -234,16 +266,32 @@ func (op *Transaction) Decrypt(asymKey *rsa.PrivateKey) (*Operation, error) {
 }
 
 /*
+	Operation decode
+*/
+
+func (op *Operation) DecodePayload() ([]byte, error) {
+	payloadDecoder := PlaintextDecodeString
+	if op.Encryption.Encrypted {
+		payloadDecoder = CiphertextDecodeString
+	}
+	payloadBytes, err := payloadDecoder(op.Payload)
+	if err != nil {
+		return nil, payloadDecodeError
+	}
+	return payloadBytes, nil
+}
+
+/*
 	Operation decryption
 */
 
 func (op *Operation) Decrypt(
 	decrypt Decryptor,
 ) ([]byte, error) {
-	// Base64 decode payload
-	payloadBytes, err := Base64DecodeString(op.Payload)
+	// Decode payload
+	payloadBytes, err := op.DecodePayload()
 	if err != nil {
-		return nil, payloadDecodeError
+		return nil, err
 	}
 
 	// Decrypt payload
@@ -278,10 +326,10 @@ func (op *Operation) getSignature(
 		return nil, invalidAsymmetricKeyError
 	}
 
-	// Decode
-	payload, err := Base64DecodeString(op.Payload)
+	// Decode payload
+	payload, err := op.DecodePayload()
 	if err != nil {
-		return nil, payloadDecodeError
+		return nil, err
 	}
 
 	// Get signature

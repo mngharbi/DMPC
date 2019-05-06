@@ -146,7 +146,11 @@ func GenerateTransaction(
 		nonceResult = Base64EncodeToString(nonce)
 	}
 	if !payloadEncoded {
-		payloadResult = Base64EncodeToString(payload)
+		if encrypted {
+			payloadResult = CiphertextEncodeToString(payload)
+		} else {
+			payloadResult = PlaintextEncodeToString(payload)
+		}
 	}
 
 	return &Transaction{
@@ -242,7 +246,11 @@ func GenerateOperation(
 		certifierSignatureResult = Base64EncodeToString(certifierSignature)
 	}
 	if !payloadEncoded {
-		payloadResult = Base64EncodeToString(payload)
+		if encrypted {
+			payloadResult = CiphertextEncodeToString(payload)
+		} else {
+			payloadResult = PlaintextEncodeToString(payload)
+		}
 	}
 
 	// Create operation

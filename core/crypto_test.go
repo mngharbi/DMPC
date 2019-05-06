@@ -54,9 +54,9 @@ func TestValidTransaction(t *testing.T) {
 }
 
 func TestInavlidTransactionPayloadEncoding(t *testing.T) {
-	// Use invalid base64 string for payload
+	// Use invalid base64 string for encrypted payload
 	transaction := GenerateTransaction(
-		false,
+		true,
 		map[string]string{},
 		[]byte("PLAINTEXT"),
 		false,
@@ -596,7 +596,7 @@ func TestOperationIssuerSign(t *testing.T) {
 		false,
 		1,
 		[]byte(payload),
-		false,
+		true,
 	)
 
 	// Make sure verify fails first before issue signing
@@ -615,14 +615,6 @@ func TestOperationIssuerSign(t *testing.T) {
 		t.Error("IssuerSign should fail for encrypted operation.")
 	}
 	op.Encryption.Encrypted = false
-
-	// Issue sign operation with invalid payload
-	encodedPayload := op.Payload
-	op.Payload = invalidBase64string
-	if err := op.IssuerSign(issuerKey, issuerId); err == nil {
-		t.Error("IssuerSign should fail with invalid payload.")
-	}
-	op.Payload = encodedPayload
 
 	// Issue sign operation correctly
 	if err := op.IssuerSign(issuerKey, issuerId); err != nil {
@@ -661,7 +653,7 @@ func TestOperationCertifierSign(t *testing.T) {
 		false,
 		1,
 		[]byte(payload),
-		false,
+		true,
 	)
 
 	// Make sure verify fails first before issue signing
@@ -680,14 +672,6 @@ func TestOperationCertifierSign(t *testing.T) {
 		t.Error("CertifierSign should fail for encrypted operation.")
 	}
 	op.Encryption.Encrypted = false
-
-	// Issue sign operation with invalid payload
-	encodedPayload := op.Payload
-	op.Payload = invalidBase64string
-	if err := op.CertifierSign(certifierKey, certifierId); err == nil {
-		t.Error("CertifierSign should fail with invalid payload.")
-	}
-	op.Payload = encodedPayload
 
 	// Issue sign operation correctly
 	if err := op.CertifierSign(certifierKey, certifierId); err != nil {
