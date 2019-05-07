@@ -33,6 +33,7 @@ type channelPermissionsRecord struct {
 
 type userPermissionsRecord struct {
 	Add               booleanRecord
+	Read              booleanRecord
 	Remove            booleanRecord
 	EncKeyUpdate      booleanRecord
 	SignKeyUpdate     booleanRecord
@@ -90,13 +91,16 @@ func (record *userRecord) applyUpdateRequest(req *UserRequest) {
 				record.Permissions.Channel.UpdatedAt = req.Timestamp
 			}
 
-		case "permissions.user.add", "permissions.user.remove", "permissions.user.encKeyUpdate", "permissions.user.signKeyUpdate", "permissions.user.permissionsUpdate":
+		case "permissions.user.add", "permissions.user.read", "permissions.user.remove", "permissions.user.encKeyUpdate", "permissions.user.signKeyUpdate", "permissions.user.permissionsUpdate":
 			var perm *booleanRecord
 			var reqVal bool
 			switch field {
 			case "permissions.user.add":
 				perm = &record.Permissions.User.Add
 				reqVal = req.Data.Permissions.User.Add
+			case "permissions.user.read":
+				perm = &record.Permissions.User.Read
+				reqVal = req.Data.Permissions.User.Read
 			case "permissions.user.remove":
 				perm = &record.Permissions.User.Remove
 				reqVal = req.Data.Permissions.User.Remove
@@ -171,6 +175,9 @@ func (record *userRecord) create(req *UserRequest) {
 	// Permissions: User add
 	record.Permissions.User.Add.update(req.Data.Permissions.User.Add, req.Timestamp)
 
+	// Permissions: User read
+	record.Permissions.User.Read.update(req.Data.Permissions.User.Read, req.Timestamp)
+
 	// Permissions: User remove
 	record.Permissions.User.Remove.update(req.Data.Permissions.User.Remove, req.Timestamp)
 
@@ -218,12 +225,15 @@ func (record *userRecord) isAuthorized(req *UserRequest) bool {
 				result = record.Permissions.User.EncKeyUpdate.Ok || isSameUser
 			case "signKey":
 				result = record.Permissions.User.SignKeyUpdate.Ok || isSameUser
-			case "permissions.channel.add", "permissions.channel.read", "permissions.user.add",
+			case "permissions.channel.add", "permissions.channel.read", "permissions.user.add", "permissions.user.read",
 				"permissions.user.remove", "permissions.user.encKeyUpdate",
 				"permissions.user.signKeyUpdate", "permissions.user.permissionsUpdate":
 				result = record.Permissions.User.PermissionsUpdate.Ok
 			}
 		}
+
+	case ReadRequest:
+		result = record.Permissions.User.Read.Ok
 	}
 
 	return result

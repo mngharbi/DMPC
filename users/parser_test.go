@@ -41,6 +41,7 @@ func TestDecodeCreateRequest(t *testing.T) {
 				},
 				"user": {
 					"add": true,
+					"read": false, 
 					"remove": false,
 					"encKeyUpdate": false,
 					"signKeyUpdate": false,
@@ -85,6 +86,7 @@ func TestDecodeCreateRequest(t *testing.T) {
 				},
 				User: UserPermissionsObject{
 					Add:               true,
+					Read:              false,
 					Remove:            false,
 					EncKeyUpdate:      false,
 					SignKeyUpdate:     false,
@@ -125,6 +127,7 @@ func TestDecodeUpdateRequest(t *testing.T) {
 				},
 				"user": {
 					"add": true,
+					"read": false,
 					"remove": false,
 					"encKeyUpdate": false,
 					"signKeyUpdate": false,
@@ -169,6 +172,7 @@ func TestDecodeUpdateRequest(t *testing.T) {
 				},
 				User: UserPermissionsObject{
 					Add:               true,
+					Read:              false,
 					Remove:            false,
 					EncKeyUpdate:      false,
 					SignKeyUpdate:     false,
@@ -269,7 +273,7 @@ func TestDecodeAndVerifyInvalidFieldsUpdateRequest(t *testing.T) {
 
 func TestDecodeAndVerifyNoSigners(t *testing.T) {
 	// Create valid user create request, and decode it
-	valid, _ := generateUserCreateRequest("user", false, false, false, false, false, false, false)
+	valid, _ := generateUserCreateRequest("user", false, false, false, false, false, false, false, false)
 	var rq UserRequest
 	err := rq.Decode(valid)
 	if err != nil {
@@ -367,6 +371,7 @@ func TestDecodeAndVerifyEncode(t *testing.T) {
 				},
 				"user": {
 					"add": true,
+					"read": false,
 					"remove": false,
 					"encKeyUpdate": false,
 					"signKeyUpdate": false,

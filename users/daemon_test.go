@@ -79,7 +79,7 @@ func TestUnknownCertifierReadRequest(t *testing.T) {
 	}
 
 	// Create issuer
-	if !createUnverifiedUser(t, "ISSUER", false, false, true, false, false, false, false) {
+	if !createUnverifiedUser(t, "ISSUER", false, false, true, false, false, false, false, false) {
 		return
 	}
 
@@ -103,8 +103,8 @@ func TestUnknownSubjectReadRequest(t *testing.T) {
 
 	// Create issuer and certifier
 	if !createIssuerAndCertifier(t,
-		false, false, true, false, false, false, false,
-		false, false, true, false, false, false, false,
+		false, false, true, false, false, false, false, false,
+		false, false, true, false, false, false, false, false,
 	) {
 		return
 	}
@@ -122,6 +122,40 @@ func TestUnknownSubjectReadRequest(t *testing.T) {
 	ShutdownServer()
 }
 
+func TestExistentUserReadRequestNoReadPerms(t *testing.T) {
+	if !resetAndStartServer(t, multipleWorkersConfig()) {
+		return
+	}
+
+	// Create issuer and certifier
+	if !createIssuerAndCertifier(t,
+		false, false, true, false, false, false, false, false,
+		false, false, true, false, false, false, false, false,
+	) {
+		return
+	}
+
+	// Create user
+	_, success := createUser(
+		t, false, "ISSUER", "CERTIFIER", "USER", false, false, false, false, false, false, false, false,
+	)
+	if !success {
+		return
+	}
+
+	// Make read request
+	serverResponsePtr, ok, success := makeAndGetUserReadRequest(t, true, true, "ISSUER", "CERTIFIER", []string{"USER"})
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result == Success {
+		t.Errorf("Read request of existing user without read permissions should fail, result:%v", *serverResponsePtr)
+		return
+	}
+
+	ShutdownServer()
+}
+
 func TestExistentUserReadRequest(t *testing.T) {
 	if !resetAndStartServer(t, multipleWorkersConfig()) {
 		return
@@ -129,15 +163,15 @@ func TestExistentUserReadRequest(t *testing.T) {
 
 	// Create issuer and certifier
 	if !createIssuerAndCertifier(t,
-		false, false, true, false, false, false, false,
-		false, false, true, false, false, false, false,
+		false, false, true, true, false, false, false, false,
+		false, false, true, true, false, false, false, false,
 	) {
 		return
 	}
 
 	// Create user
 	userObjectPtr, success := createUser(
-		t, false, "ISSUER", "CERTIFIER", "USER", false, false, true, false, false, false, false,
+		t, false, "ISSUER", "CERTIFIER", "USER", false, false, false, false, false, false, false, false,
 	)
 	if !success {
 		return
@@ -167,15 +201,15 @@ func TestExistentUserReadRequestWithSingleLockOperation(t *testing.T) {
 
 	// Create issuer and certifier
 	if !createIssuerAndCertifier(t,
-		false, false, true, false, false, false, false,
-		false, false, true, false, false, false, false,
+		false, false, true, true, false, false, false, false,
+		false, false, true, true, false, false, false, false,
 	) {
 		return
 	}
 
 	// Create user
 	userObjectPtr, success := createUser(
-		t, false, "ISSUER", "CERTIFIER", "USER", false, false, true, false, false, false, false,
+		t, false, "ISSUER", "CERTIFIER", "USER", false, false, false, false, false, false, false, false,
 	)
 	if !success {
 		return
@@ -222,7 +256,7 @@ func TestUnknownIssuerCreateRequest(t *testing.T) {
 	}
 
 	serverResponsePtr, ok, _, success := makeAndGetUserCreationRequest(
-		t, false, "ISSUER", "CERTIFIER", "USER", false, false, true, false, false, false, false,
+		t, false, "ISSUER", "CERTIFIER", "USER", false, false, true, false, false, false, false, false,
 	)
 	if !success {
 		return
@@ -241,12 +275,12 @@ func TestUnknownCertifierCreateRequest(t *testing.T) {
 	}
 
 	// Create issuer
-	if !createUnverifiedUser(t, "ISSUER", false, false, true, false, false, false, false) {
+	if !createUnverifiedUser(t, "ISSUER", false, false, true, false, false, false, false, false) {
 		return
 	}
 
 	serverResponsePtr, ok, _, success := makeAndGetUserCreationRequest(
-		t, false, "ISSUER", "CERTIFIER", "USER", false, false, true, false, false, false, false,
+		t, false, "ISSUER", "CERTIFIER", "USER", false, false, true, false, false, false, false, false,
 	)
 	if !success {
 		return
@@ -266,14 +300,14 @@ func TestMissingPermissionVerifiedCreateRequest(t *testing.T) {
 
 	// Create issuer and certifier
 	if !createIssuerAndCertifier(t,
-		false, false, true, false, false, false, false,
-		false, false, false, false, false, false, false,
+		false, false, true, false, false, false, false, false,
+		false, false, false, false, false, false, false, false,
 	) {
 		return
 	}
 
 	serverResponsePtr, ok, _, success := makeAndGetUserCreationRequest(
-		t, false, "ISSUER", "CERTIFIER", "USER", false, false, true, false, false, false, false,
+		t, false, "ISSUER", "CERTIFIER", "USER", false, false, true, false, false, false, false, false,
 	)
 	if !success {
 		return
@@ -293,14 +327,14 @@ func TestSuccessfulVerifiedCreateRequest(t *testing.T) {
 
 	// Create issuer and certifier
 	if !createIssuerAndCertifier(t,
-		false, false, true, false, false, false, false,
-		false, false, true, false, false, false, false,
+		false, false, true, false, false, false, false, false,
+		false, false, true, false, false, false, false, false,
 	) {
 		return
 	}
 
 	serverResponsePtr, ok, userObjectPtr, success := makeAndGetUserCreationRequest(
-		t, false, "ISSUER", "CERTIFIER", "USER", false, false, true, false, false, false, false,
+		t, false, "ISSUER", "CERTIFIER", "USER", false, false, true, false, false, false, false, false,
 	)
 	if !success {
 		return
@@ -327,14 +361,14 @@ func TestIdUpdateRequest(t *testing.T) {
 
 	// Create issuer and certifier with all permissions
 	if !createIssuerAndCertifier(t,
-		true, true, true, true, true, true, true,
-		true, true, true, true, true, true, true,
+		true, true, true, true, true, true, true, true,
+		true, true, true, true, true, true, true, true,
 	) {
 		return
 	}
 	// Create user
 	_, success := createUser(
-		t, false, "ISSUER", "CERTIFIER", "USER", false, false, false, false, false, false, false,
+		t, false, "ISSUER", "CERTIFIER", "USER", false, false, false, false, false, false, false, false,
 	)
 	if !success {
 		return
@@ -343,7 +377,7 @@ func TestIdUpdateRequest(t *testing.T) {
 	// Try to update id
 	idStr := "userId"
 	_, errs := makeUserUpdateRequest(
-		"ISSUER", "CERTIFIER", []string{"id"}, getJanuaryDate(30), &idStr, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		"ISSUER", "CERTIFIER", []string{"id"}, getJanuaryDate(30), &idStr, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 	if len(errs) == 0 {
 		t.Errorf("Update request for id should be ignored.")
@@ -360,15 +394,15 @@ func TestEncKeyUpdateRequest(t *testing.T) {
 
 	// Create issuer and certifier with no enc key update permissions
 	if !createIssuerAndCertifier(t,
-		true, true, true, true, true, true, true,
-		true, true, true, true, false, true, true,
+		true, true, true, true, true, true, true, true,
+		true, true, true, true, true, false, true, true,
 	) {
 		return
 	}
 	// Create user
 	userid := "USER"
 	originalUserObjectPtr, success := createUser(
-		t, false, "ISSUER", "CERTIFIER", userid, false, false, false, false, false, false, false,
+		t, false, "ISSUER", "CERTIFIER", userid, false, false, false, false, false, false, false, false,
 	)
 	if !success {
 		return
@@ -382,7 +416,7 @@ func TestEncKeyUpdateRequest(t *testing.T) {
 	encKeyStringJson = strings.TrimPrefix(encKeyStringJson, `"`)
 	// Without subject id
 	serverResponsePtr, ok, success := makeAndGetUserUpdateRequest(
-		t, "ISSUER", "CERTIFIER", []string{"encKey"}, getJanuaryDate(1), nil, &encKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		t, "ISSUER", "CERTIFIER", []string{"encKey"}, getJanuaryDate(1), nil, &encKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 	if !success {
 		return
@@ -393,7 +427,7 @@ func TestEncKeyUpdateRequest(t *testing.T) {
 	}
 	// With subject id
 	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-		t, "ISSUER", "CERTIFIER", []string{"encKey"}, getJanuaryDate(1), &userid, &encKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		t, "ISSUER", "CERTIFIER", []string{"encKey"}, getJanuaryDate(1), &userid, &encKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 	if !success {
 		return
@@ -405,7 +439,7 @@ func TestEncKeyUpdateRequest(t *testing.T) {
 
 	// Create certifier with only enc key update permissions and use it to update again
 	_, success = createUser(
-		t, false, "ISSUER", "CERTIFIER", "ENCKEY_CERTIFIER", false, false, false, false, true, false, false,
+		t, false, "ISSUER", "CERTIFIER", "ENCKEY_CERTIFIER", false, false, false, false, false, true, false, false,
 	)
 	if !success {
 		return
@@ -413,7 +447,7 @@ func TestEncKeyUpdateRequest(t *testing.T) {
 
 	// Try with stale date
 	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-		t, "ISSUER", "ENCKEY_CERTIFIER", []string{"encKey"}, getJanuaryDate(1), &userid, &encKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		t, "ISSUER", "ENCKEY_CERTIFIER", []string{"encKey"}, getJanuaryDate(1), &userid, &encKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 	if !success {
 		return
@@ -429,7 +463,7 @@ func TestEncKeyUpdateRequest(t *testing.T) {
 
 	// Try with recent date
 	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-		t, "ISSUER", "ENCKEY_CERTIFIER", []string{"encKey"}, getJanuaryDate(30), &userid, &encKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		t, "ISSUER", "ENCKEY_CERTIFIER", []string{"encKey"}, getJanuaryDate(30), &userid, &encKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 	if !success {
 		return
@@ -457,15 +491,15 @@ func TestSignKeyUpdateRequest(t *testing.T) {
 
 	// Create issuer and certifier with no sign key update permissions
 	if !createIssuerAndCertifier(t,
-		true, true, true, true, true, true, true,
-		true, true, true, true, true, false, true,
+		true, true, true, true, true, true, true, true,
+		true, true, true, true, true, true, false, true,
 	) {
 		return
 	}
 	// Create user
 	userid := "USER"
 	originalUserObjectPtr, success := createUser(
-		t, false, "ISSUER", "CERTIFIER", userid, false, false, false, false, false, false, false,
+		t, false, "ISSUER", "CERTIFIER", userid, false, false, false, false, false, false, false, false,
 	)
 	if !success {
 		return
@@ -479,7 +513,7 @@ func TestSignKeyUpdateRequest(t *testing.T) {
 	signKeyStringJson = strings.TrimPrefix(signKeyStringJson, `"`)
 	// Without subject id
 	serverResponsePtr, ok, success := makeAndGetUserUpdateRequest(
-		t, "ISSUER", "CERTIFIER", []string{"signKey"}, getJanuaryDate(1), nil, nil, &signKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		t, "ISSUER", "CERTIFIER", []string{"signKey"}, getJanuaryDate(1), nil, nil, &signKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 	if !success {
 		return
@@ -490,7 +524,7 @@ func TestSignKeyUpdateRequest(t *testing.T) {
 	}
 	// With subject id
 	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-		t, "ISSUER", "CERTIFIER", []string{"signKey"}, getJanuaryDate(1), &userid, nil, &signKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		t, "ISSUER", "CERTIFIER", []string{"signKey"}, getJanuaryDate(1), &userid, nil, &signKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 	if !success {
 		return
@@ -502,7 +536,7 @@ func TestSignKeyUpdateRequest(t *testing.T) {
 
 	// Create certifier with only sign key update permissions and use it to update again
 	_, success = createUser(
-		t, false, "ISSUER", "CERTIFIER", "SIGNKEY_CERTIFIER", false, false, false, false, false, true, false,
+		t, false, "ISSUER", "CERTIFIER", "SIGNKEY_CERTIFIER", false, false, false, false, false, false, true, false,
 	)
 	if !success {
 		return
@@ -510,7 +544,7 @@ func TestSignKeyUpdateRequest(t *testing.T) {
 
 	// Try with stale date
 	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-		t, "ISSUER", "SIGNKEY_CERTIFIER", []string{"signKey"}, getJanuaryDate(1), &userid, nil, &signKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		t, "ISSUER", "SIGNKEY_CERTIFIER", []string{"signKey"}, getJanuaryDate(1), &userid, nil, &signKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 	if !success {
 		return
@@ -526,7 +560,7 @@ func TestSignKeyUpdateRequest(t *testing.T) {
 
 	// Try with recent date
 	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-		t, "ISSUER", "SIGNKEY_CERTIFIER", []string{"signKey"}, getJanuaryDate(30), &userid, nil, &signKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		t, "ISSUER", "SIGNKEY_CERTIFIER", []string{"signKey"}, getJanuaryDate(30), &userid, nil, &signKeyStringJson, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 	if !success {
 		return
@@ -554,8 +588,8 @@ func TestPermissionsUpdateRequest(t *testing.T) {
 
 	// Create issuer and certifier with no permission update permissions
 	if !createIssuerAndCertifier(t,
-		true, true, true, true, true, true, true,
-		true, true, true, true, true, true, false,
+		true, true, true, true, true, true, true, true,
+		true, true, true, true, true, true, true, false,
 	) {
 		return
 	}
@@ -566,6 +600,7 @@ func TestPermissionsUpdateRequest(t *testing.T) {
 		"permissions.channel.add",
 		"permissions.channel.read",
 		"permissions.user.add",
+		"permissions.user.read",
 		"permissions.user.remove",
 		"permissions.user.encKeyUpdate",
 		"permissions.user.signKeyUpdate",
@@ -575,20 +610,20 @@ func TestPermissionsUpdateRequest(t *testing.T) {
 		// Create user
 		userid := "USER"
 		originalUserObjectPtr, success := createUser(
-			t, false, "ISSUER", "CERTIFIER", userid, false, false, false, false, false, false, false,
+			t, false, "ISSUER", "CERTIFIER", userid, false, false, false, false, false, false, false, false,
 		)
 		if !success {
 			return
 		}
 
 		// Make an array of arguments to pass to change function
-		permissionsChanges := []*bool{nil, nil, nil, nil, nil, nil, nil}
+		permissionsChanges := []*bool{nil, nil, nil, nil, nil, nil, nil, nil}
 		changedPermPtr := true
 		permissionsChanges[permissionIndex] = &changedPermPtr
 
 		// Without subject id
 		serverResponsePtr, ok, success := makeAndGetUserUpdateRequest(
-			t, "ISSUER", "CERTIFIER", []string{permissionType}, getJanuaryDate(1), nil, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], permissionsChanges[6], nil, nil, nil, nil,
+			t, "ISSUER", "CERTIFIER", []string{permissionType}, getJanuaryDate(1), nil, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], permissionsChanges[6], permissionsChanges[7], nil, nil, nil, nil,
 		)
 		if !success {
 			return
@@ -599,7 +634,7 @@ func TestPermissionsUpdateRequest(t *testing.T) {
 		}
 		// With subject id
 		serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-			t, "ISSUER", "CERTIFIER", []string{permissionType}, getJanuaryDate(1), &userid, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], permissionsChanges[6], nil, nil, nil, nil,
+			t, "ISSUER", "CERTIFIER", []string{permissionType}, getJanuaryDate(1), &userid, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], permissionsChanges[6], permissionsChanges[7], nil, nil, nil, nil,
 		)
 		if !success {
 			return
@@ -611,7 +646,7 @@ func TestPermissionsUpdateRequest(t *testing.T) {
 
 		// Create certifier with only update permissions permission and use it to update again
 		_, success = createUser(
-			t, false, "ISSUER", "CERTIFIER", permissionType+"_CERTIFIER", false, false, false, false, false, false, true,
+			t, false, "ISSUER", "CERTIFIER", permissionType+"_CERTIFIER", false, false, false, false, false, false, false, true,
 		)
 		if !success {
 			return
@@ -619,7 +654,7 @@ func TestPermissionsUpdateRequest(t *testing.T) {
 
 		// Try with stale date
 		serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-			t, "ISSUER", permissionType+"_CERTIFIER", []string{permissionType}, getJanuaryDate(1), &userid, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], permissionsChanges[6], nil, nil, nil, nil,
+			t, "ISSUER", permissionType+"_CERTIFIER", []string{permissionType}, getJanuaryDate(1), &userid, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], permissionsChanges[6], permissionsChanges[7], nil, nil, nil, nil,
 		)
 		if !success {
 			return
@@ -635,7 +670,7 @@ func TestPermissionsUpdateRequest(t *testing.T) {
 
 		// Try with recent date
 		serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-			t, "ISSUER", permissionType+"_CERTIFIER", []string{permissionType}, getJanuaryDate(30), &userid, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], permissionsChanges[6], nil, nil, nil, nil,
+			t, "ISSUER", permissionType+"_CERTIFIER", []string{permissionType}, getJanuaryDate(30), &userid, nil, nil, permissionsChanges[0], permissionsChanges[1], permissionsChanges[2], permissionsChanges[3], permissionsChanges[4], permissionsChanges[5], permissionsChanges[6], permissionsChanges[7], nil, nil, nil, nil,
 		)
 		if !success {
 			return
@@ -654,6 +689,8 @@ func TestPermissionsUpdateRequest(t *testing.T) {
 			expectedAfterUpdatesPermission = &expectedAfterUpdates.Permissions.Channel.Read
 		case "permissions.user.add":
 			expectedAfterUpdatesPermission = &expectedAfterUpdates.Permissions.User.Add
+		case "permissions.user.read":
+			expectedAfterUpdatesPermission = &expectedAfterUpdates.Permissions.User.Read
 		case "permissions.user.remove":
 			expectedAfterUpdatesPermission = &expectedAfterUpdates.Permissions.User.Remove
 		case "permissions.user.encKeyUpdate":
@@ -680,15 +717,15 @@ func TestDisableUpdateRequest(t *testing.T) {
 
 	// Create issuer and certifier with no remove user permission
 	if !createIssuerAndCertifier(t,
-		true, true, true, true, true, true, true,
-		true, true, true, false, true, true, true,
+		true, true, true, true, true, true, true, true,
+		true, true, true, true, false, true, true, true,
 	) {
 		return
 	}
 	// Create user
 	userid := "USER"
 	originalUserObjectPtr, success := createUser(
-		t, false, "ISSUER", "CERTIFIER", userid, false, false, false, false, false, false, false,
+		t, false, "ISSUER", "CERTIFIER", userid, false, false, false, false, false, false, false, false,
 	)
 	if !success {
 		return
@@ -698,7 +735,7 @@ func TestDisableUpdateRequest(t *testing.T) {
 	active := true
 	// Without subject id
 	serverResponsePtr, ok, success := makeAndGetUserUpdateRequest(
-		t, "ISSUER", "CERTIFIER", []string{"active"}, getJanuaryDate(1), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, &active, nil, nil, nil,
+		t, "ISSUER", "CERTIFIER", []string{"active"}, getJanuaryDate(1), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, &active, nil, nil, nil,
 	)
 	if !success {
 		return
@@ -709,7 +746,7 @@ func TestDisableUpdateRequest(t *testing.T) {
 	}
 	// With subject id
 	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-		t, "ISSUER", "CERTIFIER", []string{"active"}, getJanuaryDate(1), &userid, nil, nil, nil, nil, nil, nil, nil, nil, nil, &active, nil, nil, nil,
+		t, "ISSUER", "CERTIFIER", []string{"active"}, getJanuaryDate(1), &userid, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, &active, nil, nil, nil,
 	)
 	if !success {
 		return
@@ -721,7 +758,7 @@ func TestDisableUpdateRequest(t *testing.T) {
 
 	// Create certifier with only user remove update permissions and use it to update again
 	_, success = createUser(
-		t, false, "ISSUER", "CERTIFIER", "REMOVE_CERTIFIER", false, false, false, true, false, false, false,
+		t, false, "ISSUER", "CERTIFIER", "REMOVE_CERTIFIER", false, false, false, false, true, false, false, false,
 	)
 	if !success {
 		return
@@ -729,7 +766,7 @@ func TestDisableUpdateRequest(t *testing.T) {
 
 	// Try with stale date
 	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-		t, "ISSUER", "REMOVE_CERTIFIER", []string{"active"}, getJanuaryDate(1), &userid, nil, nil, nil, nil, nil, nil, nil, nil, nil, &active, nil, nil, nil,
+		t, "ISSUER", "REMOVE_CERTIFIER", []string{"active"}, getJanuaryDate(1), &userid, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, &active, nil, nil, nil,
 	)
 	if !success {
 		return
@@ -745,7 +782,7 @@ func TestDisableUpdateRequest(t *testing.T) {
 
 	// Try with recent date
 	serverResponsePtr, ok, success = makeAndGetUserUpdateRequest(
-		t, "ISSUER", "REMOVE_CERTIFIER", []string{"active"}, getJanuaryDate(30), &userid, nil, nil, nil, nil, nil, nil, nil, nil, nil, &active, nil, nil, nil,
+		t, "ISSUER", "REMOVE_CERTIFIER", []string{"active"}, getJanuaryDate(30), &userid, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, &active, nil, nil, nil,
 	)
 	if !success {
 		return

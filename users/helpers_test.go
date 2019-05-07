@@ -96,6 +96,7 @@ func generateUserCreateRequest(
 	channelAddPermission bool,
 	channelReadPermission bool,
 	userAddPermission bool,
+	userReadPermission bool,
 	userRemovePermission bool,
 	userEncKeyUpdatePermission bool,
 	userSignKeyUpdatePermission bool,
@@ -115,6 +116,7 @@ func generateUserCreateRequest(
 	channelAddPermissionString := booleanToString(channelAddPermission)
 	channelReadPermissionString := booleanToString(channelReadPermission)
 	userAddPermissionString := booleanToString(userAddPermission)
+	userReadPermissionString := booleanToString(userReadPermission)
 	userRemovePermissionString := booleanToString(userRemovePermission)
 	userEncKeyUpdatePermissionString := booleanToString(userEncKeyUpdatePermission)
 	userSignKeyUpdatePermissionString := booleanToString(userSignKeyUpdatePermission)
@@ -138,6 +140,7 @@ func generateUserCreateRequest(
 				},
 				"user": {
 					"add": ` + userAddPermissionString + `,
+					"read": ` + userReadPermissionString + `,
 					"remove": ` + userRemovePermissionString + `,
 					"encKeyUpdate": ` + userEncKeyUpdatePermissionString + `,
 					"signKeyUpdate": ` + userSignKeyUpdatePermissionString + `,
@@ -161,6 +164,7 @@ func generateUserCreateRequest(
 			},
 			User: UserPermissionsObject{
 				Add:               userAddPermission,
+				Read:              userReadPermission,
 				Remove:            userRemovePermission,
 				EncKeyUpdate:      userEncKeyUpdatePermission,
 				SignKeyUpdate:     userSignKeyUpdatePermission,
@@ -184,6 +188,7 @@ func makeUserCreationRequest(
 	channelAddPermission bool,
 	channelReadPermission bool,
 	userAddPermission bool,
+	userReadPermission bool,
 	userRemovePermission bool,
 	userEncKeyUpdatePermission bool,
 	userSignKeyUpdatePermission bool,
@@ -195,6 +200,7 @@ func makeUserCreationRequest(
 		channelAddPermission,
 		channelReadPermission,
 		userAddPermission,
+		userReadPermission,
 		userRemovePermission,
 		userEncKeyUpdatePermission,
 		userSignKeyUpdatePermission,
@@ -219,6 +225,7 @@ func makeAndGetUserCreationRequest(
 	channelAddPermission bool,
 	channelReadPermission bool,
 	userAddPermission bool,
+	userReadPermission bool,
 	userRemovePermission bool,
 	userEncKeyUpdatePermission bool,
 	userSignKeyUpdatePermission bool,
@@ -233,6 +240,7 @@ func makeAndGetUserCreationRequest(
 		channelAddPermission,
 		channelReadPermission,
 		userAddPermission,
+		userReadPermission,
 		userRemovePermission,
 		userEncKeyUpdatePermission,
 		userSignKeyUpdatePermission,
@@ -256,6 +264,7 @@ func createUser(
 	channelAddPermission bool,
 	channelReadPermission bool,
 	userAddPermission bool,
+	userReadPermission bool,
 	userRemovePermission bool,
 	userEncKeyUpdatePermission bool,
 	userSignKeyUpdatePermission bool,
@@ -270,6 +279,7 @@ func createUser(
 		channelAddPermission,
 		channelReadPermission,
 		userAddPermission,
+		userReadPermission,
 		userRemovePermission,
 		userEncKeyUpdatePermission,
 		userSignKeyUpdatePermission,
@@ -291,6 +301,7 @@ func createUnverifiedUser(
 	channelAddPermission bool,
 	channelReadPermission bool,
 	userAddPermission bool,
+	userReadPermission bool,
 	userRemovePermission bool,
 	userEncKeyUpdatePermission bool,
 	userSignKeyUpdatePermission bool,
@@ -301,6 +312,7 @@ func createUnverifiedUser(
 		channelAddPermission,
 		channelReadPermission,
 		userAddPermission,
+		userReadPermission,
 		userRemovePermission,
 		userEncKeyUpdatePermission,
 		userSignKeyUpdatePermission,
@@ -318,6 +330,7 @@ func createIssuerAndCertifier(
 	issuerChannelAddPermission bool,
 	issuerChannelReadPermission bool,
 	issuerUserAddPermission bool,
+	issuerUserReadPermission bool,
 	issuerUserRemovePermission bool,
 	issuerUserEncKeyUpdatePermission bool,
 	issuerUserSignKeyUpdatePermission bool,
@@ -326,6 +339,7 @@ func createIssuerAndCertifier(
 	certifierChannelAddPermission bool,
 	certifierChannelReadPermission bool,
 	certifierUserAddPermission bool,
+	certifierUserReadPermission bool,
 	certifierUserRemovePermission bool,
 	certifierUserEncKeyUpdatePermission bool,
 	certifierUserSignKeyUpdatePermission bool,
@@ -337,6 +351,7 @@ func createIssuerAndCertifier(
 		issuerChannelAddPermission,
 		issuerChannelReadPermission,
 		issuerUserAddPermission,
+		issuerUserReadPermission,
 		issuerUserRemovePermission,
 		issuerUserEncKeyUpdatePermission,
 		issuerUserSignKeyUpdatePermission,
@@ -350,6 +365,7 @@ func createIssuerAndCertifier(
 		certifierChannelAddPermission,
 		certifierChannelReadPermission,
 		certifierUserAddPermission,
+		certifierUserReadPermission,
 		certifierUserRemovePermission,
 		certifierUserEncKeyUpdatePermission,
 		certifierUserSignKeyUpdatePermission,
@@ -397,6 +413,7 @@ func generateUserUpdateRequest(
 	channelAddPermissionPtr *bool,
 	channelReadPermissionPtr *bool,
 	userAddPermissionPtr *bool,
+	userReadPermissionPtr *bool,
 	userRemovePermissionPtr *bool,
 	userEncKeyUpdatePermissionPtr *bool,
 	userSignKeyUpdatePermissionPtr *bool,
@@ -433,6 +450,7 @@ func generateUserUpdateRequest(
 	userPermissionsStr := ""
 	userPermissionsBoolPtrs := map[string]*bool{
 		"add":               userAddPermissionPtr,
+		"read":              userReadPermissionPtr,
 		"remove":            userRemovePermissionPtr,
 		"encKeyUpdate":      userEncKeyUpdatePermissionPtr,
 		"signKeyUpdate":     userSignKeyUpdatePermissionPtr,
@@ -494,6 +512,7 @@ func makeUserUpdateRequest(
 	channelAddPermissionPtr *bool,
 	channelReadPermissionPtr *bool,
 	userAddPermissionPtr *bool,
+	userReadPermissionPtr *bool,
 	userRemovePermissionPtr *bool,
 	userEncKeyUpdatePermissionPtr *bool,
 	userSignKeyUpdatePermissionPtr *bool,
@@ -505,7 +524,7 @@ func makeUserUpdateRequest(
 ) (chan *UserResponse, []error) {
 	requestBytes := generateUserUpdateRequest(
 		fields, timestamp, idPtr, encKeyPtr, signKeyPtr,
-		channelAddPermissionPtr, channelReadPermissionPtr, userAddPermissionPtr, userRemovePermissionPtr,
+		channelAddPermissionPtr, channelReadPermissionPtr, userAddPermissionPtr, userReadPermissionPtr, userRemovePermissionPtr,
 		userEncKeyUpdatePermissionPtr, userSignKeyUpdatePermissionPtr, userPermissionsUpdatePtr,
 		activePtr, createdAtPtr, disabledAtPtr, updatedAtPtr,
 	)
@@ -526,6 +545,7 @@ func makeAndGetUserUpdateRequest(
 	channelAddPermissionPtr *bool,
 	channelReadPermissionPtr *bool,
 	userAddPermissionPtr *bool,
+	userReadPermissionPtr *bool,
 	userRemovePermissionPtr *bool,
 	userEncKeyUpdatePermissionPtr *bool,
 	userSignKeyUpdatePermissionPtr *bool,
@@ -538,7 +558,7 @@ func makeAndGetUserUpdateRequest(
 	channel, errs := makeUserUpdateRequest(
 		issuerId, certifierId, fields, timestamp,
 		idPtr, encKeyPtr, signKeyPtr,
-		channelAddPermissionPtr, channelReadPermissionPtr, userAddPermissionPtr, userRemovePermissionPtr,
+		channelAddPermissionPtr, channelReadPermissionPtr, userAddPermissionPtr, userReadPermissionPtr, userRemovePermissionPtr,
 		userEncKeyUpdatePermissionPtr, userSignKeyUpdatePermissionPtr, userPermissionsUpdatePtr,
 		activePtr, createdAtPtr, disabledAtPtr, updatedAtPtr,
 	)

@@ -116,6 +116,7 @@ func (usr *UserObject) createFromRecord(rec *userRecord) {
 	usr.Permissions.Channel.Add = rec.Permissions.Channel.Add.Ok
 	usr.Permissions.Channel.Read = rec.Permissions.Channel.Read.Ok
 	usr.Permissions.User.Add = rec.Permissions.User.Add.Ok
+	usr.Permissions.User.Read = rec.Permissions.User.Read.Ok
 	usr.Permissions.User.Remove = rec.Permissions.User.Remove.Ok
 	usr.Permissions.User.EncKeyUpdate = rec.Permissions.User.EncKeyUpdate.Ok
 	usr.Permissions.User.SignKeyUpdate = rec.Permissions.User.SignKeyUpdate.Ok

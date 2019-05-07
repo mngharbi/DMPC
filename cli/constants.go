@@ -30,6 +30,7 @@ var defaultUserObject users.UserObject = users.UserObject{
 		},
 		User: users.UserPermissionsObject{
 			Add:               true,
+			Read:              true,
 			Remove:            true,
 			EncKeyUpdate:      true,
 			SignKeyUpdate:     true,

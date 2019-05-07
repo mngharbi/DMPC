@@ -31,6 +31,7 @@ type ChannelPermissionsObject struct {
 
 type UserPermissionsObject struct {
 	Add               bool `json:"add"`
+	Read              bool `json:"read"`
 	Remove            bool `json:"remove"`
 	EncKeyUpdate      bool `json:"encKeyUpdate"`
 	SignKeyUpdate     bool `json:"signKeyUpdate"`
@@ -193,6 +194,7 @@ var sanitizeFieldsUpdatedAllowed map[string]bool = map[string]bool{
 	"permissions.channel.add":            true,
 	"permissions.channel.read":           true,
 	"permissions.user.add":               true,
+	"permissions.user.read":              true,
 	"permissions.user.remove":            true,
 	"permissions.user.encKeyUpdate":      true,
 	"permissions.user.signKeyUpdate":     true,
