@@ -31,7 +31,8 @@ const (
 )
 
 var (
-	genericKey []byte = generateRandomBytes(core.SymmetricKeySize)
+	nowTime    time.Time = time.Now()
+	genericKey []byte    = generateRandomBytes(core.SymmetricKeySize)
 )
 
 func generateSigners(issuerId string, certifierId string) *core.VerifiedSigners {
