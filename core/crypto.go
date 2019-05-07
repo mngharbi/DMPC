@@ -37,6 +37,7 @@ var (
 	invalidAsymmetricKeyError      error = errors.New("Invalid key provided.")
 	aeadCreationError              error = errors.New("Aead creation failed.")
 	noSymmetricKeyFoundError       error = errors.New("No symmetric key passed the challenge.")
+	noAsymmetricKeyFoundError      error = errors.New("No asymmetric key found.")
 	signError                      error = errors.New("Signing failed.")
 	asymmetrictEncryptionError     error = errors.New("Asymmetric encryption failed.")
 	asymmetrictDecryptionError     error = errors.New("Asymmetric decryption failed.")
@@ -49,6 +50,7 @@ var (
 	invalidIssuerSignatureError    error = errors.New("Invalid issuer signature provided.")
 	invalidCertifierSignatureError error = errors.New("Invalid certifier signature provided.")
 	encryptedSignatureError        error = errors.New("Cannot sign encrypted payload.")
+	transactionAlreadyEncrypted    error = errors.New("Cannot encrypt encrypted transaction.")
 )
 
 /*
@@ -183,6 +185,62 @@ func (ts *Transaction) DecodePayload() ([]byte, error) {
 		return nil, payloadDecodeError
 	}
 	return payloadBytes, nil
+}
+
+/*
+	Transaction encryption
+*/
+func (ts *Transaction) Encrypt(receipientKeys []*rsa.PublicKey) error {
+	if ts.Encryption.Encrypted {
+		return transactionAlreadyEncrypted
+	}
+
+	// Validate keys
+	if len(receipientKeys) == 0 {
+		return noAsymmetricKeyFoundError
+	}
+	for _, key := range receipientKeys {
+		if key == nil {
+			return invalidAsymmetricKeyError
+		}
+	}
+
+	// Make temporary key and nonce
+	temporaryNonce := GenerateSymmetricNonce()
+	temporaryKey := GenerateSymmetricKey()
+
+	// Encrypt challenge string and payload using temporary symmetric key
+	aead, _ := NewAead(temporaryKey)
+	payloadCiphertext := SymmetricEncrypt(
+		aead,
+		[]byte{},
+		temporaryNonce,
+		ts.Payload,
+	)
+	challengeCiphertext := SymmetricEncrypt(
+		aead,
+		[]byte{},
+		temporaryNonce,
+		[]byte(CorrectChallenge),
+	)
+	challengeCiphertextEncoded := Base64EncodeToString(challengeCiphertext)
+
+	// Encrypt temporary key for every receipient
+	ts.Encryption.Challenges = make(map[string]string)
+	for _, key := range receipientKeys {
+		encryptedKey, err := AsymmetricEncrypt(key, temporaryKey[:])
+		if err != nil {
+			ts.Encryption.Challenges = nil
+			return err
+		}
+		ts.Encryption.Challenges[Base64EncodeToString(encryptedKey)] = challengeCiphertextEncoded
+	}
+
+	// Set ciphertext
+	ts.Encryption.Encrypted = true
+	ts.Encryption.Nonce = Base64EncodeToString(temporaryNonce)
+	ts.Payload = CiphertextEncode(payloadCiphertext)
+	return nil
 }
 
 /*

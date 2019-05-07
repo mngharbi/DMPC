@@ -1,6 +1,7 @@
 package core
 
 import (
+	"crypto/rsa"
 	"reflect"
 	"testing"
 )
@@ -17,6 +18,108 @@ const (
 
 func dummyByteToByteTransformer(str []byte) ([]byte, bool) {
 	return str, false
+}
+
+/*
+	Transaction encryption
+*/
+
+func TestTransactionEncryptErrors(t *testing.T) {
+	// Make valid operation
+	op := GenerateOperation(
+		false,
+		"",
+		nil,
+		false,
+		"",
+		nil,
+		false,
+		"",
+		nil,
+		false,
+		1,
+		[]byte(validPayload),
+		false,
+	)
+	opEncoded, _ := op.Encode()
+
+	// Wrap into unencrypted transaction
+	ts := GenerateTransaction(
+		false,
+		nil,
+		[]byte("NONCE"),
+		false,
+		opEncoded,
+		false,
+	)
+
+	// Make key to be used for encryption
+	recipientKey := GeneratePrivateKey()
+	recipientKeyArr := []*rsa.PublicKey{&recipientKey.PublicKey}
+
+	// Encrypted transaction
+	ts.Encryption.Encrypted = true
+	if err := ts.Encrypt(recipientKeyArr); err != transactionAlreadyEncrypted {
+		t.Errorf("Transaction encryption should fail with encrypted transaction. err=%v", err)
+	}
+	ts.Encryption.Encrypted = false
+
+	// Nil key
+	if err := ts.Encrypt([]*rsa.PublicKey{nil}); err != invalidAsymmetricKeyError {
+		t.Errorf("Transaction encryption should fail with nil key. err=%v", err)
+	}
+
+	// Empty keys
+	if err := ts.Encrypt([]*rsa.PublicKey{}); err != noAsymmetricKeyFoundError {
+		t.Errorf("Transaction encryption should fail with no keys passed. err=%v", err)
+	}
+}
+
+func TestTransactionEncryptDecrypt(t *testing.T) {
+	// Make valid operation
+	op := GenerateOperation(
+		false,
+		"",
+		nil,
+		false,
+		"",
+		nil,
+		false,
+		"",
+		nil,
+		false,
+		1,
+		[]byte(validPayload),
+		false,
+	)
+	opEncoded, _ := op.Encode()
+
+	// Wrap into unencrypted transaction
+	ts := GenerateTransaction(
+		false,
+		nil,
+		[]byte("NONCE"),
+		false,
+		opEncoded,
+		false,
+	)
+
+	// Encrypt transaction
+	recipientKey := GeneratePrivateKey()
+	if err := ts.Encrypt([]*rsa.PublicKey{&recipientKey.PublicKey}); err != nil {
+		t.Errorf("Transaction encryption should not fail. err=%v", err)
+	}
+
+	// Decrypt transaction
+	decryptedOp, err := ts.Decrypt(recipientKey)
+	if err != nil {
+		t.Errorf("Transaction decryption should not fail. decryptedOp=%+v, err=%v", decryptedOp, err)
+	}
+
+	// Expected operations to match
+	if !reflect.DeepEqual(op, decryptedOp) {
+		t.Errorf("Decrypted payload does not match. expected=%+v, found=%v", op, decryptedOp)
+	}
 }
 
 /*
