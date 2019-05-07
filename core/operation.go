@@ -43,7 +43,7 @@ type Operation struct {
 	Issue         OperationAuthenticationFields `json:"issue"`
 	Certification OperationAuthenticationFields `json:"certification"`
 	Meta          OperationMetaFields           `json:"meta"`
-	Payload       string                        `json:"payload"`
+	Payload       json.RawMessage               `json:"payload"`
 }
 
 /*

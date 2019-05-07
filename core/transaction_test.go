@@ -20,7 +20,7 @@ func TestTransactionDecodeValid(t *testing.T) {
 
 		"transmission": {},
 
-		"payload": "BASE64_CIPHER"
+		"payload": {}
 	}`)
 
 	var rawOp Transaction
@@ -41,7 +41,7 @@ func TestTransactionDecodeValid(t *testing.T) {
 		t.Error("Transaction encryption fields not decoded properly")
 	}
 
-	if rawOp.Payload != "BASE64_CIPHER" {
+	if string(rawOp.Payload) != "{}" {
 		t.Error("Payload fields not decoded properly")
 	}
 }

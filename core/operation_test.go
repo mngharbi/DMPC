@@ -31,7 +31,7 @@ func TestPermDecodeValid(t *testing.T) {
 			"channelId": "CHANNEL_ID"
 		},
 
-		"payload": "BASE64_CIPHER"
+		"payload": {}
 	}`)
 
 	var rawOp Operation
@@ -67,8 +67,8 @@ func TestPermDecodeValid(t *testing.T) {
 		t.Error("Meta timestamp not decoded properly")
 	}
 
-	if rawOp.Payload != "BASE64_CIPHER" {
-		t.Error("Payload fields not decoded properly")
+	if string(rawOp.Payload) != "{}" {
+		t.Errorf("Payload fields not decoded properly. Payload=%+v", string(rawOp.Payload))
 	}
 }
 
@@ -89,7 +89,7 @@ func TestPermDecodeMalformedRawOperation(t *testing.T) {
 
 func TestPermDecodeMissingAttributes(t *testing.T) {
 	valid := []byte(`{
-		"payload": "BASE64_CIPHER"
+		"payload": {}
 	}`)
 
 	var rawOp Operation
@@ -122,7 +122,7 @@ func TestPermDecodeEncodeCycle(t *testing.T) {
 			"channelId": "CHANNEL_ID"
 		},
 
-		"payload": "BASE64_CIPHER"
+		"payload": {}
 	}`)
 
 	var rawOp Operation

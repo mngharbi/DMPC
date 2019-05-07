@@ -33,7 +33,7 @@ type Transaction struct {
 	Pipeline PipelineConfig `json:"pipeline"`
 
 	// Encoded and possibly encrypted payload/operation
-	Payload string `json:"payload"`
+	Payload json.RawMessage `json:"payload"`
 }
 
 /*

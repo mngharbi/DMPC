@@ -432,7 +432,7 @@ func doMessagesTesting(t *testing.T, isVerified bool, isBuffered bool) {
 			if isBuffered {
 				payload := []byte(strconv.Itoa(copyI))
 				op := requestOperationDefault
-				op.Payload = string(payload)
+				op.Payload = payload
 				_, _ = MakeRequest(isVerified, &op.Meta, generateGenericSigners(), []byte{}, &op)
 			} else {
 				payload := []byte(strconv.Itoa(copyI))
@@ -541,7 +541,7 @@ func TestChannelEncryptRequest(t *testing.T) {
 	// Set up context needed
 	usersRequester, _, usersRequesterUnverified, _, messageAdder, _, operationBufferer, _, channelActionRequester, channelActionCalls, channelListenersRequester, _, lockerRequester, lockerCalls, keyAdder, _, keyEncryptor, keyEncryptorCalls, responseReporter, reg, ticketGenerator := createDummies(true)
 
-	innerPlaintextBytes := []byte{25}
+	innerPlaintextBytes := []byte("{}")
 	innerMeta := core.OperationMetaFields{
 		RequestType: core.AddMessageType,
 		ChannelId:   genericChannelId2,
@@ -549,7 +549,7 @@ func TestChannelEncryptRequest(t *testing.T) {
 	}
 	op := &core.Operation{
 		Meta:    innerMeta,
-		Payload: core.PlaintextEncodeToString(innerPlaintextBytes),
+		Payload: core.PlaintextEncode(innerPlaintextBytes),
 	}
 	opEncoded, _ := op.Encode()
 

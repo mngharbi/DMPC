@@ -9,8 +9,11 @@ import (
 	Test helpers
 */
 
-const invalidBase64string = "12"
-const validBase64string = "bQ=="
+const (
+	invalidBase64string string = "12"
+	validBase64string   string = "bQ=="
+	validPayload        string = "{}"
+)
 
 func dummyByteToByteTransformer(str []byte) ([]byte, bool) {
 	return str, false
@@ -387,15 +390,15 @@ func TestPermanentInvalidNonce(t *testing.T) {
 		[]byte(validBase64string),
 		true,
 		1,
-		[]byte(validBase64string),
-		true,
+		[]byte(validPayload),
+		false,
 	)
 
 	_, err := encryptedOperation.Decrypt(
 		DecryptorFunctor(map[string][]byte{"KEY_ID": GenerateSymmetricKey()}, true),
 	)
 	if err != invalidNonceError {
-		t.Errorf("Permanent decryption should fail with invalid base64 nonce.")
+		t.Errorf("Permanent decryption should fail with invalid base64 nonce. err=%v", err)
 		return
 	}
 
@@ -412,8 +415,8 @@ func TestPermanentInvalidNonce(t *testing.T) {
 		[]byte(validBase64string),
 		true,
 		1,
-		[]byte(validBase64string),
-		true,
+		[]byte(validPayload),
+		false,
 	)
 
 	_, err = encryptedOperation.Decrypt(
@@ -439,8 +442,8 @@ func TestPermanentNotFoundKey(t *testing.T) {
 		[]byte(validBase64string),
 		true,
 		1,
-		[]byte(validBase64string),
-		true,
+		[]byte(validPayload),
+		false,
 	)
 
 	// Decrypt with function that returns no key
@@ -457,7 +460,7 @@ func TestPermanentInvalidIssuerSignature(t *testing.T) {
 	// Make operation with invalid issuer signature
 	permanentKey := GenerateSymmetricKey()
 	permanentNonce := GenerateSymmetricNonce()
-	requestPayload := []byte("REQUEST_PAYLOAD")
+	requestPayload := []byte("{}")
 	encryptedOperation, issuerKey, certifierKey := GenerateOperationWithEncryption(
 		"KEY_ID",
 		permanentKey,
@@ -510,7 +513,7 @@ func TestPermanentInvalidIssuerSignature(t *testing.T) {
 		payload,
 	)
 	if err != invalidIssuerSignatureError {
-		t.Errorf("Permanent decryption should fail with invalid issuer signature.")
+		t.Errorf("Permanent verification should fail with invalid issuer signature. err=%v", err)
 	}
 }
 

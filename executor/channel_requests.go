@@ -418,7 +418,7 @@ func (sv *server) doChannelEncrypt(wrappedRequest *executorRequest) {
 		Nonce:     core.Base64EncodeToString(nonce),
 	}
 	op.Meta.ChannelId = channelResponse.Channel.Id
-	op.Payload = core.CiphertextEncodeToString(encrypted)
+	op.Payload = core.CiphertextEncode(encrypted)
 
 	sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, *op, nil)
 }

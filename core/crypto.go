@@ -7,6 +7,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"golang.org/x/crypto/chacha20poly1305"
 	"io"
@@ -56,20 +57,26 @@ var (
 
 var rng io.Reader = rand.Reader
 
-func PlaintextEncodeToString(src []byte) string {
-	return string(src)
+func PlaintextEncode(src []byte) []byte {
+	return src
 }
 
-func PlaintextDecodeString(src string) (res []byte, err error) {
-	return []byte(src), nil
+func PlaintextDecode(src []byte) (res []byte, err error) {
+	return src, nil
 }
 
-func CiphertextEncodeToString(src []byte) string {
-	return Base64EncodeToString(src)
+func CiphertextEncode(src []byte) []byte {
+	base64encodedString := Base64EncodeToString(src)
+	jsonStream, _ := json.Marshal(base64encodedString)
+	return jsonStream
 }
 
-func CiphertextDecodeString(src string) (res []byte, err error) {
-	return Base64DecodeString(src)
+func CiphertextDecode(src []byte) (res []byte, err error) {
+	var base64ciphertext string
+	if err = json.Unmarshal(src, &base64ciphertext); err != nil {
+		return
+	}
+	return Base64DecodeString(base64ciphertext)
 }
 
 func Base64EncodeToString(src []byte) string {
@@ -167,9 +174,9 @@ func SymmetricDecrypt(aead cipher.AEAD, dst []byte, nonce []byte, ciphertext []b
 */
 
 func (ts *Transaction) DecodePayload() ([]byte, error) {
-	payloadDecoder := PlaintextDecodeString
+	payloadDecoder := PlaintextDecode
 	if ts.Encryption.Encrypted {
-		payloadDecoder = CiphertextDecodeString
+		payloadDecoder = CiphertextDecode
 	}
 	payloadBytes, err := payloadDecoder(ts.Payload)
 	if err != nil {
@@ -270,9 +277,9 @@ func (ts *Transaction) Decrypt(asymKey *rsa.PrivateKey) (*Operation, error) {
 */
 
 func (op *Operation) DecodePayload() ([]byte, error) {
-	payloadDecoder := PlaintextDecodeString
+	payloadDecoder := PlaintextDecode
 	if op.Encryption.Encrypted {
-		payloadDecoder = CiphertextDecodeString
+		payloadDecoder = CiphertextDecode
 	}
 	payloadBytes, err := payloadDecoder(op.Payload)
 	if err != nil {

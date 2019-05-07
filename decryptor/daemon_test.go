@@ -27,7 +27,7 @@ func TestValidNonEncrypted(t *testing.T) {
 	}
 
 	// Create non encrypted payload
-	payload := []byte("PAYLOAD")
+	payload := []byte("{}")
 	hashedPayload := core.Hash(payload)
 	issuerSignature, _ := core.Sign(signKeyCollection[genericIssuerId], hashedPayload[:])
 	certifierSignature, _ := core.Sign(signKeyCollection[genericCertifierId], hashedPayload[:])
@@ -95,7 +95,7 @@ func TestValidTransactionEncryptedOnly(t *testing.T) {
 	}
 
 	// Create non encrypted payload
-	payload := []byte("PAYLOAD")
+	payload := []byte("{}")
 	hashedPayload := core.Hash(payload)
 	issuerSignature, _ := core.Sign(signKeyCollection[genericIssuerId], hashedPayload[:])
 	certifierSignature, _ := core.Sign(signKeyCollection[genericCertifierId], hashedPayload[:])
@@ -157,7 +157,7 @@ func TestValidPermanentEncryptedOnly(t *testing.T) {
 	keyCollection := getKeysCollection()
 
 	// Create non encrypted payload
-	payload := []byte("PAYLOAD")
+	payload := []byte("{}")
 	operation, issuerKey, certifierKey := core.GenerateOperationWithEncryption(
 		keyId1,
 		keyCollection[keyId1],
@@ -225,7 +225,7 @@ func TestValidTemporaryPermanentEncrypted(t *testing.T) {
 	keyCollection := getKeysCollection()
 
 	// Create encrypted payload
-	payload := []byte("PAYLOAD")
+	payload := []byte("{}")
 	globalKey := core.GeneratePrivateKey()
 	transactionEncoded, issuerKey, certifierKey := generateValidEncryptedOperation(
 		keyId1,
@@ -283,7 +283,7 @@ func TestValidTemporaryPermanentEncryptedUnverified(t *testing.T) {
 	keyCollection := getKeysCollection()
 
 	// Create encrypted payload
-	payload := []byte("PAYLOAD")
+	payload := []byte("{}")
 	globalKey := core.GeneratePrivateKey()
 	transactionEncoded, issuerKey, certifierKey := generateValidEncryptedOperation(
 		keyId1,
@@ -338,7 +338,7 @@ func TestOperationEncryption(t *testing.T) {
 	keyCollection := getKeysCollection()
 
 	// Setup operation
-	payload := []byte("PAYLOAD")
+	payload := []byte("{}")
 	globalKey := core.GeneratePrivateKey()
 	operation, issuerKey, certifierKey := core.GenerateOperationWithEncryption(
 		"",
