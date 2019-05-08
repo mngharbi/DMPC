@@ -46,6 +46,36 @@ func main() {
 			},
 		},
 		{
+			Name:    "transaction",
+			Aliases: []string{"o"},
+			Usage:   "Transaction related commands",
+			Subcommands: []cli.Command{
+				{
+					Name:    "generate",
+					Aliases: []string{"g"},
+					Usage:   "Generate transaction",
+					Action: func(c *cli.Context) error {
+						dmpcCli.GenerateTransaction(c.Bool("ignoreresult"), c.Bool("statusupdate"), c.StringSlice("recepient"))
+						return nil
+					},
+					Flags: []cli.Flag{
+						cli.BoolFlag{
+							Name: "ignoreresult, i",
+							Usage: "Ignore transaction result",
+						},
+						cli.BoolFlag{
+							Name: "statusupdate, u",
+							Usage: "Get transaction status updates",
+						},
+						cli.StringSliceFlag{
+							Name: "recepient, r",
+							Usage: "Encrypt transaction for recepient",
+						},
+					},
+				},
+			},
+		},
+		{
 			Name:    "operation",
 			Aliases: []string{"o"},
 			Usage:   "Operation related commands",
