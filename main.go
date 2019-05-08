@@ -54,7 +54,7 @@ func main() {
 					Name:    "sign",
 					Usage:   "Sign operation as issuer/certifier",
 					Action: func(c *cli.Context) error {
-						dmpcCli.SignOperation(c.Bool("issue"), c.Bool("certify"))
+						dmpcCli.ReadAndSignOperation(c.Bool("issue"), c.Bool("certify"))
 						return nil
 					},
 					Flags: []cli.Flag{
