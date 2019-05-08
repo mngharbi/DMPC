@@ -37,12 +37,12 @@ var (
 		SuccessStatus,
 		FailedStatus,
 	}
-	statusCodesMap map[StatusCode]bool = map[StatusCode]bool{
-		NoStatus:      true,
-		QueuedStatus:  true,
-		RunningStatus: true,
-		SuccessStatus: true,
-		FailedStatus:  true,
+	statusCodesOrder map[StatusCode]int = map[StatusCode]int{
+		NoStatus:      0,
+		QueuedStatus:  1,
+		RunningStatus: 2,
+		SuccessStatus: 3,
+		FailedStatus:  4,
 	}
 )
 
@@ -204,7 +204,7 @@ func (rec *StatusRecord) Less(index string, than interface{}) bool {
 */
 func (rec *StatusRecord) check() error {
 	// Check status bounds
-	if _, ok := statusCodesMap[rec.Status]; !ok {
+	if _, ok := statusCodesOrder[rec.Status]; !ok {
 		return statusRangeError
 	}
 
@@ -218,7 +218,7 @@ func (rec *StatusRecord) check() error {
 
 func (current *StatusRecord) update(updated *StatusRecord) bool {
 	// Don't apply any stale updates
-	if current.Status >= updated.Status {
+	if statusCodesOrder[current.Status] >= statusCodesOrder[updated.Status] {
 		return false
 	}
 
