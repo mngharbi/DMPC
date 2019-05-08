@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/mngharbi/DMPC/core"
 	"log"
 	"os"
@@ -119,11 +120,9 @@ func GenerateTransaction(ignoreResult bool, statusUpdates bool, recepients []str
 		encryptionTsEncoded, _ := encryptionTs.Encode()
 
 		encryptionResult := makeTransactionAndGetResult(encryptionTsEncoded)
-		err := ts.Decode(encryptionResult)
-		if err != nil {
-			log.Fatalf("Failed to decode encryption request result. Encoded result: %v", encryptionResult)
-		}
-	}
+		fmt.Println(string(encryptionResult))
 
-	WriteTransaction(ts)
+	} else {
+		WriteTransaction(ts)
+	}
 }
