@@ -14,13 +14,15 @@ import (
 */
 
 var (
-	unverifiedChannelOpenError         error = errors.New("Channel open request cannot be unverified.")
-	channelOpenUnauthorizedError       error = errors.New("Channel open request is not authorized.")
-	channelOpenNilChannelError         error = errors.New("Channel open request must have channel object.")
-	unverifiedChannelSubscribeError    error = errors.New("Channel subscribe request cannot be unverified.")
-	channelReadUnauthorizedError       error = errors.New("Channel read request is not authorized.")
-	channelEncryptUnauthorizedError    error = errors.New("Channel encrypt request is not authorized.")
-	channelEncryptOperationFormatError error = errors.New("Channel encrypt requires a valid operation as payload.")
+	unverifiedChannelOpenError             error = errors.New("Channel open request cannot be unverified.")
+	channelOpenUnauthorizedError           error = errors.New("Channel open request is not authorized.")
+	channelOpenNilChannelError             error = errors.New("Channel open request must have channel object.")
+	unverifiedChannelSubscribeError        error = errors.New("Channel subscribe request cannot be unverified.")
+	channelReadUnauthorizedError           error = errors.New("Channel read request is not authorized.")
+	channelEncryptUnauthorizedError        error = errors.New("Channel encrypt request is not authorized.")
+	channelEncryptOperationFormatError     error = errors.New("Channel encrypt requires a valid operation as payload.")
+	transactionEncryptUnauthorizedError    error = errors.New("Transaction encryption request is not authorized.")
+	transactionEncryptOperationFormatError error = errors.New("Transaction encryption requires a valid transaction as payload.")
 )
 
 /*

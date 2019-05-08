@@ -4,48 +4,12 @@ import (
 	"errors"
 	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
-	"github.com/mngharbi/DMPC/locker"
 	"github.com/mngharbi/DMPC/status"
-	"github.com/mngharbi/DMPC/users"
 	"reflect"
 	"strconv"
 	"sync"
 	"testing"
 )
-
-/*
-	Helpers
-*/
-
-func checkChannelLocking(t *testing.T, lockerCalls chan interface{}, expectedLockType core.LockType) bool {
-	for i := 0; i < 2; i++ {
-		lockCall := (<-lockerCalls).(*locker.LockerRequest)
-		if lockCall.Type != locker.ChannelLock ||
-			len(lockCall.Needs) != 1 ||
-			lockCall.Needs[0].Id != genericChannelId ||
-			lockCall.Needs[0].LockType != expectedLockType {
-			t.Error("Channel add request should lock/unlock channel properly.")
-			return false
-		}
-	}
-	return true
-}
-
-func checkUserLocking(t *testing.T, userCalls chan userRequesterCall) bool {
-	for i := 0; i < 2; i++ {
-		userCall := <-userCalls
-		userCallRq := &users.UserRequest{}
-		userCallRq.Decode(userCall.request)
-		if userCallRq.Type != users.ReadRequest ||
-			len(userCallRq.Fields) != 1 ||
-			userCallRq.Fields[0] != genericCertifierId ||
-			userCall.readLock && userCall.readUnlock ||
-			!userCall.readLock && !userCall.readUnlock {
-			t.Error("Channel add request should read lock/unlock user.")
-		}
-	}
-	return true
-}
 
 /*
 	Read channel request

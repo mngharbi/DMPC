@@ -18,6 +18,7 @@ const (
 	CloseChannelType
 	SubscribeChannelType
 	ChannelEncryptType
+	TransactionEncryptType
 )
 
 /*

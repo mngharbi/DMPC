@@ -13,6 +13,82 @@ import (
 )
 
 /*
+	Transaction encryption
+*/
+
+func TestTransactionEncryptRequest(t *testing.T) {
+	// Set up context needed
+	usersRequester, userCalls, usersRequesterUnverified, _, messageAdder, _, operationBufferer, _, channelActionRequester, _, channelListenersRequester, _, lockerRequester, _, keyAdder, _, keyEncryptor, _, responseReporter, reg, ticketGenerator := createDummies(true)
+
+	// Create inner operation
+	innerPlaintextBytes := []byte("{}")
+	innerMeta := core.OperationMetaFields{
+		RequestType: core.AddMessageType,
+		ChannelId:   genericChannelId2,
+		Timestamp:   nowTime,
+	}
+	op := &core.Operation{
+		Meta:    innerMeta,
+		Payload: core.PlaintextEncode(innerPlaintextBytes),
+	}
+	encodedOp, _ := op.Encode()
+	decodedOp := &core.Operation{}
+	decodedOp.Decode(encodedOp)
+
+	// Create payload (transaction)
+	ts := &core.Transaction{
+		Encryption: core.TransactionEncryptionFields{
+			Encrypted: false,
+			Challenges: map[string]string{
+				genericCertifierId: "",
+			},
+			Nonce: "",
+		},
+		Payload: core.PlaintextEncode(encodedOp),
+	}
+	tsEncoded, _ := ts.Encode()
+
+	meta := &core.OperationMetaFields{
+		RequestType: core.TransactionEncryptType,
+		Timestamp:   nowTime,
+	}
+
+	// Test valid request
+	if !resetAndStartServer(t, multipleWorkersConfig(), usersRequester, usersRequesterUnverified, messageAdder, operationBufferer, channelActionRequester, channelListenersRequester, lockerRequester, keyAdder, keyEncryptor, responseReporter, ticketGenerator) {
+		return
+	}
+
+	ticketId, err := MakeRequest(true, meta, generateGenericSigners(), tsEncoded, nil)
+	if err != nil {
+		t.Error("Request should not fail.")
+		ShutdownServer()
+		return
+	}
+
+	ShutdownServer()
+
+	// Check status
+	if len(reg.ticketLogs[ticketId]) != 3 ||
+		reg.ticketLogs[ticketId][0].status != status.QueuedStatus ||
+		reg.ticketLogs[ticketId][1].status != status.RunningStatus ||
+		reg.ticketLogs[ticketId][2].status != status.SuccessStatus {
+		t.Errorf("Request should succeed and statuses should be reported correctly.")
+	}
+
+	// Expect user read locking
+	checkUserLocking(t, userCalls)
+
+	// Decrypt result
+	tsEncrypted := &core.Transaction{}
+	tsEncrypted.Decode(reg.ticketLogs[ticketId][2].result.([]byte))
+	decryptedOp, err := tsEncrypted.Decrypt(userKey)
+	if err != nil ||
+		!reflect.DeepEqual(decodedOp, decryptedOp) {
+		t.Errorf("Decrypted operation does not match. err=%v\n expected=%+v\n found=%+v", err, op, decryptedOp)
+	}
+}
+
+/*
 	User generic requests
 */
 

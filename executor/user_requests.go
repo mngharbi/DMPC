@@ -1,6 +1,8 @@
 package executor
 
 import (
+	"crypto/rsa"
+	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/DMPC/users"
 )
@@ -39,4 +41,68 @@ func (sv *server) doGenericUsersRequest(wrappedRequest *executorRequest) {
 	} else {
 		sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, userReponseEncoded, nil)
 	}
+}
+
+/*
+	Encrypt transaction
+*/
+
+func (sv *server) doTransactionEncrypt(wrappedRequest *executorRequest) {
+	// Interpret payload as transaction json
+	ts := &core.Transaction{}
+	err := ts.Decode([]byte(wrappedRequest.request))
+	if err != nil {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{transactionEncryptOperationFormatError})
+		return
+	}
+
+	// Get and RLock transaction receipients
+	receipientIds := []string{}
+	for receipientId := range ts.Encryption.Challenges {
+		receipientIds = append(receipientIds, receipientId)
+	}
+	usersRequest := &users.UserRequest{
+		Type:      users.ReadRequest,
+		Timestamp: wrappedRequest.metaFields.Timestamp,
+		Fields:    receipientIds,
+	}
+	encodedUsersRequest, _ := usersRequest.Encode()
+	usersSubsystemResponse, errs := sv.usersRequester(wrappedRequest.signers, true, false, encodedUsersRequest)
+	if len(errs) != 0 {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestRejectedError})
+		return
+	}
+	userResponsePtr, ok := <-usersSubsystemResponse
+	if !ok {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{subsystemChannelClosed})
+		return
+	}
+	if userResponsePtr.Result != users.Success {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestRejectedError})
+		return
+	}
+	defer func() {
+		usersSubsystemResponse, _ = sv.usersRequester(wrappedRequest.signers, false, true, encodedUsersRequest)
+		_ = <-usersSubsystemResponse
+	}()
+
+	// Build keys array
+	keys := []*rsa.PublicKey{}
+	for _, userObject := range userResponsePtr.Data {
+		key, err := core.PublicStringToAsymKey(userObject.EncKey)
+		if err != nil {
+			sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{err})
+			return
+		}
+		keys = append(keys, key)
+	}
+
+	// Do transaction encryption
+	if err = ts.Encrypt(keys); err != nil {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{err})
+		return
+	}
+
+	tsEncoded, _ := ts.Encode()
+	sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, tsEncoded, nil)
 }

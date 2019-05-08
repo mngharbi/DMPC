@@ -5,6 +5,7 @@
 package executor
 
 import (
+	"crypto/rsa"
 	"errors"
 	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
@@ -64,6 +65,7 @@ type userRequesterCall struct {
 }
 
 var (
+	userKey                    *rsa.PrivateKey    = core.GeneratePrivateKey()
 	userObjectsWithPermissions []users.UserObject = []users.UserObject{
 		{
 			Permissions: users.PermissionsObject{
@@ -72,6 +74,7 @@ var (
 					Read: true,
 				},
 			},
+			EncKey: core.PublicAsymKeyToString(&userKey.PublicKey),
 		},
 	}
 )
@@ -371,6 +374,40 @@ func createDummyKeyEncryptorFunctor(response error) (keys.Encryptor, chan interf
 		return generateRandomBytes(10), core.GenerateSymmetricNonce(), response
 	}
 	return requester, callsChannel
+}
+
+/*
+	Locking calls check
+*/
+
+func checkChannelLocking(t *testing.T, lockerCalls chan interface{}, expectedLockType core.LockType) bool {
+	for i := 0; i < 2; i++ {
+		lockCall := (<-lockerCalls).(*locker.LockerRequest)
+		if lockCall.Type != locker.ChannelLock ||
+			len(lockCall.Needs) != 1 ||
+			lockCall.Needs[0].Id != genericChannelId ||
+			lockCall.Needs[0].LockType != expectedLockType {
+			t.Error("Channel add request should lock/unlock channel properly.")
+			return false
+		}
+	}
+	return true
+}
+
+func checkUserLocking(t *testing.T, userCalls chan userRequesterCall) bool {
+	for i := 0; i < 2; i++ {
+		userCall := <-userCalls
+		userCallRq := &users.UserRequest{}
+		userCallRq.Decode(userCall.request)
+		if userCallRq.Type != users.ReadRequest ||
+			len(userCallRq.Fields) != 1 ||
+			userCallRq.Fields[0] != genericCertifierId ||
+			userCall.readLock && userCall.readUnlock ||
+			!userCall.readLock && !userCall.readUnlock {
+			t.Errorf("Request should read lock/unlock user. userCall=%+v", userCall)
+		}
+	}
+	return true
 }
 
 /*
