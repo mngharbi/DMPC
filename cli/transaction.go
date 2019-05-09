@@ -2,7 +2,6 @@ package cli
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/mngharbi/DMPC/core"
 	"log"
 	"os"
@@ -121,9 +120,8 @@ func GenerateTransaction(ignoreResult bool, statusUpdates bool, keepAlive bool, 
 		)
 		encryptionTsEncoded, _ := encryptionTs.Encode()
 
-		encryptionResult := makeTransactionAndGetResult(encryptionTsEncoded)
-		fmt.Println(string(encryptionResult))
-
+		// Run transaction and write output
+		runOneTransactionAndWrite(encryptionTsEncoded)
 	} else {
 		WriteTransaction(ts)
 	}
