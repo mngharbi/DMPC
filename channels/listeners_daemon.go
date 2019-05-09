@@ -150,6 +150,9 @@ func (sv *listenersServer) Work(rqInterface *gofarm.Request) *gofarm.Response {
 		}
 	}
 
+	// Log request done
+	log.Debugf(listenersRequestDoneLogMsg)
+
 	var nativeResponse gofarm.Response = resp
 	return &nativeResponse
 }

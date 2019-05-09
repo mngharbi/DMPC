@@ -32,7 +32,7 @@ var (
 func (sv *server) makeChannelActionAndWait(wrappedRequest *executorRequest, request interface{}) *channels.ChannelsResponse {
 	channelResponseChannel, err := sv.channelActionRequester(request)
 	if err != nil {
-		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestRejectedError})
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{err})
 		return nil
 	}
 	channelResponsePtr, ok := <-channelResponseChannel

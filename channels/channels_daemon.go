@@ -185,6 +185,10 @@ func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gof
 			publish(rq.Channel.Id, makeCloseEvent(channelRecord.duration.closed, 0))
 		}
 
+		// Build object
+		resp.Channel = &ChannelObject{}
+		resp.Channel.buildFromRecord(channelRecord)
+
 	case *CloseChannelRequest:
 		rq := (*rqInterface).(*CloseChannelRequest)
 
@@ -209,7 +213,14 @@ func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gof
 		if channelRecord.state == channelClosedState {
 			publish(rq.Id, makeCloseEvent(channelRecord.duration.closed, remainingMessages))
 		}
+
+		// Build object
+		resp.Channel = &ChannelObject{}
+		resp.Channel.buildFromRecord(channelRecord)
 	}
+
+	// Log request done
+	log.Debugf(channelsRequestDoneLogMsg)
 
 	var respInterface gofarm.Response = resp
 	return &respInterface

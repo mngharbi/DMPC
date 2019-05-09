@@ -174,6 +174,9 @@ func (sv *messagesServer) Work(rqInterface *gofarm.Request) *gofarm.Response {
 		bufferRecord.operations = append(bufferRecord.operations, rq.Operation)
 	}
 
+	// Log request done
+	log.Debugf(messagesRequestDoneLogMsg)
+
 	var resp gofarm.Response = &MessagesResponse{
 		Result: statusCode,
 	}
