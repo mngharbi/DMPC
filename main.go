@@ -55,7 +55,7 @@ func main() {
 					Aliases: []string{"g"},
 					Usage:   "Generate transaction",
 					Action: func(c *cli.Context) error {
-						dmpcCli.GenerateTransaction(c.Bool("ignoreresult"), c.Bool("statusupdate"), c.StringSlice("recepient"))
+						dmpcCli.GenerateTransaction(c.Bool("ignoreresult"), c.Bool("statusupdate"), c.Bool("keepalive"), c.StringSlice("recepient"))
 						return nil
 					},
 					Flags: []cli.Flag{
@@ -66,6 +66,10 @@ func main() {
 						cli.BoolFlag{
 							Name: "statusupdate, u",
 							Usage: "Get transaction status updates",
+						},
+						cli.BoolFlag{
+							Name: "keepalive, k",
+							Usage: "Keep connection open after transaction",
 						},
 						cli.StringSliceFlag{
 							Name: "recepient, r",

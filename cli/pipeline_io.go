@@ -51,7 +51,7 @@ func readMessage(conn *websocket.Conn) []byte {
 }
 
 func closeConnection(conn *websocket.Conn) bool {
-	err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	err := conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, ""))
 	if err != nil {
 		log.Fatalf("Failed to send connection closure message to websocket. Error=%v", err)
 		return false

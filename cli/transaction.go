@@ -43,6 +43,7 @@ func ResultOnlyPlaintextTransaction(payload []byte) *core.Transaction {
 		Pipeline: core.PipelineConfig{
 			ReadStatusUpdates: false,
 			ReadResult:        true,
+			KeepAlive:         false,
 		},
 		Payload: core.PlaintextEncode(payload),
 	}
@@ -85,7 +86,7 @@ func WrapPayloadInRootSignedGenericOperation(payload []byte, requestType core.Re
 /*
 	Wrap into transaction
 */
-func GenerateTransaction(ignoreResult bool, statusUpdates bool, recepients []string) {
+func GenerateTransaction(ignoreResult bool, statusUpdates bool, keepAlive bool, recepients []string) {
 	op := ReadOperation()
 	opEncoded, _ := op.Encode()
 
@@ -100,6 +101,7 @@ func GenerateTransaction(ignoreResult bool, statusUpdates bool, recepients []str
 		Pipeline: core.PipelineConfig{
 			ReadStatusUpdates: statusUpdates,
 			ReadResult:        !ignoreResult,
+			KeepAlive:         keepAlive,
 		},
 		Payload: core.PlaintextEncode(opEncoded),
 	}

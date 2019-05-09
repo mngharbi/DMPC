@@ -63,37 +63,52 @@ func (c *Conversation) dispatcher() {
 	Helpers
 */
 
-func (c *Conversation) doClose() {
+func (c *Conversation) doClose(code int) {
 	if c.closing {
 		return
 	}
 	c.closing = true
-	c.socket.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseUnsupportedData, ""))
+	c.socket.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(code, ""))
 	c.quitChannel <- true
 }
 
-func (c *Conversation) close() {
+func (c *Conversation) doNormalClose() {
+	c.doClose(websocket.CloseNormalClosure)
+}
+
+func (c *Conversation) doInvalidClose() {
+	c.doClose(websocket.CloseUnsupportedData)
+}
+
+func (c *Conversation) normalClose() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	c.doClose()
+	c.doNormalClose()
+}
+
+func (c *Conversation) invalidClose() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.doInvalidClose()
 }
 
 func (c *Conversation) write(data []byte) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if err := c.socket.WriteMessage(websocket.TextMessage, data); err != nil {
-		c.doClose()
+		c.doInvalidClose()
 	}
 }
 
 func (c *Conversation) read() *core.Transaction {
 	transaction := &core.Transaction{}
-	if err := c.socket.ReadJSON(transaction); err == io.EOF {
-		c.close()
+	if err := c.socket.ReadJSON(transaction); err == io.EOF ||
+		websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived) {
+		c.normalClose()
 		return nil
 	} else if err != nil {
 		log.Infof(invalidTransactionLogMsg)
-		c.close()
+		c.invalidClose()
 		return nil
 	}
 	return transaction
@@ -154,7 +169,7 @@ func (tc *TransactionConversation) writer() {
 	// Make request to executor
 	channel, errs := passTransaction(tc.transaction)
 	if errs != nil {
-		tc.parentConversation.close()
+		tc.parentConversation.invalidClose()
 		log.Debugf(transactionRejected, errs)
 		return
 	}
@@ -162,13 +177,13 @@ func (tc *TransactionConversation) writer() {
 	// Wait for ticket
 	nativeResp := <-channel
 	if nativeResp == nil {
-		tc.parentConversation.close()
+		tc.parentConversation.invalidClose()
 		log.Debugf(invalidDecryptorResponse, nativeResp)
 		return
 	}
 	resp := (*nativeResp).(*decryptor.DecryptorResponse)
 	if resp.Result != decryptor.Success {
-		tc.parentConversation.close()
+		tc.parentConversation.invalidClose()
 		return
 	}
 	ticket := resp.Ticket
@@ -211,5 +226,10 @@ func (tc *TransactionConversation) writer() {
 			log.Debugf(unsubscribeFailedLogMsg, ticket, err)
 			return
 		}
+	}
+
+	// Close connection if keep alive is not set
+	if !tc.transaction.Pipeline.KeepAlive {
+		tc.parentConversation.normalClose()
 	}
 }

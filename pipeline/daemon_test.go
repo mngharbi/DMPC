@@ -29,7 +29,7 @@ func TestStartShutdownServer(t *testing.T) {
 	ShutdownServer()
 }
 
-func testValidTransactionWithConn(t *testing.T, conn *websocket.Conn, statusUpdates bool, result bool) bool {
+func testValidTransactionWithConn(t *testing.T, conn *websocket.Conn, statusUpdates bool, result bool, keepAlive bool) bool {
 	expectedResponses := 0
 	if statusUpdates {
 		expectedResponses = 2
@@ -38,7 +38,7 @@ func testValidTransactionWithConn(t *testing.T, conn *websocket.Conn, statusUpda
 		expectedResponses++
 	}
 
-	if !sendMessage(t, conn, generateValidTransactionJson(statusUpdates, result)) {
+	if !sendMessage(t, conn, generateValidTransactionJson(statusUpdates, result, keepAlive)) {
 		return false
 	}
 	for i := 0; i < expectedResponses; i++ {
@@ -57,11 +57,11 @@ func test2ValidTransactions(t *testing.T, waitGroup *sync.WaitGroup, statusUpdat
 		return
 	}
 
-	if !testValidTransactionWithConn(t, conn, statusUpdates, result) {
+	if !testValidTransactionWithConn(t, conn, statusUpdates, result, true) {
 		return
 	}
 
-	if !testValidTransactionWithConn(t, conn, statusUpdates, result) {
+	if !testValidTransactionWithConn(t, conn, statusUpdates, result, true) {
 		return
 	}
 
@@ -117,22 +117,22 @@ func TestSuccessfulTransactions(t *testing.T) {
 	}
 
 	// Silent transaction
-	if !testValidTransactionWithConn(t, conn, false, false) {
+	if !testValidTransactionWithConn(t, conn, false, false, true) {
 		return
 	}
 
 	// Expect both status update and result
-	if !testValidTransactionWithConn(t, conn, true, true) {
+	if !testValidTransactionWithConn(t, conn, true, true, true) {
 		return
 	}
 
 	// Expect only status updates
-	if !testValidTransactionWithConn(t, conn, true, false) {
+	if !testValidTransactionWithConn(t, conn, true, false, true) {
 		return
 	}
 
 	// Expect only result
-	if !testValidTransactionWithConn(t, conn, false, true) {
+	if !testValidTransactionWithConn(t, conn, false, true, true) {
 		return
 	}
 
@@ -146,7 +146,7 @@ func TestSuccessfulTransactions(t *testing.T) {
 	ShutdownServer()
 }
 
-func TestChannelResponse(t *testing.T) {
+func doTestChannelResponse(t *testing.T, keepAlive bool) {
 	channelStruct := &channelTestStruct{
 		Channel:      make(chan []byte),
 		ChannelId:    genericChannelId,
@@ -181,7 +181,7 @@ func TestChannelResponse(t *testing.T) {
 	}
 
 	// Send valid transaction with status and result requested
-	if !sendMessage(t, conn, generateValidTransactionJson(true, true)) {
+	if !sendMessage(t, conn, generateValidTransactionJson(true, true, keepAlive)) {
 		return
 	}
 
@@ -233,7 +233,22 @@ func TestChannelResponse(t *testing.T) {
 		t.Error("Expected unsubscribe call to be made")
 	}
 
+	if keepAlive && !closeConnection(t, conn) {
+		return
+	}
+	if !waitForConnectionClosure(t, conn) {
+		return
+	}
+
 	ShutdownServer()
+}
+
+func TestChannelResponseKeepAlive(t *testing.T) {
+	doTestChannelResponse(t, true)
+}
+
+func TestChannelResponse(t *testing.T) {
+	doTestChannelResponse(t, false)
 }
 
 func TestInvalidTransaction(t *testing.T) {
@@ -254,7 +269,7 @@ func TestInvalidTransaction(t *testing.T) {
 	if conn == nil {
 		return
 	}
-	if !testValidTransactionWithConn(t, conn, true, true) {
+	if !testValidTransactionWithConn(t, conn, true, true, true) {
 		return
 	}
 
@@ -269,7 +284,7 @@ func TestInvalidTransaction(t *testing.T) {
 	ShutdownServer()
 }
 
-func TestRejectedTransaction(t *testing.T) {
+func doTestRejectedTransaction(t *testing.T, keepAlive bool) {
 	// Test that a transaction rejected by decryptor requester is handled correctly
 	StartServer(
 		Config{
@@ -287,7 +302,7 @@ func TestRejectedTransaction(t *testing.T) {
 	if conn == nil {
 		return
 	}
-	if !sendMessage(t, conn, generateValidTransactionJson(true, true)) {
+	if !sendMessage(t, conn, generateValidTransactionJson(true, true, keepAlive)) {
 		return
 	}
 	if !waitForConnectionClosure(t, conn) {
@@ -297,7 +312,15 @@ func TestRejectedTransaction(t *testing.T) {
 	ShutdownServer()
 }
 
-func TestDecryptionFailure(t *testing.T) {
+func TestRejectedTransactionKeepAlive(t *testing.T) {
+	doTestRejectedTransaction(t, true)
+}
+
+func TestRejectedTransaction(t *testing.T) {
+	doTestRejectedTransaction(t, false)
+}
+
+func doTestDecryptionFailure(t *testing.T, keepAlive bool) {
 	// Test that an operation that failed decryption is rejected and connection is closed
 	StartServer(
 		Config{
@@ -315,7 +338,7 @@ func TestDecryptionFailure(t *testing.T) {
 	if conn == nil {
 		return
 	}
-	if !sendMessage(t, conn, generateValidTransactionJson(true, true)) {
+	if !sendMessage(t, conn, generateValidTransactionJson(true, true, keepAlive)) {
 		return
 	}
 	if !waitForConnectionClosure(t, conn) {
@@ -341,10 +364,10 @@ func TestDecryptionFailure(t *testing.T) {
 	if conn == nil {
 		return
 	}
-	if !testValidTransactionWithConn(t, conn, true, true) {
+	if !testValidTransactionWithConn(t, conn, true, true, keepAlive) {
 		return
 	}
-	if !closeConnection(t, conn) {
+	if keepAlive && !closeConnection(t, conn) {
 		return
 	}
 	if !waitForConnectionClosure(t, conn) {
@@ -352,4 +375,12 @@ func TestDecryptionFailure(t *testing.T) {
 	}
 
 	ShutdownServer()
+}
+
+func TestDecryptionFailureKeepAlive(t *testing.T) {
+	doTestDecryptionFailure(t, true)
+}
+
+func TestDecryptionFailure(t *testing.T) {
+	doTestDecryptionFailure(t, false)
 }

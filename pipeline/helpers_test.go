@@ -216,11 +216,12 @@ func generateFailedUpdate(ticket status.Ticket) *status.StatusRecord {
 	}
 }
 
-func generateValidTransactionJson(statusUpdates bool, result bool) []byte {
+func generateValidTransactionJson(statusUpdates bool, result bool, keepAlive bool) []byte {
 	encoded, _ := (&core.Transaction{
 		Pipeline: core.PipelineConfig{
 			ReadStatusUpdates: statusUpdates,
 			ReadResult:        result,
+			KeepAlive:         keepAlive,
 		},
 	}).Encode()
 	return encoded

@@ -11,6 +11,7 @@ import (
 type PipelineConfig struct {
 	ReadStatusUpdates bool `json:"read_status_updates"`
 	ReadResult        bool `json:"read_result"`
+	KeepAlive         bool `json:"keep_alive"`
 }
 
 type TransactionEncryptionFields struct {
