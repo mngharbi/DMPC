@@ -150,6 +150,22 @@ func main() {
 				},
 			},
 		},
+		{
+			Name:    "channel",
+			Aliases: []string{"c"},
+			Usage:   "Channel related commands",
+			Subcommands: []cli.Command{
+				{
+					Name:    "generate",
+					Aliases: []string{"g"},
+					Usage:   "Generate channel object",
+					Action: func(c *cli.Context) error {
+						dmpcCli.GenerateChannelObject()
+						return nil
+					},
+				},
+			},
+		},
 	}
 
 	err := app.Run(os.Args)
