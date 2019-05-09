@@ -88,10 +88,18 @@ func TestReadUserRecordsByIds(t *testing.T) {
 	}
 	defer ShutdownServer()
 
+	// Make sure we fail if any user id fails
+	userRecords, success := readUserRecordsByIds(serverSingleton.store, []string{"USER_0", "USER_1", "USER_2", "NOT_USER_ID"})
+	if success || userRecords != nil {
+		t.Errorf("Reading user records should fail. userRecords=%+v", userRecords)
+		return
+	}
+
 	// Make sure we attempt to read all user ids
-	userRecords := readUserRecordsByIds(serverSingleton.store, []string{"USER_0", "USER_1", "USER_2", "NOT_USER_ID"})
-	if len(userRecords) != 4 {
+	userRecords, success = readUserRecordsByIds(serverSingleton.store, []string{"USER_0", "USER_1", "USER_2"})
+	if !success || len(userRecords) != 3 {
 		t.Errorf("Reading user records failed. userRecords=%+v", userRecords)
+		return
 	}
 
 	// Existing users should not be nil
@@ -99,10 +107,5 @@ func TestReadUserRecordsByIds(t *testing.T) {
 		userRecords[1] == nil || userRecords[1].Id != "USER_1" ||
 		userRecords[2] == nil || userRecords[2].Id != "USER_2" {
 		t.Errorf("Reading existing user records should return corresponding records. userRecords=%+v", userRecords)
-	}
-
-	// Non-existing users should be nil
-	if userRecords[3] != nil {
-		t.Errorf("Reading non-existing users should be nil . userRecords=%+v", userRecords)
 	}
 }

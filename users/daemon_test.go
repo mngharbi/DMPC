@@ -79,7 +79,7 @@ func TestUnknownCertifierReadRequest(t *testing.T) {
 	}
 
 	// Create issuer
-	if !createUnverifiedUser(t, "ISSUER", false, false, true, false, false, false, false, false) {
+	if !createUnverifiedUser(t, "ISSUER", false, false, true, true, false, false, false, false) {
 		return
 	}
 
@@ -103,8 +103,8 @@ func TestUnknownSubjectReadRequest(t *testing.T) {
 
 	// Create issuer and certifier
 	if !createIssuerAndCertifier(t,
-		false, false, true, false, false, false, false, false,
-		false, false, true, false, false, false, false, false,
+		false, false, true, true, false, false, false, false,
+		false, false, true, true, false, false, false, false,
 	) {
 		return
 	}
@@ -116,6 +116,119 @@ func TestUnknownSubjectReadRequest(t *testing.T) {
 	}
 	if !ok || serverResponsePtr.Result != SubjectUnknownError {
 		t.Errorf("Read request with inexistent subject should fail, result:%v", *serverResponsePtr)
+		return
+	}
+
+	ShutdownServer()
+}
+
+func TestUnknownMultipleSubjectsReadRequest(t *testing.T) {
+	if !resetAndStartServer(t, multipleWorkersConfig()) {
+		return
+	}
+
+	// Create issuer and certifier
+	if !createIssuerAndCertifier(t,
+		false, false, true, true, false, false, false, false,
+		false, false, true, true, false, false, false, false,
+	) {
+		return
+	}
+
+	// Create user
+	_, success := createUser(
+		t, false, "ISSUER", "CERTIFIER", "USER", false, false, false, false, false, false, false, false,
+	)
+	if !success {
+		return
+	}
+
+	// Make read request for 2 users, one inexistent
+	serverResponsePtr, ok, success := makeAndGetUserReadRequest(t, true, true, "ISSUER", "CERTIFIER", []string{"USER", "USER_2"})
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != SubjectUnknownError {
+		t.Errorf("Read request with one inexistent subject of many should fail, result:%v", *serverResponsePtr)
+		return
+	}
+
+	// Create another user
+	_, success = createUser(
+		t, false, "ISSUER", "CERTIFIER", "USER_2", false, false, false, false, false, false, false, false,
+	)
+	if !success {
+		return
+	}
+
+	// Make read request for 2 users, both existent
+	serverResponsePtr, ok, success = makeAndGetUserReadRequest(t, true, true, "ISSUER", "CERTIFIER", []string{"USER", "USER_2"})
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != Success {
+		t.Errorf("Read request no inexistent subjects should not fail, result:%v", *serverResponsePtr)
+		return
+	}
+
+	ShutdownServer()
+}
+
+func TestUnknownMultipleSubjectsReadRequestWithLocking(t *testing.T) {
+	if !resetAndStartServer(t, multipleWorkersConfig()) {
+		return
+	}
+
+	// Create issuer and certifier
+	if !createIssuerAndCertifier(t,
+		false, false, true, true, false, false, false, false,
+		false, false, true, true, false, false, false, false,
+	) {
+		return
+	}
+
+	// Create user
+	_, success := createUser(
+		t, false, "ISSUER", "CERTIFIER", "USER", false, false, false, false, false, false, false, false,
+	)
+	if !success {
+		return
+	}
+
+	// Make read lock request for 2 users, one inexistent
+	serverResponsePtr, ok, success := makeAndGetUserReadRequest(t, true, false, "ISSUER", "CERTIFIER", []string{"USER", "USER_2"})
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != SubjectUnknownError {
+		t.Errorf("Read request with one inexistent subject of many should fail, result:%v", *serverResponsePtr)
+		return
+	}
+
+	// Create another user
+	_, success = createUser(
+		t, false, "ISSUER", "CERTIFIER", "USER_2", false, false, false, false, false, false, false, false,
+	)
+	if !success {
+		return
+	}
+
+	// Make lock read request for 2 users, both existent
+	serverResponsePtr, ok, success = makeAndGetUserReadRequest(t, true, false, "ISSUER", "CERTIFIER", []string{"USER", "USER_2"})
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != Success {
+		t.Errorf("Read request no inexistent subjects should not fail, result:%v", *serverResponsePtr)
+		return
+	}
+	// Make unlock read request for 2 users, both existent
+	serverResponsePtr, ok, success = makeAndGetUserReadRequest(t, false, true, "ISSUER", "CERTIFIER", []string{"USER", "USER_2"})
+	if !success {
+		return
+	}
+	if !ok || serverResponsePtr.Result != Success {
+		t.Errorf("Read request no inexistent subjects should not fail, result:%v", *serverResponsePtr)
 		return
 	}
 

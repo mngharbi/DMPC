@@ -90,7 +90,7 @@ func GetChannelPermissionsByIds(ids []string) ([]*ChannelPermissionsObject, erro
 /*
 	Read records from store
 */
-func readUserRecordsByIds(store *memstore.Memstore, ids []string) []*userRecord {
+func readUserRecordsByIds(store *memstore.Memstore, ids []string) ([]*userRecord, bool) {
 	result := []*userRecord{}
 
 	for _, id := range ids {
@@ -99,11 +99,11 @@ func readUserRecordsByIds(store *memstore.Memstore, ids []string) []*userRecord 
 		if itemResult != nil {
 			result = append(result, itemResult.(*userRecord))
 		} else {
-			result = append(result, nil)
+			return nil, false
 		}
 	}
 
-	return result
+	return result, true
 }
 
 // Make a user object from a user record

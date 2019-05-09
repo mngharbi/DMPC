@@ -188,21 +188,23 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 
 	// Get locks needed (if locking)
 	var userRecords []*userRecord
-	isLocked := false
+	lockingSuccess := true
 	if len(lockNeeds) != 0 {
-		userRecords, isLocked = lockUsers(sv, lockNeeds)
+		userRecords, lockingSuccess = lockUsers(sv, lockNeeds)
 	}
 
 	// Read records if without read locking if option is on
+	readSuccess := true
+	var unlockedUserRecords []*userRecord
 	if rq.Type == ReadRequest && !rq.ReadLock {
-		unlockedUserRecords := readUserRecordsByIds(sv.store, rq.Fields)
+		unlockedUserRecords, readSuccess = readUserRecordsByIds(sv.store, rq.Fields)
 		for _, record := range unlockedUserRecords {
 			userRecords = append(userRecords, record)
 		}
 	}
 
 	// Find user records for certifier, issuer, and subject
-	var issuerIndex, certifierIndex, subjectIndex int = -1, -1, -1
+	var issuerIndex, certifierIndex int = -1, -1
 	for userRecordIndex, userRecord := range userRecords {
 		if userRecord == nil {
 			continue
@@ -214,22 +216,17 @@ func (sv *server) Work(request *gofarm.Request) *gofarm.Response {
 		if rq.signers != nil && userRecord.Id == rq.signers.CertifierId {
 			certifierIndex = userRecordIndex
 		}
-		if userRecord.Id == rq.Data.Id {
-			subjectIndex = userRecordIndex
-		}
 	}
 
 	// If any failed (not found), end job with corresponding failure
-	if !isLocked {
+	if !lockingSuccess || !readSuccess {
 		if !rq.skipPermissions && issuerIndex == -1 {
 			return failRequest(IssuerUnknownError)
 		}
 		if !rq.skipPermissions && certifierIndex == -1 {
 			return failRequest(CertifierUnknownError)
 		}
-		if subjectIndex == -1 && (rq.Type == ReadRequest || rq.Type == UpdateRequest) {
-			return failRequest(SubjectUnknownError)
-		}
+		return failRequest(SubjectUnknownError)
 	}
 
 	/*
