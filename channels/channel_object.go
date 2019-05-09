@@ -25,14 +25,13 @@ type ChannelPermissionObject struct {
 	Close bool `json:"close"`
 }
 type ChannelPermissionsObject struct {
-	Users map[string]*ChannelPermissionObject `json:"users"`
+	Users map[string]ChannelPermissionObject `json:"users"`
 }
 type ChannelObject struct {
-	Id    string `json:"id"`
-	KeyId string `json:"keyId"`
-	// @TODO: change to object instead of pointer
-	Permissions *ChannelPermissionsObject `json:"permissions"`
-	State       ChannelObjectState        `json:"state"`
+	Id          string                   `json:"id"`
+	KeyId       string                   `json:"keyId"`
+	Permissions ChannelPermissionsObject `json:"permissions"`
+	State       ChannelObjectState       `json:"state"`
 }
 
 // *ChannelObject -> Json
@@ -59,16 +58,16 @@ func (obj *ChannelObject) buildFromRecord(rec *channelRecord) {
 	obj.Id = rec.id
 	obj.KeyId = rec.keyId
 	if rec.permissions != nil {
-		obj.Permissions = &ChannelPermissionsObject{}
+		obj.Permissions = ChannelPermissionsObject{}
 		obj.Permissions.buildFromRecord(rec.permissions)
 	}
 	obj.State = objectStateMapping[rec.state]
 }
 
 func (obj *ChannelPermissionsObject) buildFromRecord(rec *channelPermissionsRecord) {
-	obj.Users = map[string]*ChannelPermissionObject{}
+	obj.Users = map[string]ChannelPermissionObject{}
 	for userId, userPermissionsRec := range rec.users {
-		obj.Users[userId] = &ChannelPermissionObject{
+		obj.Users[userId] = ChannelPermissionObject{
 			Read:  userPermissionsRec.read,
 			Write: userPermissionsRec.write,
 			Close: userPermissionsRec.close,

@@ -235,8 +235,8 @@ func sendChannelsResponseAfterRandomDelay(channel chan *channels.ChannelsRespons
 			Id:    genericChannelId,
 			KeyId: genericKeyId,
 			State: channels.ChannelObjectOpenState,
-			Permissions: &channels.ChannelPermissionsObject{
-				Users: map[string]*channels.ChannelPermissionObject{
+			Permissions: channels.ChannelPermissionsObject{
+				Users: map[string]channels.ChannelPermissionObject{
 					genericCertifierId: {
 						Write: true,
 					},

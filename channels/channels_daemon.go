@@ -145,7 +145,7 @@ func (sv *channelsServer) Work(rqInterface *gofarm.Request) (dummyReturnVal *gof
 			timestamp:   rq.Timestamp,
 		}
 		permissionsRecord := &channelPermissionsRecord{}
-		permissionsRecord.build(rq.Channel.Permissions)
+		permissionsRecord.build(&rq.Channel.Permissions)
 		openSuccess := channelRecord.tryOpen(rq.Channel.Id, actionRecord, permissionsRecord, rq.Channel.KeyId)
 		if !openSuccess {
 			resp.Result = ChannelsFailure

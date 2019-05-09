@@ -100,7 +100,6 @@ func (rq *OpenChannelRequest) sanitizeAndValidate() error {
 	if rq.Channel == nil ||
 		len(rq.Channel.Id) == 0 ||
 		len(rq.Channel.KeyId) == 0 ||
-		rq.Channel.Permissions == nil ||
 		len(rq.Channel.Permissions.Users) == 0 ||
 		len(rq.Key) == 0 {
 		return errors.New("Open channel request is invalid.")

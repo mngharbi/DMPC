@@ -167,8 +167,8 @@ func TestFullIntegration(t *testing.T) {
 		Channel: &ChannelObject{
 			Id:    genericChannelId,
 			KeyId: genericKeyId,
-			Permissions: &ChannelPermissionsObject{
-				Users: map[string]*ChannelPermissionObject{
+			Permissions: ChannelPermissionsObject{
+				Users: map[string]ChannelPermissionObject{
 					genericNoopId: {
 						Read:  false,
 						Write: false,
@@ -517,8 +517,8 @@ func TestReadRequest(t *testing.T) {
 	}
 
 	// Define perms
-	perms := &ChannelPermissionsObject{
-		Users: map[string]*ChannelPermissionObject{
+	perms := ChannelPermissionsObject{
+		Users: map[string]ChannelPermissionObject{
 			genericNoopId: {
 				Read:  false,
 				Write: false,
