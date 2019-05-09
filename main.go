@@ -77,6 +77,15 @@ func main() {
 						},
 					},
 				},
+				{
+					Name:    "run",
+					Aliases: []string{"r"},
+					Usage:   "Run transaction",
+					Action: func(c *cli.Context) error {
+						dmpcCli.ReadAndRunOneTransaction()
+						return nil
+					},
+				},
 			},
 		},
 		{

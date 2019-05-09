@@ -126,3 +126,14 @@ func GenerateTransaction(ignoreResult bool, statusUpdates bool, keepAlive bool, 
 		WriteTransaction(ts)
 	}
 }
+
+/*
+	Reads transaction from stdin
+	Writes results into stdout until the connection closes
+*/
+func ReadAndRunOneTransaction() {
+	ts := ReadTransaction()
+	tsEncoded, _ := ts.Encode()
+
+	runOneTransactionAndWrite(tsEncoded)
+}
