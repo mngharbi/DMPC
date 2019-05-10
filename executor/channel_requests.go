@@ -36,7 +36,8 @@ func (sv *server) makeChannelActionAndWait(wrappedRequest *executorRequest, requ
 		return nil
 	}
 	channelResponsePtr, ok := <-channelResponseChannel
-	if !ok {
+	if !ok ||
+		channelResponsePtr.Result != channels.ChannelsSuccess {
 		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{subsystemChannelClosed})
 		return nil
 	} else {
@@ -409,7 +410,7 @@ func (sv *server) doChannelEncrypt(wrappedRequest *executorRequest) {
 
 	// Read channel
 	request := &channels.ReadChannelRequest{
-		Id: wrappedRequest.metaFields.ChannelId,
+		Id: channelId,
 	}
 	channelResponse := sv.makeChannelActionAndWait(wrappedRequest, request)
 	if channelResponse == nil {
@@ -441,5 +442,5 @@ func (sv *server) doChannelEncrypt(wrappedRequest *executorRequest) {
 	op.Meta.ChannelId = channelResponse.Channel.Id
 	op.Payload = core.CiphertextEncode(encrypted)
 
-	sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, *op, nil)
+	sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, op, nil)
 }

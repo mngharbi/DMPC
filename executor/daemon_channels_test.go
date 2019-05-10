@@ -570,7 +570,7 @@ func TestChannelEncryptRequest(t *testing.T) {
 	}
 
 	// Check final operation
-	resultOp := reg.ticketLogs[ticketId][2].result.(core.Operation)
+	resultOp := reg.ticketLogs[ticketId][2].result.(*core.Operation)
 	if !resultOp.Encryption.Encrypted ||
 		resultOp.Encryption.KeyId != genericKeyId ||
 		resultOp.Meta.ChannelId != genericChannelId {

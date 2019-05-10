@@ -30,6 +30,20 @@ func WriteChannelObject(obj *channels.ChannelObject) {
 }
 
 /*
+	Encrypt channel operation
+*/
+func EncryptChannelOperation(op *core.Operation) {
+	opEncoded, _ := op.Encode()
+	signedEncyrptionOperation := WrapPayloadInRootSignedGenericOperation(opEncoded, core.ChannelEncryptType)
+	signedEncyrptionOperation.Meta.ChannelId = op.Meta.ChannelId
+	encryptionTs := WrapOperationInResultOnlyTransaction(signedEncyrptionOperation)
+	encryptionTsEncoded, _ := encryptionTs.Encode()
+
+	// Run transaction and write output
+	runOneTransactionAndWrite(encryptionTsEncoded)
+}
+
+/*
 	Generate channel object
 */
 func GenerateChannelObject() {
@@ -102,4 +116,55 @@ func GenerateChannelOpenOperation() {
 
 	// Write operation to stdout
 	WriteOperation(op)
+}
+
+/*
+	Generate channel close operation
+*/
+func GenerateChannelCloseOperation(channelId string, issue bool, certify bool, encrypt bool) {
+	// Read channel id if none passed
+	if channelId == "" {
+		channelId = cliGetString("Enter channel id:")
+	}
+
+	// Make request
+	currentTime := time.Now()
+	rq := &channels.CloseChannelRequest{
+		Timestamp: currentTime,
+	}
+	rqEncoded, _ := rq.Encode()
+
+	// Generate non-encrypted/unsigned operation
+	op := core.GenerateOperation(
+		false,
+		"",
+		nil,
+		false,
+		"",
+		nil,
+		false,
+		"",
+		nil,
+		false,
+		core.CloseChannelType,
+		rqEncoded,
+		false,
+	)
+
+	// Set Channel from channel object
+	op.Meta.ChannelId = channelId
+
+	// Set timestamp
+	op.Meta.Timestamp = currentTime
+
+	// Sign operation
+	if issue || certify {
+		RootSignOperation(op, issue, certify)
+	}
+
+	if encrypt {
+		EncryptChannelOperation(op)
+	} else {
+		WriteOperation(op)
+	}
 }

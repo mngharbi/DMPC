@@ -142,6 +142,28 @@ func main() {
 										return nil
 									},
 								},
+								{
+									Name:    "close",
+									Usage:   "Generate channel close operation from channel object",
+									Action: func(c *cli.Context) error {
+										dmpcCli.GenerateChannelCloseOperation(c.String("channel"), !c.Bool("nosign"), !c.Bool("nosign"), !c.Bool("noencrypt"))
+										return nil
+									},
+									Flags: []cli.Flag{
+										cli.StringFlag{
+											Name: "channel, c",
+											Usage: "Channel id",
+										},
+										cli.BoolFlag{
+											Name: "noencrypt, ne",
+											Usage: "No encryption",
+										},
+										cli.BoolFlag{
+											Name: "nosign, ns",
+											Usage: "No signature",
+										},
+									},
+								},
 							},
 						},
 					},
