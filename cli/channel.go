@@ -180,3 +180,15 @@ func GenerateChannelCloseOperation(channelId string, issue bool, certify bool, e
 
 	generateGenericChannelCloseOperation(channelId, issue, certify, encrypt, rqEncoded, core.CloseChannelType, currentTime)
 }
+
+/*
+	Generate channel read operation
+*/
+func GenerateChannelReadOperation(channelId string, issue bool, certify bool) {
+	// Make request
+	currentTime := time.Now()
+	rq := &channels.ReadChannelRequest{}
+	rqEncoded, _ := rq.Encode()
+
+	generateGenericChannelCloseOperation(channelId, issue, certify, false, rqEncoded, core.ReadChannelType, currentTime)
+}

@@ -160,6 +160,18 @@ func main() {
 							Usage:   "Generate channel operations",
 							Subcommands: []cli.Command{
 								{
+									Name:    "read",
+									Usage:   "Generate channel read operation",
+									Flags: []cli.Flag{
+										channelFlagsMap["channel"],
+										channelFlagsMap["sign"],
+									},
+									Action: func(c *cli.Context) error {
+										dmpcCli.GenerateChannelReadOperation(c.String("channel"), c.Bool("sign"), c.Bool("sign"))
+										return nil
+									},
+								},
+								{
 									Name:    "open",
 									Usage:   "Generate channel open operation from channel object",
 									Flags: []cli.Flag{
