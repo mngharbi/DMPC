@@ -126,7 +126,7 @@ func GenerateChannelOpenOperation(issue bool, certify bool) {
 /*
 	Generic channel action (except open)
 */
-func generateGenericChannelCloseOperation(channelId string, issue bool, certify bool, encrypt bool, rqEncoded []byte, requestType core.RequestType, currentTime time.Time) {
+func generateGenericChannelOperation(channelId string, issue bool, certify bool, encrypt bool, rqEncoded []byte, requestType core.RequestType, currentTime time.Time) {
 	// Read channel id if none passed
 	if channelId == "" {
 		channelId = cliGetString("Enter channel id:")
@@ -178,7 +178,7 @@ func GenerateChannelCloseOperation(channelId string, issue bool, certify bool, e
 	}
 	rqEncoded, _ := rq.Encode()
 
-	generateGenericChannelCloseOperation(channelId, issue, certify, encrypt, rqEncoded, core.CloseChannelType, currentTime)
+	generateGenericChannelOperation(channelId, issue, certify, encrypt, rqEncoded, core.CloseChannelType, currentTime)
 }
 
 /*
@@ -190,5 +190,5 @@ func GenerateChannelReadOperation(channelId string, issue bool, certify bool) {
 	rq := &channels.ReadChannelRequest{}
 	rqEncoded, _ := rq.Encode()
 
-	generateGenericChannelCloseOperation(channelId, issue, certify, false, rqEncoded, core.ReadChannelType, currentTime)
+	generateGenericChannelOperation(channelId, issue, certify, false, rqEncoded, core.ReadChannelType, currentTime)
 }
