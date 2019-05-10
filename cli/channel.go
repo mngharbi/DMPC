@@ -78,7 +78,7 @@ func GenerateChannelObject() {
 /*
 	Generate channel open operation
 */
-func GenerateChannelOpenOperation() {
+func GenerateChannelOpenOperation(issue bool, certify bool) {
 	ch := ReadChannelObject()
 
 	currentTime := time.Now()
@@ -114,25 +114,23 @@ func GenerateChannelOpenOperation() {
 	// Set timestamp
 	op.Meta.Timestamp = currentTime
 
+	// Sign operation
+	if issue || certify {
+		RootSignOperation(op, issue, certify)
+	}
+
 	// Write operation to stdout
 	WriteOperation(op)
 }
 
 /*
-	Generate channel close operation
+	Generic channel action (except open)
 */
-func GenerateChannelCloseOperation(channelId string, issue bool, certify bool, encrypt bool) {
+func generateGenericChannelCloseOperation(channelId string, issue bool, certify bool, encrypt bool, rqEncoded []byte, requestType core.RequestType, currentTime time.Time) {
 	// Read channel id if none passed
 	if channelId == "" {
 		channelId = cliGetString("Enter channel id:")
 	}
-
-	// Make request
-	currentTime := time.Now()
-	rq := &channels.CloseChannelRequest{
-		Timestamp: currentTime,
-	}
-	rqEncoded, _ := rq.Encode()
 
 	// Generate non-encrypted/unsigned operation
 	op := core.GenerateOperation(
@@ -146,7 +144,7 @@ func GenerateChannelCloseOperation(channelId string, issue bool, certify bool, e
 		"",
 		nil,
 		false,
-		core.CloseChannelType,
+		requestType,
 		rqEncoded,
 		false,
 	)
@@ -167,4 +165,18 @@ func GenerateChannelCloseOperation(channelId string, issue bool, certify bool, e
 	} else {
 		WriteOperation(op)
 	}
+}
+
+/*
+	Generate channel close operation
+*/
+func GenerateChannelCloseOperation(channelId string, issue bool, certify bool, encrypt bool) {
+	// Make request
+	currentTime := time.Now()
+	rq := &channels.CloseChannelRequest{
+		Timestamp: currentTime,
+	}
+	rqEncoded, _ := rq.Encode()
+
+	generateGenericChannelCloseOperation(channelId, issue, certify, encrypt, rqEncoded, core.CloseChannelType, currentTime)
 }

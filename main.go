@@ -10,6 +10,27 @@ import (
 	"time"
 )
 
+var (
+	channelFlagsMap map[string]cli.Flag = map[string]cli.Flag{
+		"channel": cli.StringFlag{
+			Name: "channel, c",
+			Usage: "Channel id",
+		},
+		"noencrypt": cli.BoolFlag{
+			Name: "noencrypt, ne",
+			Usage: "No encryption",
+		},
+		"nosign": cli.BoolFlag{
+			Name: "nosign, ns",
+			Usage: "No signature",
+		},
+		"sign": cli.BoolFlag{
+			Name: "sign, s",
+			Usage: "Sign operation",
+		},
+	}
+)
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "DMPC"
@@ -137,31 +158,25 @@ func main() {
 								{
 									Name:    "open",
 									Usage:   "Generate channel open operation from channel object",
+									Flags: []cli.Flag{
+										channelFlagsMap["sign"],
+									},
 									Action: func(c *cli.Context) error {
-										dmpcCli.GenerateChannelOpenOperation()
+										dmpcCli.GenerateChannelOpenOperation(c.Bool("sign"), c.Bool("sign"))
 										return nil
 									},
 								},
 								{
 									Name:    "close",
 									Usage:   "Generate channel close operation from channel object",
+									Flags: []cli.Flag{
+										channelFlagsMap["channel"],
+										channelFlagsMap["nosign"],
+										channelFlagsMap["noencrypt"],
+									},
 									Action: func(c *cli.Context) error {
 										dmpcCli.GenerateChannelCloseOperation(c.String("channel"), !c.Bool("nosign"), !c.Bool("nosign"), !c.Bool("noencrypt"))
 										return nil
-									},
-									Flags: []cli.Flag{
-										cli.StringFlag{
-											Name: "channel, c",
-											Usage: "Channel id",
-										},
-										cli.BoolFlag{
-											Name: "noencrypt, ne",
-											Usage: "No encryption",
-										},
-										cli.BoolFlag{
-											Name: "nosign, ns",
-											Usage: "No signature",
-										},
 									},
 								},
 							},
