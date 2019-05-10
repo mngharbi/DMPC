@@ -2,11 +2,12 @@ package cli
 
 import (
 	"encoding/json"
-	"github.com/mngharbi/DMPC/core"
+	"fmt"
 	"github.com/mngharbi/DMPC/channels"
+	"github.com/mngharbi/DMPC/core"
 	"log"
 	"os"
-	"fmt"
+	"time"
 )
 
 /*
@@ -43,7 +44,7 @@ func GenerateChannelObject() {
 	for {
 		userId := cliGetString("Enter channel member's id:")
 		ch.Permissions.Users[userId] = channels.ChannelPermissionObject{
-			Read: cliConfirm("Read permission?"),
+			Read:  cliConfirm("Read permission?"),
 			Write: cliConfirm("Write permission?"),
 			Close: cliConfirm("Close permission?"),
 		}
@@ -58,4 +59,47 @@ func GenerateChannelObject() {
 	ch.State = channels.ChannelObjectOpenState
 
 	WriteChannelObject(ch)
+}
+
+/*
+	Generate channel open operation
+*/
+func GenerateChannelOpenOperation() {
+	ch := ReadChannelObject()
+
+	currentTime := time.Now()
+
+	// Make request
+	rq := &channels.OpenChannelRequest{
+		Channel:   ch,
+		Key:       core.GenerateSymmetricKey(),
+		Timestamp: currentTime,
+	}
+	rqEncoded, _ := rq.Encode()
+
+	// Generate non-encrypted/unsigned operation
+	op := core.GenerateOperation(
+		false,
+		"",
+		nil,
+		false,
+		"",
+		nil,
+		false,
+		"",
+		nil,
+		false,
+		core.AddChannelType,
+		rqEncoded,
+		false,
+	)
+
+	// Set Channel from channel object
+	op.Meta.ChannelId = ch.Id
+
+	// Set timestamp
+	op.Meta.Timestamp = currentTime
+
+	// Write operation to stdout
+	WriteOperation(op)
 }

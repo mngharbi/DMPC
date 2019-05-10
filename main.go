@@ -130,6 +130,20 @@ func main() {
 								},
 							},
 						},
+						{
+							Name:    "channel",
+							Usage:   "Generate channel operations",
+							Subcommands: []cli.Command{
+								{
+									Name:    "open",
+									Usage:   "Generate channel open operation from channel object",
+									Action: func(c *cli.Context) error {
+										dmpcCli.GenerateChannelOpenOperation()
+										return nil
+									},
+								},
+							},
+						},
 					},
 				},
 			},
