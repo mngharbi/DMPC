@@ -52,6 +52,52 @@ func (sv *server) channelActionPassthrough(wrappedRequest *executorRequest, requ
 	}
 }
 
+func generateLockChannelRequest(channelId string, lockingType core.LockingType, lockType core.LockType) *locker.LockerRequest {
+	return &locker.LockerRequest{
+		Type:        locker.ChannelLock,
+		LockingType: lockingType,
+		Needs: []core.LockNeed{
+			{
+				LockType: lockType,
+				Id:       channelId,
+			},
+		},
+	}
+}
+
+func (sv *server) makeLockChannelRequest(wrappedRequest *executorRequest, channelId string, lockingType core.LockingType, lockType core.LockType) bool {
+	// Make lock request
+	lockRequest := generateLockChannelRequest(channelId, lockingType, lockType)
+	lockChannel, errs := sv.lockerRequester(lockRequest)
+	if len(errs) != 0 {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, errs)
+		return false
+	}
+
+	// Wait for lock
+	if lockResult := <-lockChannel; !lockResult {
+		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestRejectedError})
+		return false
+	}
+	return true
+}
+
+func (sv *server) lockChannel(wrappedRequest *executorRequest, channelId string) bool {
+	return sv.makeLockChannelRequest(wrappedRequest, channelId, core.Locking, core.WriteLockType)
+}
+
+func (sv *server) unlockChannel(wrappedRequest *executorRequest, channelId string) bool {
+	return sv.makeLockChannelRequest(wrappedRequest, channelId, core.Unlocking, core.WriteLockType)
+}
+
+func (sv *server) rlockChannel(wrappedRequest *executorRequest, channelId string) bool {
+	return sv.makeLockChannelRequest(wrappedRequest, channelId, core.Locking, core.ReadLockType)
+}
+
+func (sv *server) runlockChannel(wrappedRequest *executorRequest, channelId string) bool {
+	return sv.makeLockChannelRequest(wrappedRequest, channelId, core.Unlocking, core.ReadLockType)
+}
+
 /*
 	Read channel
 */
@@ -65,7 +111,18 @@ func (sv *server) doReadChannel(wrappedRequest *executorRequest) {
 		return
 	}
 
-	// Get and RLock certifier user object
+	// Read lock/Unlock channel
+	channelId := wrappedRequest.metaFields.ChannelId
+	if !sv.rlockChannel(wrappedRequest, channelId) {
+		return
+	}
+	defer func() {
+		if !sv.runlockChannel(wrappedRequest, channelId) {
+			return
+		}
+	}()
+
+	// Read Lock/Unlock certifier user object
 	usersRequest := &users.UserRequest{
 		Type:      users.ReadRequest,
 		Timestamp: wrappedRequest.metaFields.Timestamp,
@@ -86,8 +143,6 @@ func (sv *server) doReadChannel(wrappedRequest *executorRequest) {
 		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestRejectedError})
 		return
 	}
-
-	// RUnlock at the end
 	defer func() {
 		usersSubsystemResponse, _ = sv.usersRequesterUnverified(nil, false, true, encodedUsersRequest)
 		_ = <-usersSubsystemResponse
@@ -100,8 +155,8 @@ func (sv *server) doReadChannel(wrappedRequest *executorRequest) {
 		return
 	}
 
-	// Set channel id from operation meta fields
-	request.Id = wrappedRequest.metaFields.ChannelId
+	// Set channel id
+	request.Id = channelId
 
 	// Pass request through to channels subsystem
 	sv.channelActionPassthrough(wrappedRequest, request)
@@ -127,7 +182,8 @@ func (sv *server) doAddChannel(wrappedRequest *executorRequest) {
 	}
 
 	// Set channel id from operation meta fields
-	request.Channel.Id = wrappedRequest.metaFields.ChannelId
+	channelId := wrappedRequest.metaFields.ChannelId
+	request.Channel.Id = channelId
 
 	// Set signers from decryptor
 	if wrappedRequest.signers == nil {
@@ -136,7 +192,17 @@ func (sv *server) doAddChannel(wrappedRequest *executorRequest) {
 	}
 	request.Signers = wrappedRequest.signers
 
-	// Get and RLock certifier user object
+	// Lock/Unlock channel
+	if !sv.lockChannel(wrappedRequest, channelId) {
+		return
+	}
+	defer func() {
+		if !sv.unlockChannel(wrappedRequest, channelId) {
+			return
+		}
+	}()
+
+	// Read Lock/Unlock certifier user object
 	usersRequest := &users.UserRequest{
 		Type:      users.ReadRequest,
 		Timestamp: wrappedRequest.metaFields.Timestamp,
@@ -157,11 +223,9 @@ func (sv *server) doAddChannel(wrappedRequest *executorRequest) {
 		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{requestRejectedError})
 		return
 	}
-
-	// RUnlock at the end
 	defer func() {
 		usersSubsystemResponse, _ = sv.usersRequesterUnverified(nil, false, true, encodedUsersRequest)
-		_ = <-usersSubsystemResponse
+		<-usersSubsystemResponse
 	}()
 
 	certifierCheckSuccess := len(userResponsePtr.Data) == 1 && userResponsePtr.Data[0].Permissions.Channel.Add
@@ -169,28 +233,6 @@ func (sv *server) doAddChannel(wrappedRequest *executorRequest) {
 		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, []error{channelOpenUnauthorizedError})
 		return
 	}
-
-	// Lock channel
-	lockRequest := &locker.LockerRequest{
-		Type: locker.ChannelLock,
-		Needs: []core.LockNeed{
-			{
-				LockType: core.WriteLockType,
-				Id:       request.Channel.Id,
-			},
-		},
-	}
-	lockRequest.LockingType = core.Locking
-	lockChannel, errs := sv.lockerRequester(lockRequest)
-	if len(errs) != 0 {
-		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, errs)
-		return
-	}
-	defer func() {
-		lockRequest.LockingType = core.Unlocking
-		lockChannel, _ = sv.lockerRequester(lockRequest)
-		_ = <-lockChannel
-	}()
 
 	// Add key to keys subsystems
 	if keyAddError := sv.keyAdder(request.Channel.KeyId, request.Key); keyAddError != nil {
@@ -225,26 +267,14 @@ func (sv *server) doCloseChannel(wrappedRequest *executorRequest) {
 	}
 	request.Signers = wrappedRequest.signers
 
-	// Lock channel
-	lockRequest := &locker.LockerRequest{
-		Type: locker.ChannelLock,
-		Needs: []core.LockNeed{
-			{
-				LockType: core.WriteLockType,
-				Id:       request.Id,
-			},
-		},
-	}
-	lockRequest.LockingType = core.Locking
-	lockChannel, errs := sv.lockerRequester(lockRequest)
-	if len(errs) != 0 {
-		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, errs)
+	// Lock/Unlock channel
+	if !sv.lockChannel(wrappedRequest, request.Id) {
 		return
 	}
 	defer func() {
-		lockRequest.LockingType = core.Unlocking
-		lockChannel, _ = sv.lockerRequester(lockRequest)
-		_ = <-lockChannel
+		if !sv.unlockChannel(wrappedRequest, request.Id) {
+			return
+		}
 	}()
 
 	// Send request through to channels subsystem
@@ -256,26 +286,15 @@ func (sv *server) doCloseChannel(wrappedRequest *executorRequest) {
 */
 
 func (sv *server) doAddMessage(wrappedRequest *executorRequest) {
-	// Lock channel
-	lockRequest := &locker.LockerRequest{
-		Type: locker.ChannelLock,
-		Needs: []core.LockNeed{
-			{
-				LockType: core.WriteLockType,
-				Id:       wrappedRequest.metaFields.ChannelId,
-			},
-		},
-	}
-	lockRequest.LockingType = core.Locking
-	lockChannel, errs := sv.lockerRequester(lockRequest)
-	if len(errs) != 0 {
-		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, errs)
+	// Lock/Unlock channel
+	channelId := wrappedRequest.metaFields.ChannelId
+	if !sv.lockChannel(wrappedRequest, channelId) {
 		return
 	}
 	defer func() {
-		lockRequest.LockingType = core.Unlocking
-		lockChannel, _ = sv.lockerRequester(lockRequest)
-		_ = <-lockChannel
+		if !sv.unlockChannel(wrappedRequest, channelId) {
+			return
+		}
 	}()
 
 	// Send request to channels subsystem based on type (operation buffering/ add message)
@@ -323,7 +342,8 @@ func (sv *server) doSubscribeChannel(wrappedRequest *executorRequest) {
 	request := &channels.SubscribeRequest{}
 
 	// Set channel id from operation meta fields
-	request.ChannelId = wrappedRequest.metaFields.ChannelId
+	channelId := wrappedRequest.metaFields.ChannelId
+	request.ChannelId = channelId
 
 	// Set signers from decryptor
 	if wrappedRequest.signers == nil {
@@ -331,6 +351,16 @@ func (sv *server) doSubscribeChannel(wrappedRequest *executorRequest) {
 		return
 	}
 	request.Signers = wrappedRequest.signers
+
+	// Read Lock/Unlock channel
+	if !sv.rlockChannel(wrappedRequest, channelId) {
+		return
+	}
+	defer func() {
+		if !sv.runlockChannel(wrappedRequest, channelId) {
+			return
+		}
+	}()
 
 	// Make request to channels subsystem
 	listenersResponseChannel, err := sv.channelListenersRequester(request)
@@ -366,26 +396,15 @@ func (sv *server) doChannelEncrypt(wrappedRequest *executorRequest) {
 		return
 	}
 
-	// Read lock channel
-	lockRequest := &locker.LockerRequest{
-		Type: locker.ChannelLock,
-		Needs: []core.LockNeed{
-			{
-				LockType: core.ReadLockType,
-				Id:       wrappedRequest.metaFields.ChannelId,
-			},
-		},
-	}
-	lockRequest.LockingType = core.Locking
-	lockChannel, errs := sv.lockerRequester(lockRequest)
-	if len(errs) != 0 {
-		sv.reportRejection(wrappedRequest.ticket, status.RejectedReason, errs)
+	// Read Lock/Unlock channel
+	channelId := wrappedRequest.metaFields.ChannelId
+	if !sv.rlockChannel(wrappedRequest, channelId) {
 		return
 	}
 	defer func() {
-		lockRequest.LockingType = core.Unlocking
-		lockChannel, _ = sv.lockerRequester(lockRequest)
-		_ = <-lockChannel
+		if !sv.runlockChannel(wrappedRequest, channelId) {
+			return
+		}
 	}()
 
 	// Read channel

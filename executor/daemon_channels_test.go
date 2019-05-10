@@ -17,7 +17,7 @@ import (
 
 func TestReadChannelRequest(t *testing.T) {
 	// Set up context needed
-	usersRequester, _, usersRequesterUnverified, userCalls, messageAdder, _, operationBufferer, _, channelActionRequester, channelActionCalls, channelListenersRequester, _, lockerRequester, _, keyAdder, _, keyEncryptor, _, responseReporter, reg, ticketGenerator := createDummies(true)
+	usersRequester, _, usersRequesterUnverified, userCalls, messageAdder, _, operationBufferer, _, channelActionRequester, channelActionCalls, channelListenersRequester, _, lockerRequester, lockerCalls, keyAdder, _, keyEncryptor, _, responseReporter, reg, ticketGenerator := createDummies(true)
 
 	rq := &channels.ReadChannelRequest{}
 	meta := &core.OperationMetaFields{
@@ -48,6 +48,9 @@ func TestReadChannelRequest(t *testing.T) {
 		reg.ticketLogs[ticketId][2].status != status.SuccessStatus {
 		t.Errorf("Request should succeed and statuses should be reported correctly.")
 	}
+
+	// Check channel read lock/unlock
+	checkChannelLocking(t, lockerCalls, core.ReadLockType)
 
 	// Expect user read locking
 	checkUserLocking(t, userCalls)
@@ -454,7 +457,7 @@ func TestVerifiedBufferOperation(t *testing.T) {
 
 func TestSubscribeRequest(t *testing.T) {
 	// Set up context needed
-	usersRequester, _, usersRequesterUnverified, _, messageAdder, _, operationBufferer, _, channelActionRequester, _, channelListenersRequester, subscribeCalls, lockerRequester, _, keyAdder, _, keyEncryptor, _, responseReporter, reg, ticketGenerator := createDummies(true)
+	usersRequester, _, usersRequesterUnverified, _, messageAdder, _, operationBufferer, _, channelActionRequester, _, channelListenersRequester, subscribeCalls, lockerRequester, lockerCalls, keyAdder, _, keyEncryptor, _, responseReporter, reg, ticketGenerator := createDummies(true)
 
 	meta := &core.OperationMetaFields{
 		RequestType: core.SubscribeChannelType,
@@ -483,6 +486,9 @@ func TestSubscribeRequest(t *testing.T) {
 		reg.ticketLogs[ticketId][2].status != status.SuccessStatus {
 		t.Errorf("Request should succeed and statuses should be reported correctly.")
 	}
+
+	// Check channel read lock/unlock
+	checkChannelLocking(t, lockerCalls, core.ReadLockType)
 
 	// Check response in status
 	channelResp := reg.ticketLogs[ticketId][2].result.(*channels.ListenersResponse)
