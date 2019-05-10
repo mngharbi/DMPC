@@ -24,6 +24,10 @@ var (
 			Name: "nosign, ns",
 			Usage: "No signature",
 		},
+		"encrypt": cli.BoolFlag{
+			Name: "encrypt, e",
+			Usage: "Encrypt operation",
+		},
 		"sign": cli.BoolFlag{
 			Name: "sign, s",
 			Usage: "Sign operation",
@@ -168,14 +172,14 @@ func main() {
 								},
 								{
 									Name:    "close",
-									Usage:   "Generate channel close operation from channel object",
+									Usage:   "Generate channel close operation",
 									Flags: []cli.Flag{
 										channelFlagsMap["channel"],
-										channelFlagsMap["nosign"],
-										channelFlagsMap["noencrypt"],
+										channelFlagsMap["sign"],
+										channelFlagsMap["encrypt"],
 									},
 									Action: func(c *cli.Context) error {
-										dmpcCli.GenerateChannelCloseOperation(c.String("channel"), !c.Bool("nosign"), !c.Bool("nosign"), !c.Bool("noencrypt"))
+										dmpcCli.GenerateChannelCloseOperation(c.String("channel"), c.Bool("sign"), c.Bool("sign"), c.Bool("encrypt"))
 										return nil
 									},
 								},
