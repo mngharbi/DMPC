@@ -195,6 +195,18 @@ func main() {
 										return nil
 									},
 								},
+								{
+									Name:    "listen",
+									Usage:   "Generate channel listen operation",
+									Flags: []cli.Flag{
+										channelFlagsMap["channel"],
+										channelFlagsMap["sign"],
+									},
+									Action: func(c *cli.Context) error {
+										dmpcCli.GenerateChannelSubscribeOperation(c.String("channel"), c.Bool("sign"), c.Bool("sign"))
+										return nil
+									},
+								},
 							},
 						},
 					},

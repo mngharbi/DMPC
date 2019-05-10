@@ -192,3 +192,10 @@ func GenerateChannelReadOperation(channelId string, issue bool, certify bool) {
 
 	generateGenericChannelOperation(channelId, issue, certify, false, rqEncoded, core.ReadChannelType, currentTime)
 }
+
+/*
+	Generate channel subscribe operation
+*/
+func GenerateChannelSubscribeOperation(channelId string, issue bool, certify bool) {
+	generateGenericChannelOperation(channelId, issue, certify, false, []byte("{}"), core.SubscribeChannelType, time.Now())
+}
