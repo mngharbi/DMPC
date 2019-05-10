@@ -83,7 +83,7 @@ func makeGenericAddMessageRequest(channelId string, time time.Time, userId strin
 			IssuerId:    userId,
 			CertifierId: userId,
 		},
-		Message: msg,
+		Message: EncodeMessage(msg),
 	}
 }
 

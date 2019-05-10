@@ -1,6 +1,7 @@
 package channels
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/mngharbi/DMPC/core"
 	"time"
@@ -18,17 +19,43 @@ const (
 )
 
 type MessagesResponse struct {
-	Result MessagesStatusCode
+	Result MessagesStatusCode `json:"result"`
+}
+
+// *MessagesResponse -> Json
+func (resp *MessagesResponse) Encode() ([]byte, error) {
+	jsonStream, err := json.Marshal(resp)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonStream, nil
 }
 
 /*
 	Structure for add message request
 */
 type AddMessageRequest struct {
-	ChannelId string
-	Timestamp time.Time
-	Signers   *core.VerifiedSigners
-	Message   []byte
+	ChannelId  string
+	Timestamp  time.Time
+	Signers    *core.VerifiedSigners
+	Message    []byte
+	rawMessage []byte
+}
+
+func (rq *AddMessageRequest) decodeMessage() error {
+	var base64encodedMessage string
+	err := json.Unmarshal(rq.Message, &base64encodedMessage)
+	if err != nil {
+		return err
+	}
+	rq.rawMessage, err = core.Base64DecodeString(base64encodedMessage)
+	return err
+}
+
+func EncodeMessage(message []byte) []byte {
+	return core.CiphertextEncode(message)
 }
 
 /*
@@ -37,7 +64,8 @@ type AddMessageRequest struct {
 func (rq *AddMessageRequest) sanitizeAndValidate() error {
 	valid := rq.Signers != nil &&
 		len(rq.Message) > 0 &&
-		len(rq.ChannelId) > 0
+		len(rq.ChannelId) > 0 &&
+		rq.decodeMessage() == nil
 	if !valid {
 		return errors.New("Add message request is invalid.")
 	}

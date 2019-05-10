@@ -207,6 +207,19 @@ func main() {
 										return nil
 									},
 								},
+								{
+									Name:    "message",
+									Usage:   "Generate channel message operation",
+									Flags: []cli.Flag{
+										channelFlagsMap["channel"],
+										channelFlagsMap["nosign"],
+										channelFlagsMap["noencrypt"],
+									},
+									Action: func(c *cli.Context) error {
+										dmpcCli.GenerateChannelAddMessageOperation(c.String("channel"), !c.Bool("nosign"), !c.Bool("nosign"), !c.Bool("noencrypt"))
+										return nil
+									},
+								},
 							},
 						},
 					},

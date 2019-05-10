@@ -6,6 +6,7 @@ package channels
 
 import (
 	"crypto/rand"
+	"encoding/json"
 	"github.com/mngharbi/DMPC/core"
 	"github.com/mngharbi/DMPC/status"
 	"github.com/mngharbi/gofarm"
@@ -175,6 +176,10 @@ func multipleWorkersMessagesConfig() MessagesServerConfig {
 }
 
 func makeValidAddMessageRequest() *AddMessageRequest {
+	message := generateRandomBytes(5)
+	encodedString := core.Base64EncodeToString(message)
+	jsonEncoded, _ := json.Marshal(encodedString)
+
 	return &AddMessageRequest{
 		ChannelId: genericChannelId,
 		Timestamp: time.Now(),
@@ -182,7 +187,7 @@ func makeValidAddMessageRequest() *AddMessageRequest {
 			IssuerId:    genericIssuerId,
 			CertifierId: genericCertifierId,
 		},
-		Message: generateRandomBytes(100),
+		Message: jsonEncoded,
 	}
 }
 

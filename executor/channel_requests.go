@@ -329,9 +329,9 @@ func (sv *server) doAddMessage(wrappedRequest *executorRequest) {
 
 	// Handle response
 	if messageResponse.Result != channels.MessagesSuccess {
-		sv.responseReporter(wrappedRequest.ticket, status.FailedStatus, status.FailedReason, nil, nil)
+		sv.responseReporter(wrappedRequest.ticket, status.FailedStatus, status.FailedReason, messageResponse, nil)
 	} else {
-		sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, nil, nil)
+		sv.responseReporter(wrappedRequest.ticket, status.SuccessStatus, status.NoReason, messageResponse, nil)
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/mngharbi/DMPC/channels"
 	"github.com/mngharbi/DMPC/core"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
@@ -198,4 +199,15 @@ func GenerateChannelReadOperation(channelId string, issue bool, certify bool) {
 */
 func GenerateChannelSubscribeOperation(channelId string, issue bool, certify bool) {
 	generateGenericChannelOperation(channelId, issue, certify, false, []byte("{}"), core.SubscribeChannelType, time.Now())
+}
+
+/*
+	Generate add message operation
+*/
+
+func GenerateChannelAddMessageOperation(channelId string, issue bool, certify bool, encrypt bool) {
+	if messageBytes, err := ioutil.ReadAll(os.Stdin); err == nil {
+		encodedMessage := channels.EncodeMessage(messageBytes)
+		generateGenericChannelOperation(channelId, issue, certify, encrypt, encodedMessage, core.AddMessageType, time.Now())
+	}
 }
