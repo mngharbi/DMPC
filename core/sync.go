@@ -100,58 +100,79 @@ func sanitizeUnlockNeeds(lockNeeds []LockNeed) []LockNeed {
 }
 
 /*
-	Generic Locking function
+	Generic lock operation on locker
 */
-func Lock(doLock func(string, LockType) bool, doUnlock func(string, LockType) bool, lockNeeds []LockNeed) bool {
-	// Sanitize lock needs to avoid deadlocks
-	sanitizedLockNeeds := sanitizeLockNeeds(lockNeeds)
 
-	// Perform locking
-	needToUnlock := false
-	var successfulLocks []LockNeed
-	for _, lockNeed := range sanitizedLockNeeds {
-		if !doLock(lockNeed.Id, lockNeed.LockType) {
-			needToUnlock = true
+func rwLock(rwlocker RWLocker, lockType LockType, lockingType LockingType) {
+	if lockType == WriteLockType {
+		if lockingType == Locking {
+			rwlocker.Lock()
 		} else {
-			successfulLocks = append(successfulLocks, lockNeed)
+			rwlocker.Unlock()
+		}
+	} else {
+		if lockingType == Locking {
+			rwlocker.RLock()
+		} else {
+			rwlocker.RUnlock()
+		}
+	}
+}
+
+/*
+	Generic do locking function
+*/
+func doLocking(reader RecordReader, lockNeeds []LockNeed, lockingType LockingType) bool {
+	// Sanitize lock needs to avoid deadlocks
+	var sanitizedLockNeeds []LockNeed
+	if lockingType == Locking {
+		sanitizedLockNeeds = sanitizeLockNeeds(lockNeeds)
+	} else {
+		sanitizedLockNeeds = sanitizeUnlockNeeds(lockNeeds)
+	}
+
+	// Read records
+	var recordIds []string
+	for _, lockNeed := range sanitizedLockNeeds {
+		recordIds = append(recordIds, lockNeed.Id)
+	}
+	records := reader(recordIds)
+
+	// Check if any are nil
+	for _, record := range records {
+		if record == nil {
+			return false
 		}
 	}
 
-	// If none failed we're done
-	if !needToUnlock {
-		return true
+	// Perform locking
+	for lockNeedIndex, lockNeed := range sanitizedLockNeeds {
+		rwLock(records[lockNeedIndex].(RWLocker), lockNeed.LockType, lockingType)
 	}
 
-	// Otherwise, unlock everything locked (in reverse)
-	for _, lockNeed := range successfulLocks {
-		doUnlock(lockNeed.Id, lockNeed.LockType)
-	}
+	return true
+}
 
-	return false
+/*
+	Generic Locking function
+*/
+
+func Lock(reader RecordReader, lockNeeds []LockNeed) bool {
+	return doLocking(reader, lockNeeds, Locking)
 }
 
 /*
 	Generic Unlocking function
 */
-func Unlock(doUnlock func(string, LockType) bool, unlockNeeds []LockNeed) bool {
-	// Sanitize unlock needs to avoid deadlocks
-	sanitizedUnlockNeeds := sanitizeUnlockNeeds(unlockNeeds)
 
-	// Perform unlocking
-	unlockSuccess := true
-	for _, lockNeed := range sanitizedUnlockNeeds {
-		if !doUnlock(lockNeed.Id, lockNeed.LockType) {
-			unlockSuccess = false
-		}
-	}
-
-	return unlockSuccess
+func Unlock(reader RecordReader, lockNeeds []LockNeed) bool {
+	return doLocking(reader, lockNeeds, Unlocking)
 }
 
 /*
 	Defines an object that can be (R)locked/(R)unlocked
 */
-type RWRecordLocker interface {
+type RWLocker interface {
 	RLock()
 	RUnlock()
 	Lock()
@@ -159,48 +180,30 @@ type RWRecordLocker interface {
 }
 
 /*
-	Generates a functor that (r)locks/(r)unlocks RWRecordLocker
+	Generates a function that can be used to read a set of records
 */
-func lockingFunctorGenerator(lockType LockType, lockingType LockingType) func(memstore.Item) bool {
-	return func(obj memstore.Item) bool {
-		rwlocker := obj.(RWRecordLocker)
 
-		if lockType == WriteLockType {
-			if lockingType == Locking {
-				rwlocker.Lock()
-			} else {
-				rwlocker.Unlock()
-			}
-		} else {
-			if lockingType == Locking {
-				rwlocker.RLock()
-			} else {
-				rwlocker.RUnlock()
-			}
-		}
-		return true
-	}
-}
+type RecordReader func([]string) []memstore.Item
 
-/*
-	Generates a functor that can be used with a generic RWRecordLocker for Lock/Unlock with Lockneeds
-*/
-func RecordLockingFunctorGenerator(
+func RecordReaderFunctor(
 	mem *memstore.Memstore,
-	lockingType LockingType,
 	makeSearchRecordFunctor func(string) memstore.Item,
 	indexString string,
 	save bool,
 	collectionPtr *[]memstore.Item,
-) func(string, LockType) bool {
-	return func(id string, lockType LockType) bool {
-		searchRecord := makeSearchRecordFunctor(id)
-		memstoreItem := mem.ApplyData(searchRecord, indexString, lockingFunctorGenerator(lockType, lockingType))
-		if memstoreItem == nil {
-			return false
-		} else if save {
-			*collectionPtr = append(*collectionPtr, memstoreItem)
+) RecordReader {
+	return func(ids []string) []memstore.Item {
+		var searchRecords []memstore.Item
+		for _, id := range ids {
+			searchRecords = append(searchRecords, makeSearchRecordFunctor(id))
 		}
-		return true
+		// @TODO: Implement read subset in memstore and use it
+		memstoreItems := mem.ApplyDataSubset(searchRecords, indexString, func(item memstore.Item) bool {
+			return true
+		})
+		if save {
+			*collectionPtr = memstoreItems
+		}
+		return memstoreItems
 	}
 }

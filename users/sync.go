@@ -11,17 +11,18 @@ import (
 )
 
 func lockUsers(sv *server, lockNeeds []core.LockNeed) (userRecords []*userRecord, lockingSuccess bool) {
-	// Build lock functions
+	// Build reader functions
 	var userRecordsItems []memstore.Item
-	doLocking := core.RecordLockingFunctorGenerator(sv.store, core.Locking, makeSearchByIdRecord, idIndexStr, true, &userRecordsItems)
-	doUnlocking := core.RecordLockingFunctorGenerator(sv.store, core.Unlocking, makeSearchByIdRecord, idIndexStr, false, nil)
+	reader := core.RecordReaderFunctor(sv.store, makeSearchByIdRecord, idIndexStr, true, &userRecordsItems)
 
 	// Do locking (rollback unlocking included)
-	lockingSuccess = core.Lock(doLocking, doUnlocking, lockNeeds)
+	lockingSuccess = core.Lock(reader, lockNeeds)
 
 	// Build list of records from item interfaces
 	for _, recordItem := range userRecordsItems {
-		userRecords = append(userRecords, recordItem.(*userRecord))
+		if recordItem != nil {
+			userRecords = append(userRecords, recordItem.(*userRecord))
+		}
 	}
 
 	return
@@ -30,10 +31,10 @@ func lockUsers(sv *server, lockNeeds []core.LockNeed) (userRecords []*userRecord
 func unlockUsers(sv *server, unlockNeeds []core.LockNeed) (userRecords []*userRecord, unlockingSuccess bool) {
 	// Build unlock function
 	var userRecordsItems []memstore.Item
-	doUnlocking := core.RecordLockingFunctorGenerator(sv.store, core.Unlocking, makeSearchByIdRecord, idIndexStr, true, &userRecordsItems)
+	reader := core.RecordReaderFunctor(sv.store, makeSearchByIdRecord, idIndexStr, true, &userRecordsItems)
 
 	// Do unlocking
-	unlockingSuccess = core.Unlock(doUnlocking, unlockNeeds)
+	unlockingSuccess = core.Unlock(reader, unlockNeeds)
 
 	// If locking failed, don't return any results
 	if !unlockingSuccess {
@@ -41,7 +42,9 @@ func unlockUsers(sv *server, unlockNeeds []core.LockNeed) (userRecords []*userRe
 	} else {
 		// Build list of records from item interfaces
 		for _, recordItem := range userRecordsItems {
-			userRecords = append(userRecords, recordItem.(*userRecord))
+			if recordItem != nil {
+				userRecords = append(userRecords, recordItem.(*userRecord))
+			}
 		}
 	}
 	return

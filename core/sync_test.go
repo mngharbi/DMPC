@@ -1,610 +1,552 @@
 package core
 
 import (
+	"github.com/mngharbi/memstore"
 	"reflect"
 	"testing"
 )
 
 /*
-	Locking
+	Test structure
 */
 
-func TestNoLock(t *testing.T) {
-	locked := []LockNeed{}
-	expectedLocked := []LockNeed{}
-
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{}
-
-	initialMap := map[string]LockType{}
-	expectedMap := map[string]LockType{}
-
-	var lockDuplication, unlockDuplication bool
-	doLockSuccess := lockingFunctor(initialMap, true, true, &locked, &lockDuplication)
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Lock(doLockSuccess, doUnlockFail, []LockNeed{})
-
-	if lockDuplication {
-		t.Error("Lock called twice on the same id")
-	}
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(locked, expectedLocked) || !reflect.DeepEqual(unlocked, expectedUnlocked) ||
-		!reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("No locking failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
-			locked, expectedLocked,
-			unlocked, expectedUnlocked,
-			initialMap, expectedMap,
-		)
-	}
+type testLocker struct {
+	id string
 }
 
-func TestAllWriteLock(t *testing.T) {
-	var locked []LockNeed
-	expectedLocked := []LockNeed{
-		{true, "1"},
-		{true, "2"},
-		{true, "3"},
-	}
-
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{}
-
-	initialMap := map[string]LockType{}
-	expectedMap := map[string]LockType{
-		"1": true,
-		"2": true,
-		"3": true,
-	}
-
-	var lockDuplication, unlockDuplication bool
-	doLockSuccess := lockingFunctor(initialMap, true, true, &locked, &lockDuplication)
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		{true, "1"},
-		{true, "2"},
-		{true, "3"},
-	})
-
-	if lockDuplication {
-		t.Error("Lock called twice on the same id")
-	}
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(locked, expectedLocked) || !reflect.DeepEqual(unlocked, expectedUnlocked) ||
-		!reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Write locking failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
-			locked, expectedLocked,
-			unlocked, expectedUnlocked,
-			initialMap, expectedMap,
-		)
-	}
+func (l *testLocker) Lock() {
+	l.doLock(WriteLockType, Locking)
+}
+func (l *testLocker) Unlock() {
+	l.doLock(WriteLockType, Unlocking)
+}
+func (l *testLocker) RLock() {
+	l.doLock(ReadLockType, Locking)
+}
+func (l *testLocker) RUnlock() {
+	l.doLock(ReadLockType, Unlocking)
 }
 
-func TestAllReadLock(t *testing.T) {
-	locked := []LockNeed{}
-	expectedLocked := []LockNeed{
-		{false, "1"},
-		{false, "2"},
-		{false, "3"},
-	}
-
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{}
-
-	initialMap := map[string]LockType{}
-	expectedMap := map[string]LockType{
-		"1": false,
-		"2": false,
-		"3": false,
-	}
-
-	var lockDuplication, unlockDuplication bool
-	doLockSuccess := lockingFunctor(initialMap, true, true, &locked, &lockDuplication)
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		{false, "1"},
-		{false, "2"},
-		{false, "3"},
-	})
-
-	if lockDuplication {
-		t.Error("Lock called twice on the same id")
-	}
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(locked, expectedLocked) || !reflect.DeepEqual(unlocked, expectedUnlocked) ||
-		!reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Read locking failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
-	}
-}
-
-func TestDuplicateWriteLock(t *testing.T) {
-	locked := []LockNeed{}
-	expectedLocked := []LockNeed{
-		{true, "1"},
-		{true, "2"},
-	}
-
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{}
-
-	initialMap := map[string]LockType{}
-	expectedMap := map[string]LockType{
-		"1": true,
-		"2": true,
-	}
-
-	var lockDuplication, unlockDuplication bool
-	doLockSuccess := lockingFunctor(initialMap, true, true, &locked, &lockDuplication)
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		{true, "1"},
-		{true, "2"},
-		{true, "2"},
-	})
-
-	if lockDuplication {
-		t.Error("Lock called twice on the same id")
-	}
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(locked, expectedLocked) || !reflect.DeepEqual(unlocked, expectedUnlocked) ||
-		!reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Duplicate write locking failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
-	}
-}
-
-func TestDuplicateReadLock(t *testing.T) {
-	locked := []LockNeed{}
-	expectedLocked := []LockNeed{
-		{false, "1"},
-		{false, "2"},
-	}
-
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{}
-
-	initialMap := map[string]LockType{}
-	expectedMap := map[string]LockType{
-		"1": false,
-		"2": false,
-	}
-
-	var lockDuplication, unlockDuplication bool
-	doLockSuccess := lockingFunctor(initialMap, true, true, &locked, &lockDuplication)
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		{false, "1"},
-		{false, "2"},
-		{false, "2"},
-	})
-
-	if lockDuplication {
-		t.Error("Lock called twice on the same id")
-	}
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(locked, expectedLocked) || !reflect.DeepEqual(unlocked, expectedUnlocked) ||
-		!reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Read locking failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
-	}
-}
-
-func TestOverwritingReadLock(t *testing.T) {
-	locked := []LockNeed{}
-	expectedLocked := []LockNeed{
-		{false, "2"},
-		{true, "1"},
-	}
-
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{}
-
-	initialMap := map[string]LockType{}
-	expectedMap := map[string]LockType{
-		"1": true,
-		"2": false,
-	}
-
-	var lockDuplication, unlockDuplication bool
-	doLockSuccess := lockingFunctor(initialMap, true, true, &locked, &lockDuplication)
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		{false, "1"},
-		{true, "1"},
-		{false, "2"},
-	})
-
-	if lockDuplication {
-		t.Error("Lock called twice on the same id")
-	}
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(locked, expectedLocked) || !reflect.DeepEqual(unlocked, expectedUnlocked) ||
-		!reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Overwriting write lock, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
-	}
-}
-
-func TestOverwritingReadAfterWriteLock(t *testing.T) {
-	locked := []LockNeed{}
-	expectedLocked := []LockNeed{
-		{false, "2"},
-		{true, "1"},
-	}
-
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{}
-
-	initialMap := map[string]LockType{}
-	expectedMap := map[string]LockType{
-		"1": true,
-		"2": false,
-	}
-
-	var lockDuplication, unlockDuplication bool
-	doLockSuccess := lockingFunctor(initialMap, true, true, &locked, &lockDuplication)
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		{true, "1"},
-		{false, "1"},
-		{false, "2"},
-	})
-
-	if lockDuplication {
-		t.Error("Lock called twice on the same id")
-	}
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(locked, expectedLocked) || !reflect.DeepEqual(unlocked, expectedUnlocked) ||
-		!reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Overwriting read lock failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
-	}
-}
-
-/*
-	Locking rollback
-*/
-
-func RollbackFailedWriteLock(t *testing.T) {
-	locked := []LockNeed{}
-	expectedLocked := []LockNeed{
-		{false, "2"},
-		{true, "1"},
-	}
-
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{
-		{true, "1"},
-		{false, "2"},
-	}
-
-	initialMap := map[string]LockType{}
-	expectedMap := map[string]LockType{}
-
-	var lockDuplication, unlockDuplication bool
-	doLockSuccess := lockingFunctor(initialMap, false, true, &locked, &lockDuplication)
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		{true, "1"},
-		{false, "2"},
-	})
-
-	if lockDuplication {
-		t.Error("Lock called twice on the same id")
-	}
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(locked, expectedLocked) || !reflect.DeepEqual(unlocked, expectedUnlocked) ||
-		!reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Rollback locks, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
-	}
-}
-
-func RollbackDuplicateFailedWriteLock(t *testing.T) {
-	locked := []LockNeed{}
-	expectedLocked := []LockNeed{
-		{false, "2"},
-		{true, "1"},
-	}
-
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{
-		{true, "1"},
-		{false, "2"},
-	}
-
-	initialMap := map[string]LockType{}
-	expectedMap := map[string]LockType{}
-
-	var lockDuplication, unlockDuplication bool
-	doLockSuccess := lockingFunctor(initialMap, false, true, &locked, &lockDuplication)
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Lock(doLockSuccess, doUnlockFail, []LockNeed{
-		{true, "1"},
-		{false, "1"},
-		{false, "2"},
-	})
-
-	if lockDuplication {
-		t.Error("Lock called twice on the same id")
-	}
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(locked, expectedLocked) || !reflect.DeepEqual(unlocked, expectedUnlocked) ||
-		!reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Rollback locks, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
-	}
-}
-
-/*
-	Unlocking
-*/
-
-func TestNoUnlock(t *testing.T) {
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{}
-
-	initialMap := map[string]LockType{}
-	expectedMap := map[string]LockType{}
-
-	var unlockDuplication bool
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Unlock(doUnlockFail, []LockNeed{})
-
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(unlocked, expectedUnlocked) || !reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("No unlocking failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
-	}
-}
-
-func TestAllWriteUnlock(t *testing.T) {
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{
-		{true, "3"},
-		{true, "2"},
-		{true, "1"},
-	}
-
-	initialMap := map[string]LockType{
-		"1": true,
-		"2": true,
-		"3": true,
-	}
-	expectedMap := map[string]LockType{}
-
-	var unlockDuplication bool
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Unlock(doUnlockFail, []LockNeed{
-		{true, "1"},
-		{true, "2"},
-		{true, "3"},
-	})
-
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(unlocked, expectedUnlocked) || !reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Write unlocking failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
-	}
-}
-
-func TestAllReadUnlock(t *testing.T) {
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{
-		{false, "3"},
-		{false, "2"},
-		{false, "1"},
-	}
-
-	initialMap := map[string]LockType{
-		"1": false,
-		"2": false,
-		"3": false,
-	}
-	expectedMap := map[string]LockType{}
-
-	var unlockDuplication bool
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Unlock(doUnlockFail, []LockNeed{
-		{false, "1"},
-		{false, "2"},
-		{false, "3"},
-	})
-
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(unlocked, expectedUnlocked) || !reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Read unlocking failed, results:\n result: %v\n expected: %v\n", initialMap, initialMap)
-	}
-}
-
-func TestDuplicateWriteUnlock(t *testing.T) {
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{
-		{true, "2"},
-		{true, "1"},
-	}
-
-	initialMap := map[string]LockType{
-		"1": true,
-		"2": true,
-	}
-	expectedMap := map[string]LockType{}
-
-	var unlockDuplication bool
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Unlock(doUnlockFail, []LockNeed{
-		{true, "1"},
-		{true, "2"},
-		{true, "2"},
-	})
-
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(unlocked, expectedUnlocked) || !reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Duplicate write unlocking failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
-	}
-}
-
-func TestDuplicateReadUnlock(t *testing.T) {
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{
-		{false, "2"},
-		{false, "1"},
-	}
-
-	initialMap := map[string]LockType{
-		"1": false,
-		"2": false,
-	}
-	expectedMap := map[string]LockType{}
-
-	var unlockDuplication bool
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Unlock(doUnlockFail, []LockNeed{
-		{false, "1"},
-		{false, "2"},
-		{false, "2"},
-	})
-
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(unlocked, expectedUnlocked) || !reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Duplicate read unlocking failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
-	}
-}
-
-func TestOverwritingReadUnlock(t *testing.T) {
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{
-		{true, "1"},
-		{false, "2"},
-	}
-
-	initialMap := map[string]LockType{
-		"1": true,
-		"2": false,
-	}
-	expectedMap := map[string]LockType{}
-
-	var unlockDuplication bool
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Unlock(doUnlockFail, []LockNeed{
-		{false, "1"},
-		{true, "1"},
-		{false, "2"},
-	})
-
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(unlocked, expectedUnlocked) || !reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Overwriting write unlock, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
-	}
-}
-
-func TestOverwritingReadAfterWriteUnlock(t *testing.T) {
-	unlocked := []LockNeed{}
-	expectedUnlocked := []LockNeed{
-		{true, "1"},
-		{false, "2"},
-	}
-
-	initialMap := map[string]LockType{
-		"1": true,
-		"2": false,
-	}
-	expectedMap := map[string]LockType{}
-
-	var unlockDuplication bool
-	doUnlockFail := lockingFunctor(initialMap, true, false, &unlocked, &unlockDuplication)
-
-	Unlock(doUnlockFail, []LockNeed{
-		{true, "1"},
-		{false, "1"},
-		{false, "2"},
-	})
-
-	if unlockDuplication {
-		t.Error("Unlock called twice on the same id")
-	}
-
-	if !reflect.DeepEqual(unlocked, expectedUnlocked) || !reflect.DeepEqual(initialMap, expectedMap) {
-		t.Errorf("Overwriting read unlock failed, results:\n result: %v\n expected: %v\n", initialMap, expectedMap)
-	}
+func (l *testLocker) Less(string, interface{}) bool {
+	return true
 }
 
 /*
 	Helpers
 */
 
-func lockingFunctor(dst map[string]LockType, success bool, lock bool, called *[]LockNeed, duplication *bool) func(string, LockType) bool {
-	return func(fId string, fType LockType) bool {
-		*called = append(*called, LockNeed{fType, fId})
+var (
+	syncLocked       map[string]LockType
+	syncLockCalls    []LockNeed
+	syncUnlockCalls  []LockNeed
+	syncDoubleLock   bool
+	syncDoubleUnlock bool
+	syncWrongUnlock  bool
+)
 
-		if !success {
-			return false
-		}
+func resetSync() {
+	syncLocked = map[string]LockType{}
+	syncLockCalls = nil
+	syncUnlockCalls = nil
+	syncDoubleLock = false
+	syncDoubleUnlock = false
+	syncWrongUnlock = false
+}
 
-		if lock {
-			if _, ok := dst[fId]; ok {
-				*duplication = true
-			}
+func (l *testLocker) doLock(lockType LockType, lockingType LockingType) {
+	id := l.id
+	lockedType, isLocked := syncLocked[id]
+	if lockingType == Locking && isLocked {
+		syncDoubleLock = true
+		return
+	}
+	if lockingType == Unlocking && !isLocked {
+		syncDoubleUnlock = true
+		return
+	}
+	if lockingType == Unlocking && isLocked && lockedType != lockType {
+		syncWrongUnlock = true
+		return
+	}
+	if lockingType == Locking {
+		syncLocked[id] = lockType
+	} else {
+		delete(syncLocked, id)
+	}
 
-			dst[fId] = fType
-		} else {
-			if _, ok := dst[fId]; ok {
-				delete(dst, fId)
-			} else {
-				*duplication = true
-			}
-		}
-		return true
+	var callsSlice *[]LockNeed
+	if lockingType == Locking {
+		callsSlice = &syncLockCalls
+	} else {
+		callsSlice = &syncUnlockCalls
+	}
+	*callsSlice = append(*callsSlice, LockNeed{
+		LockType: lockType,
+		Id:       id,
+	})
+}
+
+func readerFunctor(data []memstore.Item) RecordReader {
+	return func(ids []string) []memstore.Item {
+		return data
+	}
+}
+
+/*
+	Tests
+*/
+
+func checkFlags(t *testing.T) bool {
+	if syncDoubleLock {
+		t.Error("Lock called twice on the same id")
+	}
+	if syncDoubleUnlock {
+		t.Error("Unlock called twice on the same id")
+	}
+	if syncWrongUnlock {
+		t.Error("Unlock does not match lock")
+	}
+	return syncDoubleLock && syncDoubleUnlock && syncWrongUnlock
+}
+
+func TestNoLock(t *testing.T) {
+	resetSync()
+
+	expectedMap := map[string]LockType{}
+	expectedLocked := []LockNeed{}
+	expectedUnlocked := []LockNeed{}
+
+	reader := readerFunctor(nil)
+
+	Lock(reader, []LockNeed{})
+
+	if !checkFlags(t) {
+		return
+	}
+
+	if !reflect.DeepEqual(syncLockCalls, expectedLocked) || !reflect.DeepEqual(syncUnlockCalls, expectedUnlocked) ||
+		!reflect.DeepEqual(syncLocked, expectedMap) {
+		t.Errorf("No locking failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
+			syncLockCalls, expectedLocked,
+			syncUnlockCalls, expectedUnlocked,
+			syncLocked, expectedMap,
+		)
+	}
+}
+
+func TestAllWriteLock(t *testing.T) {
+	resetSync()
+
+	expectedMap := map[string]LockType{
+		"1": WriteLockType,
+		"2": WriteLockType,
+		"3": WriteLockType,
+	}
+	expectedLocked := []LockNeed{
+		{WriteLockType, "1"},
+		{WriteLockType, "2"},
+		{WriteLockType, "3"},
+	}
+	expectedUnlocked := []LockNeed{}
+
+	reader := readerFunctor([]memstore.Item{
+		&testLocker{"1"},
+		&testLocker{"2"},
+		&testLocker{"3"},
+	})
+
+	Lock(reader, []LockNeed{
+		{WriteLockType, "1"},
+		{WriteLockType, "2"},
+		{WriteLockType, "3"},
+	})
+
+	if !checkFlags(t) {
+		return
+	}
+
+	if !reflect.DeepEqual(syncLockCalls, expectedLocked) || !reflect.DeepEqual(syncUnlockCalls, expectedUnlocked) ||
+		!reflect.DeepEqual(syncLocked, expectedMap) {
+		t.Errorf("Write locking failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
+			syncLockCalls, expectedLocked,
+			syncUnlockCalls, expectedUnlocked,
+			syncLocked, expectedMap,
+		)
+	}
+}
+
+func TestAllReadLock(t *testing.T) {
+	resetSync()
+
+	expectedMap := map[string]LockType{
+		"1": ReadLockType,
+		"2": ReadLockType,
+		"3": ReadLockType,
+	}
+	expectedLocked := []LockNeed{
+		{ReadLockType, "1"},
+		{ReadLockType, "2"},
+		{ReadLockType, "3"},
+	}
+	expectedUnlocked := []LockNeed{}
+
+	reader := readerFunctor([]memstore.Item{
+		&testLocker{"1"},
+		&testLocker{"2"},
+		&testLocker{"3"},
+	})
+
+	Lock(reader, []LockNeed{
+		{ReadLockType, "1"},
+		{ReadLockType, "2"},
+		{ReadLockType, "3"},
+	})
+
+	if !checkFlags(t) {
+		return
+	}
+
+	if !reflect.DeepEqual(syncLockCalls, expectedLocked) || !reflect.DeepEqual(syncUnlockCalls, expectedUnlocked) ||
+		!reflect.DeepEqual(syncLocked, expectedMap) {
+		t.Errorf("Read locking failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
+			syncLockCalls, expectedLocked,
+			syncUnlockCalls, expectedUnlocked,
+			syncLocked, expectedMap,
+		)
+	}
+}
+
+func TestDuplicateWriteLock(t *testing.T) {
+	resetSync()
+
+	expectedMap := map[string]LockType{
+		"1": WriteLockType,
+		"2": WriteLockType,
+	}
+	expectedLocked := []LockNeed{
+		{WriteLockType, "1"},
+		{WriteLockType, "2"},
+	}
+	expectedUnlocked := []LockNeed{}
+
+	reader := readerFunctor([]memstore.Item{
+		&testLocker{"1"},
+		&testLocker{"2"},
+	})
+
+	Lock(reader, []LockNeed{
+		{WriteLockType, "1"},
+		{WriteLockType, "2"},
+		{WriteLockType, "2"},
+	})
+
+	if !checkFlags(t) {
+		return
+	}
+
+	if !reflect.DeepEqual(syncLockCalls, expectedLocked) || !reflect.DeepEqual(syncUnlockCalls, expectedUnlocked) ||
+		!reflect.DeepEqual(syncLocked, expectedMap) {
+		t.Errorf("Double locking failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
+			syncLockCalls, expectedLocked,
+			syncUnlockCalls, expectedUnlocked,
+			syncLocked, expectedMap,
+		)
+	}
+}
+
+func TestDuplicateReadLock(t *testing.T) {
+	resetSync()
+
+	expectedMap := map[string]LockType{
+		"1": ReadLockType,
+		"2": ReadLockType,
+	}
+	expectedLocked := []LockNeed{
+		{ReadLockType, "1"},
+		{ReadLockType, "2"},
+	}
+	expectedUnlocked := []LockNeed{}
+
+	reader := readerFunctor([]memstore.Item{
+		&testLocker{"1"},
+		&testLocker{"2"},
+	})
+
+	Lock(reader, []LockNeed{
+		{ReadLockType, "1"},
+		{ReadLockType, "2"},
+		{ReadLockType, "2"},
+	})
+
+	if !checkFlags(t) {
+		return
+	}
+
+	if !reflect.DeepEqual(syncLockCalls, expectedLocked) || !reflect.DeepEqual(syncUnlockCalls, expectedUnlocked) ||
+		!reflect.DeepEqual(syncLocked, expectedMap) {
+		t.Errorf("Double read locking failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
+			syncLockCalls, expectedLocked,
+			syncUnlockCalls, expectedUnlocked,
+			syncLocked, expectedMap,
+		)
+	}
+}
+
+func TestOverwritingReadLock(t *testing.T) {
+	resetSync()
+
+	expectedMap := map[string]LockType{
+		"1": WriteLockType,
+		"2": ReadLockType,
+	}
+	expectedLocked := []LockNeed{
+		{ReadLockType, "2"},
+		{WriteLockType, "1"},
+	}
+	expectedUnlocked := []LockNeed{}
+
+	reader := readerFunctor([]memstore.Item{
+		&testLocker{"1"},
+		&testLocker{"2"},
+	})
+
+	Lock(reader, []LockNeed{
+		{ReadLockType, "1"},
+		{WriteLockType, "1"},
+		{ReadLockType, "2"},
+	})
+
+	if !checkFlags(t) {
+		return
+	}
+
+	if !reflect.DeepEqual(syncLockCalls, expectedLocked) || !reflect.DeepEqual(syncUnlockCalls, expectedUnlocked) ||
+		!reflect.DeepEqual(syncLocked, expectedMap) {
+		t.Errorf("Overwrite read locking failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
+			syncLockCalls, expectedLocked,
+			syncUnlockCalls, expectedUnlocked,
+			syncLocked, expectedMap,
+		)
+	}
+}
+
+func TestOverwritingReadLockReverse(t *testing.T) {
+	resetSync()
+
+	expectedMap := map[string]LockType{
+		"1": WriteLockType,
+		"2": ReadLockType,
+	}
+	expectedLocked := []LockNeed{
+		{ReadLockType, "2"},
+		{WriteLockType, "1"},
+	}
+	expectedUnlocked := []LockNeed{}
+
+	reader := readerFunctor([]memstore.Item{
+		&testLocker{"1"},
+		&testLocker{"2"},
+	})
+
+	Lock(reader, []LockNeed{
+		{WriteLockType, "1"},
+		{ReadLockType, "1"},
+		{ReadLockType, "2"},
+	})
+
+	if !checkFlags(t) {
+		return
+	}
+
+	if !reflect.DeepEqual(syncLockCalls, expectedLocked) || !reflect.DeepEqual(syncUnlockCalls, expectedUnlocked) ||
+		!reflect.DeepEqual(syncLocked, expectedMap) {
+		t.Errorf("Reverse overwrite read locking failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
+			syncLockCalls, expectedLocked,
+			syncUnlockCalls, expectedUnlocked,
+			syncLocked, expectedMap,
+		)
+	}
+}
+
+func TestNoUnlock(t *testing.T) {
+	resetSync()
+
+	expectedMap := map[string]LockType{}
+	expectedLocked := []LockNeed{}
+	expectedUnlocked := []LockNeed{}
+
+	reader := readerFunctor(nil)
+
+	Unlock(reader, []LockNeed{})
+
+	if !checkFlags(t) {
+		return
+	}
+
+	if !reflect.DeepEqual(syncLockCalls, expectedLocked) || !reflect.DeepEqual(syncUnlockCalls, expectedUnlocked) ||
+		!reflect.DeepEqual(syncLocked, expectedMap) {
+		t.Errorf("No unlocking failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
+			syncLockCalls, expectedLocked,
+			syncUnlockCalls, expectedUnlocked,
+			syncLocked, expectedMap,
+		)
+	}
+}
+
+func TestAllWriteLockUnlock(t *testing.T) {
+	resetSync()
+
+	expectedMap := map[string]LockType{}
+	expectedLocked := []LockNeed{
+		{WriteLockType, "1"},
+		{WriteLockType, "2"},
+		{WriteLockType, "3"},
+	}
+	expectedUnlocked := []LockNeed{
+		{WriteLockType, "3"},
+		{WriteLockType, "2"},
+		{WriteLockType, "1"},
+	}
+
+	reader := readerFunctor([]memstore.Item{
+		&testLocker{"1"},
+		&testLocker{"2"},
+		&testLocker{"3"},
+	})
+
+	lockNeeds := []LockNeed{
+		{WriteLockType, "1"},
+		{WriteLockType, "2"},
+		{WriteLockType, "3"},
+	}
+	Lock(reader, lockNeeds)
+	Unlock(reader, lockNeeds)
+
+	if !checkFlags(t) {
+		return
+	}
+
+	if !reflect.DeepEqual(syncLockCalls, expectedLocked) || !reflect.DeepEqual(syncUnlockCalls, expectedUnlocked) ||
+		!reflect.DeepEqual(syncLocked, expectedMap) {
+		t.Errorf("Write lock/unlock failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
+			syncLockCalls, expectedLocked,
+			syncUnlockCalls, expectedUnlocked,
+			syncLocked, expectedMap,
+		)
+	}
+}
+
+func TestAllReadUnlock(t *testing.T) {
+	resetSync()
+
+	expectedMap := map[string]LockType{}
+	expectedLocked := []LockNeed{
+		{ReadLockType, "1"},
+		{ReadLockType, "2"},
+		{ReadLockType, "3"},
+	}
+	expectedUnlocked := []LockNeed{
+		{ReadLockType, "3"},
+		{ReadLockType, "2"},
+		{ReadLockType, "1"},
+	}
+
+	reader := readerFunctor([]memstore.Item{
+		&testLocker{"1"},
+		&testLocker{"2"},
+		&testLocker{"3"},
+	})
+
+	lockNeeds := []LockNeed{
+		{ReadLockType, "1"},
+		{ReadLockType, "2"},
+		{ReadLockType, "3"},
+	}
+	Lock(reader, lockNeeds)
+	Unlock(reader, lockNeeds)
+
+	if !checkFlags(t) {
+		return
+	}
+
+	if !reflect.DeepEqual(syncLockCalls, expectedLocked) || !reflect.DeepEqual(syncUnlockCalls, expectedUnlocked) ||
+		!reflect.DeepEqual(syncLocked, expectedMap) {
+		t.Errorf("Read lock/unlock failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
+			syncLockCalls, expectedLocked,
+			syncUnlockCalls, expectedUnlocked,
+			syncLocked, expectedMap,
+		)
+	}
+}
+
+func TestDuplicateWriteLockUnlock(t *testing.T) {
+	resetSync()
+
+	expectedMap := map[string]LockType{}
+	expectedLocked := []LockNeed{
+		{WriteLockType, "1"},
+	}
+	expectedUnlocked := []LockNeed{
+		{WriteLockType, "1"},
+	}
+
+	reader := readerFunctor([]memstore.Item{
+		&testLocker{"1"},
+	})
+
+	lockNeeds := []LockNeed{
+		{WriteLockType, "1"},
+		{WriteLockType, "1"},
+	}
+	Lock(reader, lockNeeds)
+	Unlock(reader, lockNeeds)
+
+	if !checkFlags(t) {
+		return
+	}
+
+	if !reflect.DeepEqual(syncLockCalls, expectedLocked) || !reflect.DeepEqual(syncUnlockCalls, expectedUnlocked) ||
+		!reflect.DeepEqual(syncLocked, expectedMap) {
+		t.Errorf("Read lock/unlock failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
+			syncLockCalls, expectedLocked,
+			syncUnlockCalls, expectedUnlocked,
+			syncLocked, expectedMap,
+		)
+	}
+}
+
+func TestDuplicateReadUnlock(t *testing.T) {
+	resetSync()
+
+	expectedMap := map[string]LockType{}
+	expectedLocked := []LockNeed{
+		{ReadLockType, "1"},
+	}
+	expectedUnlocked := []LockNeed{
+		{ReadLockType, "1"},
+	}
+
+	reader := readerFunctor([]memstore.Item{
+		&testLocker{"1"},
+	})
+
+	lockNeeds := []LockNeed{
+		{ReadLockType, "1"},
+		{ReadLockType, "1"},
+	}
+	Lock(reader, lockNeeds)
+	Unlock(reader, lockNeeds)
+
+	if !checkFlags(t) {
+		return
+	}
+
+	if !reflect.DeepEqual(syncLockCalls, expectedLocked) || !reflect.DeepEqual(syncUnlockCalls, expectedUnlocked) ||
+		!reflect.DeepEqual(syncLocked, expectedMap) {
+		t.Errorf("Read lock/unlock failed, results:\n locked: %v\n expectedLocked: %v\n unlocked: %v\n expectedUnlocked: %v\n initialMap: %v\n expectedMap: %v\n",
+			syncLockCalls, expectedLocked,
+			syncUnlockCalls, expectedUnlocked,
+			syncLocked, expectedMap,
+		)
 	}
 }
